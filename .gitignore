@@ -1,0 +1,13 @@
+/*/obj
+/*/bin
+/*/output
+
+*.log
+*.user
+/.idea
+/.vs
+/.vscode
+
+.DS_Store
+
+/packages/*

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>ModernUO.SerializationGenerator</id>
+    <version>1.0.2</version>
+    <authors>Kamron Batman</authors>
+    <owners>Kamron Batman</owners>
+    <license type="expression">GPL-3.0-or-later</license>
+    <projectUrl>https://github.com/modernuo/SerializationGenerator</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Serialization Generator for ModernUO</description>
+    <copyright>Copyright 2021</copyright>
+  </metadata>
+</package>
