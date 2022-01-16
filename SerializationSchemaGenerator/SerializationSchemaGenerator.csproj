@@ -3,17 +3,17 @@
         <TargetFramework>net6.0</TargetFramework>
         <LangVersion>preview</LangVersion>
         <OutputType>Exe</OutputType>
-        <OutDir>Output</OutDir>
+        <AssemblyVersion>1.0.2</AssemblyVersion>
+        <PackageVersion>1.0.2</PackageVersion>
+        <PackAsTool>true</PackAsTool>
+        <AssemblyName>ModernUOSchemaGenerator</AssemblyName>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup>
-<!--        <PackageReference Include="Humanizer.Core" Version="2.13.14" />-->
         <PackageReference Include="Microsoft.Build.Locator" Version="1.4.1" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.0.1" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.0.1" />
-        <PackageReference Include="ModernUO.SerializationGenerator" Version="1.0.2" />
-<!--        <PackageReference Include="System.Text.Json" Version="6.0.0" />-->
-<!--        <PackageReference Include="System.Text.Encodings.Web" Version="6.0.0" />-->
-<!--        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />-->
+        <ProjectReference Include="../SerializationGenerator/SerializationGenerator.csproj" />
     </ItemGroup>
 </Project>
