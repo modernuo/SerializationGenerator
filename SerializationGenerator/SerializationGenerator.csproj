@@ -11,8 +11,8 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3" PrivateAssets="all" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.0.1" />
-        <PackageReference Include="Humanizer.Core" Version="2.13.14" />
-        <PackageReference Include="System.Text.Json" Version="6.0.0" />
+        <PackageReference Include="Humanizer.Core" Version="2.13.14" GeneratePathProperty="true" PrivateAssets="all" />
+        <PackageReference Include="System.Text.Json" Version="6.0.0" GeneratePathProperty="true" PrivateAssets="all" />
 
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
         <None Include="$(PKGHumanizer_Core)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
