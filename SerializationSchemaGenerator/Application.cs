@@ -29,7 +29,7 @@ public static class Application
     {
         if (args.Length < 1)
         {
-            throw new ArgumentException("Usage: dotnet SerializationSchemaGenerator.dll <path to solution>");
+            throw new ArgumentException("Usage: SerializationSchemaGenerator <path to solution>");
         }
 
         var solutionPath = args[0];
