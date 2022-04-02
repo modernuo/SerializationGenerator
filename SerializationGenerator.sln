@@ -1,8 +1,10 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SerializationGenerator", "SerializationGenerator\SerializationGenerator.csproj", "{F3D9ABA1-44C4-48D6-A0BC-EE2AC00340CE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernUO.Serialization.Generator", "ModernUO.Serialization.Generator\ModernUO.Serialization.Generator.csproj", "{F3D9ABA1-44C4-48D6-A0BC-EE2AC00340CE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SerializationSchemaGenerator", "SerializationSchemaGenerator\SerializationSchemaGenerator.csproj", "{BB6B4E79-ADCB-4E98-A17B-31F37D005DA6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernUO.Serialization.SchemaGenerator", "ModernUO.Serialization.SchemaGenerator\ModernUO.Serialization.SchemaGenerator.csproj", "{BB6B4E79-ADCB-4E98-A17B-31F37D005DA6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernUO.Serialization.Annotations", "ModernUO.Serialization.Annotations\ModernUO.Serialization.Annotations.csproj", "{319F65B0-4460-40D3-BF6A-5A55B4FA07E4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +20,9 @@ Global
 		{BB6B4E79-ADCB-4E98-A17B-31F37D005DA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB6B4E79-ADCB-4E98-A17B-31F37D005DA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB6B4E79-ADCB-4E98-A17B-31F37D005DA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{319F65B0-4460-40D3-BF6A-5A55B4FA07E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{319F65B0-4460-40D3-BF6A-5A55B4FA07E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{319F65B0-4460-40D3-BF6A-5A55B4FA07E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{319F65B0-4460-40D3-BF6A-5A55B4FA07E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
