@@ -65,7 +65,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         var classesWithMigrationsAndFields = serializableClasses
             .Combine(migrationFiles)
             .Select(TransformToClassMigrationPairs)
-            .Combine(serializableFields.Merge(serializableFields).Collect())
+            .Combine(serializableFields.Merge(serializableProperties).Collect())
             .Select(
                 (tuple, token) =>
                 {
