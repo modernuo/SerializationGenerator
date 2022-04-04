@@ -2,7 +2,7 @@
  * ModernUO                                                              *
  * Copyright 2019-2022 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: RawSerializableMigrationRule.cs                                 *
+ * File: SerializationMethodSignatureMigrationRule.cs                    *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -35,19 +35,31 @@ public class RawSerializableMigrationRule : MigrationRule
         out string[] ruleArguments
     )
     {
-        if (symbol is not ITypeSymbol typeSymbol)
+        if (symbol is not INamedTypeSymbol namedTypeSymbol)
         {
             ruleArguments = null;
             return false;
         }
 
-        if (!typeSymbol.HasRawSerializableInterface(compilation, embeddedSerializableTypes))
+        if (!namedTypeSymbol.HasPublicSerializeMethod(compilation))
         {
             ruleArguments = null;
             return false;
         }
 
-        ruleArguments = new[] { "" };
+        if (!namedTypeSymbol.HasPublicDeserializeMethod(compilation))
+        {
+            ruleArguments = null;
+            return false;
+        }
+
+        if (!namedTypeSymbol.TryGetEmptyOrParentCtor(parentSymbol, out var requiresParent))
+        {
+            ruleArguments = null;
+            return false;
+        }
+
+        ruleArguments = new[] { requiresParent ? "DeserializationRequiresParent" : "" };
         return true;
     }
 
@@ -63,7 +75,10 @@ public class RawSerializableMigrationRule : MigrationRule
         }
 
         var propertyName = property.Name;
-        source.AppendLine($"{indent}{propertyName} = new {property.Type}({parentReference ?? "this"});");
+        var argument = property.RuleArguments?.Length >= 1 &&
+                       property.RuleArguments[0] == "DeserializationRequiresParent" ? ", this" : "";
+
+        source.AppendLine($"{indent}{propertyName} = new {property.Type}({argument});");
         source.AppendLine($"{indent}{propertyName}.Deserialize(reader);");
     }
 

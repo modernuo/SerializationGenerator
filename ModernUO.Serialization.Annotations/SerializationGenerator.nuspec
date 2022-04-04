@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>ModernUO.Serialization.Annotations</id>
-    <version>1.0.5</version>
+    <version>2.0.0</version>
     <authors>Kamron Batman</authors>
     <owners>Kamron Batman</owners>
     <license type="expression">GPL-3.0-or-later</license>

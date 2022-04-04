@@ -94,6 +94,24 @@ public static partial class SymbolMetadata
         symbol is INamedTypeSymbol namedSymbol &&
         symbols.Contains(namedSymbol, SymbolEqualityComparer.Default) || symbols.Contains(symbol?.BaseType);
 
+    public static bool TryGetEmptyOrParentCtor(
+        this INamedTypeSymbol symbol,
+        ISymbol? parentSymbol,
+        out bool requiresParent
+    )
+    {
+        var genericCtor = symbol.Constructors.FirstOrDefault(
+            m => !m.IsStatic &&
+                 m.MethodKind == MethodKind.Constructor &&
+                 (m.Parameters.Length == 0 ||
+                  m.Parameters.Length == 1 &&
+                  SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, parentSymbol))
+        );
+
+        requiresParent = genericCtor?.Parameters.Length == 1;
+        return genericCtor != null;
+    }
+
     public static bool HasGenericReaderCtor(
         this INamedTypeSymbol symbol,
         Compilation compilation,
@@ -116,8 +134,7 @@ public static partial class SymbolMetadata
 
     public static bool HasPublicSerializeMethod(
         this ITypeSymbol symbol,
-        Compilation compilation,
-        ImmutableArray<INamedTypeSymbol> serializableTypes
+        Compilation compilation
     )
     {
         var genericWriterInterface = compilation.GetTypeByMetadataName(GENERIC_WRITER_INTERFACE);
@@ -134,8 +151,7 @@ public static partial class SymbolMetadata
 
     public static bool HasPublicDeserializeMethod(
         this ITypeSymbol symbol,
-        Compilation compilation,
-        ImmutableArray<INamedTypeSymbol> serializableTypes
+        Compilation compilation
     )
     {
         var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
@@ -199,6 +215,20 @@ public static partial class SymbolMetadata
                 ad => ad.AttributeClass != null && SymbolEqualityComparer.Default.Equals(ad.AttributeClass, attrSymbol)
             );
 
+    public static bool HasSerializableInterface(this INamedTypeSymbol classSymbol, Compilation compilation) =>
+        classSymbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
+
+    public static bool TryGetSerializable(
+        this INamedTypeSymbol classSymbol, Compilation compilation, out AttributeData? attributeData
+    )
+    {
+        var serializableEntityAttribute =
+            compilation.GetTypeByMetadataName(SERIALIZABLE_ATTRIBUTE);
+
+        attributeData = classSymbol.GetAttribute(serializableEntityAttribute);
+        return attributeData != null;
+    }
+
     public static bool IsSerializableClass(this INamedTypeSymbol classSymbol, Compilation compilation, out AttributeData? attributeData)
     {
         var serializableInterface = compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE);
@@ -222,6 +252,17 @@ public static partial class SymbolMetadata
             compilation.GetTypeByMetadataName(EMBEDDED_SERIALIZABLE_ATTRIBUTE);
 
         attributeData = classSymbol.GetAttribute(embeddedSerializableEntityAttribute);
+        return attributeData != null;
+    }
+
+    public static bool TryGetSerializableField(
+        this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
+    )
+    {
+        var serializableFieldAttribute =
+            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE);
+
+        attributeData = fieldSymbol.GetAttribute(serializableFieldAttribute);
         return attributeData != null;
     }
 }

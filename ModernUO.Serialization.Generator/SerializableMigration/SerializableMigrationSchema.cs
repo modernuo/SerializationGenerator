@@ -26,8 +26,10 @@ namespace SerializableMigration;
 
 public static class SerializableMigrationSchema
 {
+    private static JsonSerializerOptions defaultSerializerOptions;
+
     public static JsonSerializerOptions GetJsonSerializerOptions() =>
-        new()
+        defaultSerializerOptions ??= new JsonSerializerOptions
         {
             WriteIndented = true,
             AllowTrailingCommas = true,
@@ -38,7 +40,7 @@ public static class SerializableMigrationSchema
     private static Dictionary<string, SerializableMetadata> _cache = new();
 
     // <ClassName>.v*.json
-    private static readonly Regex _fileRegex = new(@"^\S+\.v\d+\.json$", RegexOptions.Compiled);
+    public static readonly Regex MigrationFileRegex = new(@"^(\S+)\.[vV](\d+)\.json$", RegexOptions.Compiled);
 
     public static List<SerializableMetadata> GetMigrations(
         INamedTypeSymbol typeSymbol,
@@ -84,7 +86,7 @@ public static class SerializableMigrationSchema
         foreach (var additionalText in context.AdditionalFiles)
         {
             var fi = new FileInfo(additionalText.Path);
-            if (!_fileRegex.IsMatch(fi.Name))
+            if (!MigrationFileRegex.IsMatch(fi.Name))
             {
                 continue;
             }

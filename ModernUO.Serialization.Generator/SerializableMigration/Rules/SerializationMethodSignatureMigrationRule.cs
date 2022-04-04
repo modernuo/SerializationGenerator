@@ -35,7 +35,7 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
         out string[] ruleArguments
     )
     {
-        if ((symbol as ITypeSymbol)?.HasPublicSerializeMethod(compilation, serializableTypes) != true)
+        if ((symbol as ITypeSymbol)?.HasPublicSerializeMethod(compilation) != true)
         {
             ruleArguments = null;
             return false;

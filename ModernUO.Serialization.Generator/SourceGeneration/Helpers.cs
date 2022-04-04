@@ -13,11 +13,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace SerializationGenerator;
 
@@ -61,4 +64,82 @@ public static class Helpers
             classSymbol,
             SymbolEqualityComparer.Default
         ) || symbol != null && CanBeConstructedFrom(symbol.BaseType, classSymbol);
+
+    public static bool IsSyntaxNode<T>(this SyntaxNode node, CancellationToken token) where T : MemberDeclarationSyntax
+    {
+        token.ThrowIfCancellationRequested();
+        return node is T { AttributeLists.Count: > 0 };
+    }
+
+    public static IncrementalValuesProvider<T> Flatten<T>(this IncrementalValuesProvider<ImmutableArray<T>> source) =>
+        source.SelectMany(
+            (array, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                return array;
+            }
+        );
+
+    public static IncrementalValuesProvider<T> RemoveNulls<T>(this IncrementalValuesProvider<T?> source) where T : struct =>
+        source
+            .Where(t => t.HasValue)
+            .Select(
+                (t, token) =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    return (T)Convert.ChangeType(t, typeof(T));
+                }
+            );
+
+    public static IncrementalValuesProvider<T> Merge<T>(
+        this IncrementalValuesProvider<T> left, IncrementalValuesProvider<T> right
+    ) => left
+        .Collect()
+        .Combine(right.Collect())
+        .SelectMany(SelectMerge);
+
+    private static ImmutableArray<T> SelectMerge<T>((ImmutableArray<T>, ImmutableArray<T>) combined, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        var (left, right) = combined;
+        var builder = ImmutableArray.CreateBuilder<T>();
+        builder.AddRange(left);
+        builder.AddRange(right);
+
+        return builder.ToImmutableArray();
+    }
+
+    public static bool TryGetRootParentSyntax<T>(this SyntaxNode syntaxNode, out T result) where T : SyntaxNode
+    {
+        // set defaults
+        result = null;
+
+        if (syntaxNode == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            syntaxNode = syntaxNode.Parent;
+
+            if (syntaxNode == null)
+            {
+                return false;
+            }
+
+            if (syntaxNode.GetType() == typeof (T))
+            {
+                result = syntaxNode as T;
+                return true;
+            }
+
+            return TryGetRootParentSyntax(syntaxNode, out result);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
