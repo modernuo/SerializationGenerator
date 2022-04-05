@@ -55,6 +55,10 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             )
             .RemoveNulls();
 
+        var serializableFieldsAndProperties = serializableFields
+            .Merge(serializableProperties)
+            .Collect();
+
         // Gather all migration JSON files and organize them by file name (namespace/class) and version.
         var migrationFiles = context
             .AdditionalTextsProvider
@@ -65,7 +69,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         var classesWithMigrationsAndFields = serializableClasses
             .Combine(migrationFiles)
             .Select(TransformToClassMigrationPairs)
-            .Combine(serializableFields.Merge(serializableProperties).Collect())
+            .Combine(serializableFieldsAndProperties)
             .Select(
                 (tuple, token) =>
                 {
@@ -76,7 +80,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             );
 
         // Generate source code
-        context.RegisterSourceOutput(classesWithMigrationsAndFields, ExecuteIncremental);
+        context.RegisterSourceOutput(classesWithMigrationsAndFields.Combine(context.CompilationProvider), ExecuteIncremental);
     }
 
     private static (ISymbol, AttributeData)? GetSerializablePropertyDeclaration(
@@ -127,9 +131,9 @@ public class EntitySerializationGenerator : IIncrementalGenerator
     }
 
     private static
-        (INamedTypeSymbol, AttributeData, Dictionary<int, AdditionalText>?)
+        (INamedTypeSymbol, AttributeData, ImmutableDictionary<int, AdditionalText>)
         TransformToClassMigrationPairs(
-            ((INamedTypeSymbol, AttributeData), Dictionary<string, Dictionary<int, AdditionalText>>) pair,
+            ((INamedTypeSymbol, AttributeData), ImmutableDictionary<string, Dictionary<int, AdditionalText>>) pair,
             CancellationToken token
         )
     {
@@ -141,10 +145,10 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         var className = $"{namespaceName}.{classSymbol.Name}";
         additionalTexts.TryGetValue(className, out var migrations);
 
-        return (classSymbol, attributeData, migrations);
+        return (classSymbol, attributeData, migrations?.ToImmutableDictionary() ?? ImmutableDictionary<int, AdditionalText>.Empty);
     }
 
-    private static Dictionary<string, Dictionary<int, AdditionalText>> ToMigrationFileSet(
+    private static ImmutableDictionary<string, Dictionary<int, AdditionalText>> ToMigrationFileSet(
         ImmutableArray<AdditionalText> additionalTexts,
         CancellationToken token
     )
@@ -158,15 +162,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             token.ThrowIfCancellationRequested();
 
             var path = additionalText.Path;
-            var fileName = Path.GetFileNameWithoutExtension(path);
-            var regexMatch = SerializableMigrationSchema.MigrationFileRegex.Match(fileName);
-            if (!regexMatch.Success)
-            {
-                continue;
-            }
-
-            var className = regexMatch.Captures[0].Value;
-            if (!int.TryParse(regexMatch.Captures[1].Value, out var version))
+            var fileName = Path.GetFileName(path);
+            if (!SerializableMigrationSchema.MatchMigrationFilename(fileName, out var className, out var version))
             {
                 continue;
             }
@@ -175,7 +172,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             classMigrationSet[version] = additionalText;
         }
 
-        return dictionary;
+        return dictionary.ToImmutableDictionary();
     }
 
     private static (INamedTypeSymbol, AttributeData)? GetSerializableClassDeclaration(
@@ -197,19 +194,22 @@ public class EntitySerializationGenerator : IIncrementalGenerator
 
     private void ExecuteIncremental(
         SourceProductionContext context,
-        (INamedTypeSymbol, AttributeData, Dictionary<int, AdditionalText>?, ImmutableArray<(ISymbol, AttributeData)>) combinedClassData
+        ((INamedTypeSymbol classSymbol, AttributeData serializableAttribute, ImmutableDictionary<int, AdditionalText> migrations,
+            ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties) classData,
+        Compilation compilation) combined
     )
     {
-        var (classSymbol, attributeData, migrations, fields) = combinedClassData;
+        var ((classSymbol, serializableAttribute, migrations, fieldsAndProperties), compilation) = combined;
         context.CancellationToken.ThrowIfCancellationRequested();
         var jsonOptions = SerializableMigrationSchema.GetJsonSerializerOptions();
 
-        string classSource = context.GenerateSerializationPartialClass(
+        string classSource = compilation.GenerateSerializationPartialClass(
             classSymbol,
-            attributeData,
+            serializableAttribute,
             jsonOptions,
-            serializableList,
-            embeddedSerializableList
+            migrations,
+            fieldsAndProperties,
+            context.CancellationToken
         );
 
         if (classSource != null)

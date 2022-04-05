@@ -20,6 +20,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using SerializableMigration;
 
@@ -28,68 +29,30 @@ namespace SerializationGenerator;
 public static partial class SerializableEntityGeneration
 {
     public static string GenerateSerializationPartialClass(
-        this GeneratorExecutionContext context,
-        INamedTypeSymbol classSymbol,
-        AttributeData serializableAttr,
-        bool embedded,
-        ImmutableArray<ISymbol> fieldsAndProperties,
-        JsonSerializerOptions jsonSerializerOptions,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes
-    )
-    {
-        var version = (int)serializableAttr.ConstructorArguments[0].Value!;
-
-        var migrations = context.GetMigrationsByAnalyzerConfig(
-            classSymbol,
-            version,
-            jsonSerializerOptions
-        );
-
-        return context.Compilation.GenerateSerializationPartialClass(
-            classSymbol,
-            serializableAttr,
-            null, // Do not generate schema
-            embedded,
-            null,
-            migrations.ToImmutableArray(),
-            fieldsAndProperties,
-            serializableTypes,
-            embeddedSerializableTypes
-        );
-    }
-
-    public static string GenerateSerializationPartialClass(
         this Compilation compilation,
         INamedTypeSymbol classSymbol,
         AttributeData serializableAttr,
-        string? migrationPath,
-        bool embedded,
         JsonSerializerOptions? jsonSerializerOptions,
-        ImmutableArray<ISymbol> fieldsAndProperties,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes
+        ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
+        CancellationToken token,
+        string? migrationPath
     )
     {
-        var version = (int)serializableAttr.ConstructorArguments[0].Value!;
+        token.ThrowIfCancellationRequested();
 
         var migrations = SerializableMigrationSchema.GetMigrations(
             classSymbol,
-            version,
-            migrationPath,
-            jsonSerializerOptions
+            migrationPath
         );
 
         return compilation.GenerateSerializationPartialClass(
             classSymbol,
             serializableAttr,
-            migrationPath,
-            embedded,
             jsonSerializerOptions,
-            migrations.ToImmutableArray(),
+            migrations,
             fieldsAndProperties,
-            serializableTypes,
-            embeddedSerializableTypes
+            token,
+            migrationPath
         );
     }
 
@@ -97,15 +60,15 @@ public static partial class SerializableEntityGeneration
         this Compilation compilation,
         INamedTypeSymbol classSymbol,
         AttributeData serializableAttr,
-        string? migrationPath,
-        bool embedded,
         JsonSerializerOptions? jsonSerializerOptions,
-        ImmutableArray<SerializableMetadata> migrations,
-        ImmutableArray<ISymbol> fieldsAndProperties,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes
+        ImmutableDictionary<int, AdditionalText> migrations,
+        ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
+        CancellationToken token,
+        string? migrationPath = null
     )
     {
+        token.ThrowIfCancellationRequested();
+
         var serializableFieldAttribute =
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE);
         var serializableFieldAttrAttribute =

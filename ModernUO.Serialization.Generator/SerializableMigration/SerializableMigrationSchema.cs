@@ -14,13 +14,15 @@
  *************************************************************************/
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
+using SerializationGenerator;
 
 namespace SerializableMigration;
 
@@ -37,78 +39,79 @@ public static class SerializableMigrationSchema
             ReadCommentHandling = JsonCommentHandling.Skip
         };
 
-    private static Dictionary<string, SerializableMetadata> _cache = new();
-
     // <ClassName>.v*.json
     public static readonly Regex MigrationFileRegex = new(@"^(\S+)\.[vV](\d+)\.json$", RegexOptions.Compiled);
 
-    public static List<SerializableMetadata> GetMigrations(
-        INamedTypeSymbol typeSymbol,
-        int version,
-        string migrationPath,
-        JsonSerializerOptions options
-    )
+    public static bool MatchMigrationFilename(string fileName, out string className, out int version)
     {
-        var typeName = typeSymbol.ToDisplayString();
-        var migrations = new SortedSet<SerializableMetadata>(new SerializableMetadataComparer());
+        var regexMatch = MigrationFileRegex.Match(fileName);
+        if (!regexMatch.Success)
+        {
+            className = "";
+            version = -1;
+            return false;
+        }
 
-        var migrationFiles = Directory.GetFiles(migrationPath, $"{typeName}.v*.json");
+        className = regexMatch.Captures[0].Value;
+        return int.TryParse(regexMatch.Captures[1].Value, out version);
+    }
+
+    // Used during schema migration which is not incremental
+    private static ImmutableDictionary<string, ImmutableDictionary<int, AdditionalText>>? _cache = null;
+
+    public static ImmutableDictionary<int, AdditionalText> GetMigrations(INamedTypeSymbol classSymbol, string migrationPath)
+    {
+        GetMigrations(migrationPath);
+
+        return _cache!.TryGetValue(classSymbol.ToDisplayString(), out var additionalTexts)
+            ? additionalTexts
+            : ImmutableDictionary<int, AdditionalText>.Empty;
+    }
+
+    private static void GetMigrations(string migrationPath)
+    {
+        if (_cache != null)
+        {
+            return;
+        }
+
+        var migrationFilesByClass = new Dictionary<string, List<(int, string)>>();
+
+        var migrationFiles = Directory.GetFiles(migrationPath, "*.v*.json");
 
         foreach (var file in migrationFiles)
         {
-            var fi = new FileInfo(file);
-            if (!_cache.TryGetValue(fi.Name, out var migration))
-            {
-                var text = File.ReadAllText(file, Encoding.UTF8);
-                migration = JsonSerializer.Deserialize<SerializableMetadata>(text, options);
-                _cache[fi.Name] = migration;
-            }
-
-            if (typeName == migration!.Type && version > migration.Version)
-            {
-                migrations.Add(migration);
-            }
-        }
-
-        return migrations.ToList();
-    }
-
-    public static List<SerializableMetadata> GetMigrationsByAnalyzerConfig(
-        this GeneratorExecutionContext context,
-        INamedTypeSymbol typeSymbol,
-        int version,
-        JsonSerializerOptions options
-    )
-    {
-        var typeName = typeSymbol.ToDisplayString();
-        var migrations = new SortedSet<SerializableMetadata>(new SerializableMetadataComparer());
-
-        foreach (var additionalText in context.AdditionalFiles)
-        {
-            var fi = new FileInfo(additionalText.Path);
-            if (!MigrationFileRegex.IsMatch(fi.Name))
+            var fileName = Path.GetFileName(file);
+            if (!MatchMigrationFilename(fileName, out var className, out var version))
             {
                 continue;
             }
 
-            if (!_cache.TryGetValue(fi.Name, out var migration))
+            if (migrationFilesByClass.TryGetValue(className, out var fileList))
             {
-                var text = additionalText.GetText(context.CancellationToken)?.ToString();
-                if (text == null)
-                {
-                    continue;
-                }
-
-                migration = JsonSerializer.Deserialize<SerializableMetadata>(text, options);
-                _cache[fi.Name] = migration;
+                fileList.Add((version, file));
             }
-
-            if (typeName == migration!.Type && version > migration.Version)
+            else
             {
-                migrations.Add(migration);
+                migrationFilesByClass[className] = new List<(int, string)> { (version, file) };
             }
         }
 
-        return migrations.ToList();
+        var cacheBuilder = ImmutableDictionary.CreateBuilder<string, ImmutableDictionary<int, AdditionalText>>();
+
+        foreach (var (className, fileList) in migrationFilesByClass)
+        {
+            var additionalTextBuilder = ImmutableDictionary.CreateBuilder<int, AdditionalText>();
+            foreach (var (version, file) in fileList)
+            {
+                var sourceText = SourceText.From(File.ReadAllText(file), Encoding.UTF8);
+                var additionalText = new AdditionalTextSchemaFile(file, sourceText);
+                additionalTextBuilder[version] = additionalText;
+            }
+
+            cacheBuilder[className] = additionalTextBuilder.ToImmutable();
+        }
+
+        _cache = cacheBuilder.ToImmutable();
     }
 }
