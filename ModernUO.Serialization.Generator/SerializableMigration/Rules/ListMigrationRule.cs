@@ -30,8 +30,6 @@ public class ListMigrationRule : MigrationRule
         Compilation compilation,
         ISymbol symbol,
         ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes,
         ISymbol? parentSymbol,
         out string[] ruleArguments
     )
@@ -50,8 +48,6 @@ public class ListMigrationRule : MigrationRule
             listTypeSymbol,
             0,
             attributes,
-            serializableTypes,
-            embeddedSerializableTypes,
             parentSymbol,
             null
         );

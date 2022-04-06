@@ -30,8 +30,6 @@ public class DictionaryMigrationRule : MigrationRule
         Compilation compilation,
         ISymbol symbol,
         ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes,
         ISymbol? parentSymbol,
         out string[] ruleArguments
     )
@@ -50,8 +48,6 @@ public class DictionaryMigrationRule : MigrationRule
             keySymbolType,
             0,
             attributes,
-            serializableTypes,
-            embeddedSerializableTypes,
             parentSymbol,
             null
         );
@@ -64,8 +60,6 @@ public class DictionaryMigrationRule : MigrationRule
             valueSymbolType,
             0,
             attributes,
-            serializableTypes,
-            embeddedSerializableTypes,
             parentSymbol,
             null
         );

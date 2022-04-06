@@ -29,13 +29,11 @@ public class SerializableInterfaceMigrationRule : MigrationRule
         Compilation compilation,
         ISymbol symbol,
         ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes,
         ISymbol? parentSymbol,
         out string[] ruleArguments
     )
     {
-        if (symbol is ITypeSymbol typeSymbol && typeSymbol.HasSerializableInterface(compilation, serializableTypes))
+        if (symbol is ITypeSymbol typeSymbol && typeSymbol.HasSerializableInterface(compilation))
         {
             ruleArguments = Array.Empty<string>();
             return true;

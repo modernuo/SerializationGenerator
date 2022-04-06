@@ -54,8 +54,6 @@ public static class SerializableMigrationRulesEngine
         ISymbol fieldOrPropertySymbol,
         int order,
         ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes,
         ISymbol? parentSymbol,
         SerializableFieldSaveFlagMethods? serializableFieldSaveFlagMethods
     )
@@ -84,8 +82,6 @@ public static class SerializableMigrationRulesEngine
             propertyType,
             order,
             attributes,
-            serializableTypes,
-            embeddedSerializableTypes,
             parentSymbol,
             serializableFieldSaveFlagMethods
         );
@@ -97,8 +93,6 @@ public static class SerializableMigrationRulesEngine
         ISymbol propertyType,
         int order,
         ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes,
         ISymbol? parentSymbol,
         SerializableFieldSaveFlagMethods? serializableFieldSaveFlagMethods
     )
@@ -109,8 +103,6 @@ public static class SerializableMigrationRulesEngine
                     compilation,
                     propertyType,
                     attributes,
-                    serializableTypes,
-                    embeddedSerializableTypes,
                     parentSymbol,
                     out var ruleArguments
                 ))

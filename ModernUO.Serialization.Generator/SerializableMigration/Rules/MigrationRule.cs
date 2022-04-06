@@ -24,8 +24,7 @@ public abstract class MigrationRule : ISerializableMigrationRule
 
     public abstract bool GenerateRuleState(
         Compilation compilation, ISymbol symbol, ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes, ISymbol? parentSymbol, out string[] ruleArguments
+        ISymbol? parentSymbol, out string[] ruleArguments
     );
 
     public abstract void GenerateDeserializationMethod(

@@ -28,8 +28,6 @@ public class ArrayMigrationRule : MigrationRule
         Compilation compilation,
         ISymbol symbol,
         ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes,
         ISymbol? parentSymbol,
         out string[] ruleArguments
     )
@@ -46,8 +44,6 @@ public class ArrayMigrationRule : MigrationRule
             arrayTypeSymbol.ElementType,
             0,
             attributes,
-            serializableTypes,
-            embeddedSerializableTypes,
             parentSymbol,
             null
         );

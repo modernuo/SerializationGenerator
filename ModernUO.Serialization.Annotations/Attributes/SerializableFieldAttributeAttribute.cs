@@ -34,7 +34,7 @@ public sealed class SerializableFieldAttrAttribute : Attribute
 
     public SerializableFieldAttrAttribute(Type type, params object[] args)
     {
-        if (typeof(Attribute).IsAssignableFrom(type))
+        if (!typeof(Attribute).IsAssignableFrom(type))
         {
             throw new ArgumentException($"Argument {nameof(type)} must be an attribute.");
         }

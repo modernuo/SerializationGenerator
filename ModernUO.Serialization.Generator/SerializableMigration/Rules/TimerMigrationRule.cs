@@ -30,8 +30,6 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
         Compilation compilation,
         ISymbol symbol,
         ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes,
         ISymbol? parentSymbol,
         out string[] ruleArguments
     )

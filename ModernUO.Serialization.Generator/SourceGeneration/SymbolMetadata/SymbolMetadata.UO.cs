@@ -24,7 +24,6 @@ public static partial class SymbolMetadata
     public const string INVALIDATEPROPERTIES_ATTRIBUTE = "Server.InvalidatePropertiesAttribute";
     public const string AFTERDESERIALIZATION_ATTRIBUTE = "Server.AfterDeserializationAttribute";
     public const string SERIALIZABLE_ATTRIBUTE = "Server.SerializableAttribute";
-    public const string EMBEDDED_SERIALIZABLE_ATTRIBUTE = "Server.EmbeddedSerializableAttribute";
     public const string SERIALIZABLE_PARENT_ATTRIBUTE = "Server.SerializableParentAttribute";
     public const string SERIALIZABLE_FIELD_ATTRIBUTE = "Server.SerializableFieldAttribute";
     public const string SERIALIZABLE_FIELD_ATTR_ATTRIBUTE = "Server.SerializableFieldAttrAttribute";
@@ -46,7 +45,6 @@ public static partial class SymbolMetadata
     public const string DESERIALIZE_TIMER_FIELD_ATTRIBUTE = "Server.DeserializeTimerFieldAttribute";
     public const string SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE = "Server.SerializableFieldSaveFlagAttribute";
     public const string SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE = "Server.SerializableFieldDefaultAttribute";
-    public const string RAW_SERIALIZABLE_INTERFACE = "Server.IRawSerializable";
     // ModernUO modified BitArray
     public const string SERVER_BITARRAY_CLASS = "Server.Collections.BitArray";
 
@@ -76,19 +74,8 @@ public static partial class SymbolMetadata
 
     public static bool HasSerializableInterface(
         this ITypeSymbol symbol,
-        Compilation compilation,
-        ImmutableArray<INamedTypeSymbol> serializableTypes
-    ) =>
-        symbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE)) ||
-        serializableTypes.Contains(symbol);
-
-    public static bool HasRawSerializableInterface(
-        this ITypeSymbol symbol,
-        Compilation compilation,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes
-    ) =>
-        symbol.ContainsInterface(compilation.GetTypeByMetadataName(RAW_SERIALIZABLE_INTERFACE)) ||
-        embeddedSerializableTypes.Contains(symbol);
+        Compilation compilation
+    ) => symbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
 
     public static bool Contains(this ImmutableArray<INamedTypeSymbol> symbols, ITypeSymbol? symbol) =>
         symbol is INamedTypeSymbol namedSymbol &&
@@ -229,40 +216,27 @@ public static partial class SymbolMetadata
         return attributeData != null;
     }
 
-    public static bool IsSerializableClass(this INamedTypeSymbol classSymbol, Compilation compilation, out AttributeData? attributeData)
+    public static bool TryGetFieldWithAttribute(
+        this ISymbol symbol, INamedTypeSymbol attributeSymbol, out AttributeData? attributeData
+    )
     {
-        var serializableInterface = compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE);
-
-        if (!classSymbol.ContainsInterface(serializableInterface))
-        {
-            attributeData = null;
-            return false;
-        }
-
-        var serializableEntityAttribute =
-            compilation.GetTypeByMetadataName(SERIALIZABLE_ATTRIBUTE);
-
-        attributeData = classSymbol.GetAttribute(serializableEntityAttribute);
-        return attributeData != null;
-    }
-
-    public static bool IsEmbeddedSerializable(this INamedTypeSymbol classSymbol, Compilation compilation, out AttributeData? attributeData)
-    {
-        var embeddedSerializableEntityAttribute =
-            compilation.GetTypeByMetadataName(EMBEDDED_SERIALIZABLE_ATTRIBUTE);
-
-        attributeData = classSymbol.GetAttribute(embeddedSerializableEntityAttribute);
+        attributeData = symbol.GetAttribute(attributeSymbol);
         return attributeData != null;
     }
 
     public static bool TryGetSerializableField(
         this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
-    )
-    {
-        var serializableFieldAttribute =
-            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE);
+    ) =>
+        fieldSymbol.TryGetFieldWithAttribute(
+            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE),
+            out attributeData
+        );
 
-        attributeData = fieldSymbol.GetAttribute(serializableFieldAttribute);
-        return attributeData != null;
-    }
+    public static bool TryGetSerializableParentField(
+        this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
+    ) =>
+        fieldSymbol.TryGetFieldWithAttribute(
+            compilation.GetTypeByMetadataName(SERIALIZABLE_PARENT_ATTRIBUTE),
+            out attributeData
+        );
 }

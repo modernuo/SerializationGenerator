@@ -73,8 +73,6 @@ public static partial class SerializableEntityGeneration
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE);
         var serializableFieldAttrAttribute =
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTR_ATTRIBUTE);
-        var serializableInterface =
-            compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_INTERFACE);
         var parentSerializableAttribute =
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_PARENT_ATTRIBUTE);
         var serializableFieldSaveFlagAttribute =
@@ -83,14 +81,8 @@ public static partial class SerializableEntityGeneration
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE);
 
         // If we have a parent that is or derives from ISerializable, then we are in override
-        var isOverride = classSymbol.BaseType.ContainsInterface(serializableInterface);
-
-        if (!(embedded || isOverride || classSymbol.ContainsInterface(serializableInterface)))
-        {
-            return null;
-        }
-
-        var isRawSerializable = classSymbol.HasRawSerializableInterface(compilation, ImmutableArray<INamedTypeSymbol>.Empty);
+        var isOverride = classSymbol.BaseType.HasSerializableInterface(compilation);
+        var isSerializable = classSymbol.HasSerializableInterface(compilation);
 
         var version = (int)serializableAttr.ConstructorArguments[0].Value!;
         var encodedVersion = (bool)serializableAttr.ConstructorArguments[1].Value!;
@@ -127,13 +119,9 @@ public static partial class SerializableEntityGeneration
         source.AppendLine("#pragma warning disable\n");
         source.GenerateNamespaceStart(namespaceName);
 
-        var interfaces = !embedded || isRawSerializable
-            ? Array.Empty<ITypeSymbol>()
-            : new ITypeSymbol[] { compilation.GetTypeByMetadataName(SymbolMetadata.RAW_SERIALIZABLE_INTERFACE) };
-
         var indent = "    ";
 
-        source.RecursiveGenerateClassStart(classSymbol, interfaces.ToImmutableArray(), ref indent);
+        source.RecursiveGenerateClassStart(classSymbol, ImmutableArray<ITypeSymbol>.Empty, ref indent);
 
         source.GenerateClassField(
             indent,
@@ -145,30 +133,30 @@ public static partial class SerializableEntityGeneration
         );
         source.AppendLine();
 
-        var parentFieldOrProperty = embedded ? fieldsAndProperties.FirstOrDefault(
-            fieldOrPropertySymbol => fieldOrPropertySymbol.GetAttributes()
-                .FirstOrDefault(
-                    attr =>
-                        SymbolEqualityComparer.Default.Equals(attr.AttributeClass, parentSerializableAttribute)
-                ) != null
-        ) : null;
+        (ISymbol, AttributeData)? parentFieldOrProperty = null;
+
+        if (!isSerializable && fieldsAndProperties.Length > 0)
+        {
+            for (var index = 0; index < fieldsAndProperties.Length; index++)
+            {
+                var fieldOrProperty = fieldsAndProperties[index];
+                var (_, attributeData) = fieldOrProperty;
+                if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, parentSerializableAttribute))
+                {
+                    if (parentFieldOrProperty != null)
+                    {
+                        throw new Exception($"Multiple parent attributes for {className}.");
+                    }
+                    parentFieldOrProperty = fieldOrProperty;
+                }
+            }
+        }
 
         var serializablePropertySet = new SortedDictionary<SerializableProperty, ISymbol>(new SerializablePropertyComparer());
 
-        foreach (var fieldOrPropertySymbol in fieldsAndProperties)
+        foreach (var (fieldOrPropertySymbol, serializableFieldAttr) in fieldsAndProperties)
         {
             var allAttributes = fieldOrPropertySymbol.GetAttributes();
-
-            var serializableFieldAttr = allAttributes
-                .FirstOrDefault(
-                    attr =>
-                        SymbolEqualityComparer.Default.Equals(attr.AttributeClass, serializableFieldAttribute)
-                );
-
-            if (serializableFieldAttr == null)
-            {
-                continue;
-            }
 
             foreach (var attr in allAttributes)
             {
@@ -212,7 +200,7 @@ public static partial class SerializableEntityGeneration
                     getterAccessor,
                     setterAccessor,
                     virtualProperty,
-                    parentFieldOrProperty
+                    parentFieldOrProperty.Value.Item1
                 );
                 source.AppendLine();
             }
@@ -224,8 +212,6 @@ public static partial class SerializableEntityGeneration
                 fieldOrPropertySymbol,
                 order,
                 allAttributes,
-                serializableTypes,
-                embeddedSerializableTypes,
                 classSymbol,
                 serializableFieldSaveFlagMethods
             );

@@ -29,8 +29,6 @@ public class KeyValuePairMigrationRule : MigrationRule
         Compilation compilation,
         ISymbol symbol,
         ImmutableArray<AttributeData> attributes,
-        ImmutableArray<INamedTypeSymbol> serializableTypes,
-        ImmutableArray<INamedTypeSymbol> embeddedSerializableTypes,
         ISymbol? parentSymbol,
         out string[] ruleArguments
     )
@@ -49,8 +47,6 @@ public class KeyValuePairMigrationRule : MigrationRule
             keySymbolType,
             0,
             attributes,
-            serializableTypes,
-            embeddedSerializableTypes,
             parentSymbol,
             null
         );
@@ -63,8 +59,6 @@ public class KeyValuePairMigrationRule : MigrationRule
             valueSymbolType,
             1,
             attributes,
-            serializableTypes,
-            embeddedSerializableTypes,
             parentSymbol,
             null
         );

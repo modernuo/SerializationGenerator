@@ -125,6 +125,10 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             {
                 fields.Add((fieldSymbol, attributeData));
             }
+            else if (fieldSymbol.TryGetSerializableParentField(ctx.SemanticModel.Compilation, out attributeData))
+            {
+                fields.Add((fieldSymbol, attributeData));
+            }
         }
 
         return fields.Count == 0 ? ImmutableArray<(ISymbol, AttributeData)>.Empty : fields.ToImmutableArray();
