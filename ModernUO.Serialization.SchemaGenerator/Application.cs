@@ -14,12 +14,10 @@
  *************************************************************************/
 
 using System;
-using System.Collections.Immutable;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using SerializationGenerator;
 
 namespace SerializationSchemaGenerator;
 

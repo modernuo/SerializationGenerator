@@ -16,7 +16,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using SerializationGenerator;
 
 namespace SerializationSchemaGenerator;
 

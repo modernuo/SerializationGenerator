@@ -14,6 +14,7 @@
  *************************************************************************/
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -200,7 +201,7 @@ public static partial class SerializableEntityGeneration
                     getterAccessor,
                     setterAccessor,
                     virtualProperty,
-                    parentFieldOrProperty.Value.Item1
+                    parentFieldOrProperty?.Item1
                 );
                 source.AppendLine();
             }
@@ -228,47 +229,88 @@ public static partial class SerializableEntityGeneration
         ).ToImmutableArray();
 
         // If we are not inheriting ISerializable, then we need to define some stuff
-        if (!(isOverride || embedded))
-        {
-            // long ISerializable.SavePosition { get; set; } = -1;
-            source.GenerateAutoProperty(
-                Accessibility.NotApplicable,
-                "long",
-                "ISerializable.SavePosition",
-                Accessibility.NotApplicable,
-                Accessibility.NotApplicable,
-                indent,
-                defaultValue: "-1"
-            );
+        // if (!isSerializable && !embedded)
+        // {
+        //     // long ISerializable.SavePosition { get; set; } = -1;
+        //     source.GenerateAutoProperty(
+        //         Accessibility.NotApplicable,
+        //         "long",
+        //         "ISerializable.SavePosition",
+        //         Accessibility.NotApplicable,
+        //         Accessibility.NotApplicable,
+        //         indent,
+        //         defaultValue: "-1"
+        //     );
+        //
+        //     // BufferWriter ISerializable.SaveBuffer { get; set; }
+        //     source.GenerateAutoProperty(
+        //         Accessibility.NotApplicable,
+        //         "BufferWriter",
+        //         "ISerializable.SaveBuffer",
+        //         Accessibility.NotApplicable,
+        //         Accessibility.NotApplicable,
+        //         indent
+        //     );
+        // }
 
-            // BufferWriter ISerializable.SaveBuffer { get; set; }
-            source.GenerateAutoProperty(
-                Accessibility.NotApplicable,
-                "BufferWriter",
-                "ISerializable.SaveBuffer",
-                Accessibility.NotApplicable,
-                Accessibility.NotApplicable,
-                indent
-            );
-        }
-
-        if (!embedded)
+        if (isSerializable)
         {
             // Serial constructor
             source.GenerateSerialCtor(compilation, className, indent, isOverride);
             source.AppendLine();
         }
 
+        var migrationsBuilder = ImmutableArray.CreateBuilder<SerializableMetadata>();
+        for (var i = 0; i < migrations.Count; i++)
+        {
+            if (i < version)
+            {
+                continue;
+            }
+
+            var migrationAdditionalText = migrations[i];
+            var migrationSource = migrationAdditionalText.GetText(token);
+            if (migrationSource == null)
+            {
+                continue;
+            }
+
+            var chrArray = ArrayPool<char>.Shared.Rent(migrationSource.Length);
+            migrationSource.CopyTo(0, chrArray, 0, migrationSource.Length);
+            ReadOnlySpan<char> buffer = chrArray.AsSpan(0, migrationSource.Length);
+            SerializableMetadata migration = JsonSerializer.Deserialize<SerializableMetadata>(buffer, jsonSerializerOptions);
+            ArrayPool<char>.Shared.Return(chrArray);
+
+            source.GenerateMigrationContentStruct(compilation, indent, migration, classSymbol);
+            source.AppendLine();
+
+            migrationsBuilder.Add(migration);
+        }
+
         if (version > 0)
         {
-            for (var i = 0; i < migrations.Length; i++)
+            for (var i = 0; i < migrations.Count; i++)
             {
-                var migration = migrations[i];
-                if (migration.Version < version)
+                if (i < version)
                 {
-                    source.GenerateMigrationContentStruct(compilation, indent, migration, classSymbol);
-                    source.AppendLine();
+                    continue;
                 }
+
+                var migrationAdditionalText = migrations[i];
+                var migrationSource = migrationAdditionalText.GetText(token);
+                if (migrationSource == null)
+                {
+                    continue;
+                }
+
+                var chrArray = ArrayPool<char>.Shared.Rent(migrationSource.Length);
+                migrationSource.CopyTo(0, chrArray, 0, migrationSource.Length);
+                ReadOnlySpan<char> buffer = chrArray.AsSpan(0, migrationSource.Length);
+                SerializableMetadata migration = JsonSerializer.Deserialize<SerializableMetadata>(buffer, jsonSerializerOptions);
+                ArrayPool<char>.Shared.Return(chrArray);
+
+                source.GenerateMigrationContentStruct(compilation, indent, migration, classSymbol);
+                source.AppendLine();
             }
         }
 
@@ -292,10 +334,10 @@ public static partial class SerializableEntityGeneration
             isOverride,
             version,
             encodedVersion,
-            migrations,
+            migrationsBuilder.ToImmutable(),
             serializableFields,
             serializableProperties,
-            parentFieldOrProperty,
+            parentFieldOrProperty?.Item1,
             serializableFieldSaveFlags
         );
 
