@@ -39,8 +39,8 @@ public static class SerializableMigrationRulesEngine
             new PrimitiveUOTypeMigrationRule(),
             new SerializableInterfaceMigrationRule(),
             new SerializationMethodSignatureMigrationRule(),
-            new RawSerializableMigrationRule(),
-            new TimerMigrationRule()
+            new TimerMigrationRule(),
+            new RawSerializableMigrationRule()
         };
 
         foreach (var rule in rules)

@@ -39,8 +39,8 @@ public static class SourceCodeAnalysis
         var solutionToAnalyze = workspace.OpenSolutionAsync(solutionPath).Result;
 
         var results = solutionToAnalyze.Projects.AsParallel()
-            .Select((project) => (project, project?.GetCompilationAsync().Result))
-            .Where((value) => value.Result != null)
+            .Select(project => (project, project?.GetCompilationAsync().Result))
+            .Where(value => value.Result != null)
             .ToList();
 
         return results;

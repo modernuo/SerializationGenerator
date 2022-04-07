@@ -18,6 +18,8 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.CSharp;
+using SerializationGenerator;
 
 namespace SerializationSchemaGenerator;
 
@@ -34,7 +36,7 @@ public static class Application
 
         Parallel.ForEach(
             SourceCodeAnalysis.GetCompilation(solutionPath),
-            (projectCompilation) =>
+            projectCompilation =>
             {
                 var (project, compilation) = projectCompilation;
                 if (project.Name.EndsWith(".Tests", StringComparison.Ordinal) || project.Name == "Benchmarks")
@@ -42,58 +44,62 @@ public static class Application
                     return;
                 }
 
-                var projectFile = new FileInfo(project.FilePath!);
-                var projectPath = projectFile.Directory?.FullName;
-                var migrationPath = Path.Join(projectPath, "Migrations");
-                Directory.CreateDirectory(migrationPath);
+                var driver = CSharpGeneratorDriver.Create(new EntitySerializationGenerator());
+                driver.RunGenerators(compilation);
+                // var result = driver.GetRunResult();
 
-                var syntaxReceiver = new SerializerSyntaxReceiver();
-
-                foreach (var syntaxTree in compilation.SyntaxTrees)
-                {
-                    var root = syntaxTree.GetRoot();
-                    var syntaxVisitor = new SyntaxVisitor(compilation.GetSemanticModel(syntaxTree), syntaxReceiver);
-                    syntaxVisitor.Visit(root);
-                }
-
-                var jsonOptions = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    AllowTrailingCommas = true,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-                    ReadCommentHandling = JsonCommentHandling.Skip
-                };
-
-                var serializableTypes = syntaxReceiver.SerializableList;
-                var embeddedSerializableTypes = syntaxReceiver.EmbeddedSerializableList;
-
-                foreach (var (classSymbol, (attributeData, fieldsList)) in syntaxReceiver.ClassAndFields)
-                {
-                    var source = compilation.GenerateSerializationPartialClass(
-                        classSymbol,
-                        attributeData,
-                        migrationPath,
-                        false,
-                        jsonOptions,
-                        fieldsList.ToImmutableArray(),
-                        serializableTypes,
-                        embeddedSerializableTypes
-                    );
-                }
-
-                foreach (var (classSymbol, (attributeData, fieldsList)) in syntaxReceiver.EmbeddedClassAndFields)
-                {
-                    var source = compilation.GenerateSerializationPartialClass(
-                        classSymbol,
-                        attributeData,
-                        migrationPath,
-                        true,
-                        jsonOptions,
-                        fieldsList.ToImmutableArray(),
-                        serializableTypes,
-                        embeddedSerializableTypes
-                    );
-                }
+                // var projectFile = new FileInfo(project.FilePath!);
+                // var projectPath = projectFile.Directory?.FullName;
+                // var migrationPath = Path.Join(projectPath, "Migrations");
+                // Directory.CreateDirectory(migrationPath);
+                //
+                // var syntaxReceiver = new SerializerSyntaxReceiver();
+                //
+                // foreach (var syntaxTree in compilation.SyntaxTrees)
+                // {
+                //     var root = syntaxTree.GetRoot();
+                //     var syntaxVisitor = new SyntaxVisitor(compilation.GetSemanticModel(syntaxTree), syntaxReceiver);
+                //     syntaxVisitor.Visit(root);
+                // }
+                //
+                // var jsonOptions = new JsonSerializerOptions
+                // {
+                //     WriteIndented = true,
+                //     AllowTrailingCommas = true,
+                //     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                //     ReadCommentHandling = JsonCommentHandling.Skip
+                // };
+                //
+                // var serializableTypes = syntaxReceiver.SerializableList;
+                // var embeddedSerializableTypes = syntaxReceiver.EmbeddedSerializableList;
+                //
+                // foreach (var (classSymbol, (attributeData, fieldsList)) in syntaxReceiver.ClassAndFields)
+                // {
+                //     var source = compilation.GenerateSerializationPartialClass(
+                //         classSymbol,
+                //         attributeData,
+                //         migrationPath,
+                //         false,
+                //         jsonOptions,
+                //         fieldsList.ToImmutableArray(),
+                //         serializableTypes,
+                //         embeddedSerializableTypes
+                //     );
+                // }
+                //
+                // foreach (var (classSymbol, (attributeData, fieldsList)) in syntaxReceiver.EmbeddedClassAndFields)
+                // {
+                //     var source = compilation.GenerateSerializationPartialClass(
+                //         classSymbol,
+                //         attributeData,
+                //         migrationPath,
+                //         true,
+                //         jsonOptions,
+                //         fieldsList.ToImmutableArray(),
+                //         serializableTypes,
+                //         embeddedSerializableTypes
+                //     );
+                // }
             }
         );
     }

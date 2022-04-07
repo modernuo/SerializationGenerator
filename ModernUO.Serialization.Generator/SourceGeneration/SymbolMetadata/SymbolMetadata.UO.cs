@@ -13,6 +13,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -83,7 +84,7 @@ public static partial class SymbolMetadata
 
     public static bool TryGetEmptyOrParentCtor(
         this INamedTypeSymbol symbol,
-        ISymbol? parentSymbol,
+        INamedTypeSymbol? parentSymbol,
         out bool requiresParent
     )
     {
@@ -92,7 +93,7 @@ public static partial class SymbolMetadata
                  m.MethodKind == MethodKind.Constructor &&
                  (m.Parameters.Length == 0 ||
                   m.Parameters.Length == 1 &&
-                  SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, parentSymbol))
+                  parentSymbol?.CanBeConstructedFrom(m.Parameters[0].Type) == true)
         );
 
         requiresParent = genericCtor?.Parameters.Length == 1;
@@ -204,6 +205,24 @@ public static partial class SymbolMetadata
 
     public static bool HasSerializableInterface(this INamedTypeSymbol classSymbol, Compilation compilation) =>
         classSymbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
+
+    public static bool IsSerializableRecursive(this INamedTypeSymbol classSymbol, Compilation compilation)
+    {
+        var serializableEntityAttribute =
+            compilation.GetTypeByMetadataName(SERIALIZABLE_ATTRIBUTE);
+
+        while (classSymbol != null)
+        {
+            if (classSymbol.GetAttribute(serializableEntityAttribute) != null)
+            {
+                return true;
+            }
+
+            classSymbol = classSymbol.BaseType;
+        }
+
+        return false;
+    }
 
     public static bool TryGetSerializable(
         this INamedTypeSymbol classSymbol, Compilation compilation, out AttributeData? attributeData

@@ -15,6 +15,7 @@
         <PackageReference Include="Microsoft.Build.Locator" Version="1.4.1" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.0.1" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.0.1" />
+        <PackageReference Include="Humanizer.Core" Version="2.13.14" GeneratePathProperty="true" PrivateAssets="all" />
         <ProjectReference Include="..\ModernUO.Serialization.Generator\ModernUO.Serialization.Generator.csproj" />
     </ItemGroup>
 </Project>

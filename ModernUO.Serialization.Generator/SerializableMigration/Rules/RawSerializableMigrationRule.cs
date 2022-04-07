@@ -39,19 +39,23 @@ public class RawSerializableMigrationRule : MigrationRule
             return false;
         }
 
-        if (!namedTypeSymbol.HasPublicSerializeMethod(compilation))
+        if (!namedTypeSymbol.TryGetEmptyOrParentCtor(parentSymbol as INamedTypeSymbol, out var requiresParent))
         {
             ruleArguments = null;
             return false;
         }
 
-        if (!namedTypeSymbol.HasPublicDeserializeMethod(compilation))
+        if (namedTypeSymbol.HasSerializableInterface(compilation))
         {
             ruleArguments = null;
             return false;
         }
 
-        if (!namedTypeSymbol.TryGetEmptyOrParentCtor(parentSymbol, out var requiresParent))
+        if (
+            !namedTypeSymbol.HasPublicSerializeMethod(compilation) &&
+            !namedTypeSymbol.HasPublicDeserializeMethod(compilation) &&
+            !namedTypeSymbol.IsSerializableRecursive(compilation)
+        )
         {
             ruleArguments = null;
             return false;

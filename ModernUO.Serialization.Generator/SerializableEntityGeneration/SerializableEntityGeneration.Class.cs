@@ -136,27 +136,20 @@ public static partial class SerializableEntityGeneration
 
         (ISymbol, AttributeData)? parentFieldOrProperty = null;
 
-        if (!isSerializable && fieldsAndProperties.Length > 0)
-        {
-            for (var index = 0; index < fieldsAndProperties.Length; index++)
-            {
-                var fieldOrProperty = fieldsAndProperties[index];
-                var (_, attributeData) = fieldOrProperty;
-                if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, parentSerializableAttribute))
-                {
-                    if (parentFieldOrProperty != null)
-                    {
-                        throw new Exception($"Multiple parent attributes for {className}.");
-                    }
-                    parentFieldOrProperty = fieldOrProperty;
-                }
-            }
-        }
-
         var serializablePropertySet = new SortedDictionary<SerializableProperty, ISymbol>(new SerializablePropertyComparer());
 
-        foreach (var (fieldOrPropertySymbol, serializableFieldAttr) in fieldsAndProperties)
+        foreach (var (fieldOrPropertySymbol, attributeData) in fieldsAndProperties)
         {
+            if (!isSerializable && SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, parentSerializableAttribute))
+            {
+                if (parentFieldOrProperty != null)
+                {
+                    throw new Exception($"Multiple parent attributes for {className}.");
+                }
+                parentFieldOrProperty = (fieldOrPropertySymbol, attributeData);
+                continue;
+            }
+
             var allAttributes = fieldOrPropertySymbol.GetAttributes();
 
             foreach (var attr in allAttributes)
@@ -185,7 +178,12 @@ public static partial class SerializableEntityGeneration
                 }
             }
 
-            var attrCtorArgs = serializableFieldAttr.ConstructorArguments;
+            var attrCtorArgs = attributeData.ConstructorArguments;
+
+            if (attrCtorArgs.Length == 0)
+            {
+                Console.WriteLine("WTF? {0} {1}", className, attributeData.AttributeClass.ToDisplayString());
+            }
 
             var order = (int)attrCtorArgs[0].Value!;
             var getterAccessor = Helpers.GetAccessibility(attrCtorArgs[1].Value?.ToString());
