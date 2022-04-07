@@ -14,7 +14,6 @@
  *************************************************************************/
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -32,17 +31,16 @@ public static class Helpers
 
     public static ImmutableArray<IMethodSymbol> GetAllMethods(this ITypeSymbol symbol, string name)
     {
-        var methods = symbol.GetMembers(name).OfType<IMethodSymbol>().ToImmutableArray();
-        if (symbol.ContainingSymbol is not ITypeSymbol typeSymbol)
+        var methods = symbol.GetMembers(name).OfType<IMethodSymbol>();
+        if (symbol.BaseType is not ITypeSymbol typeSymbol)
         {
-            return methods;
+            return methods.ToImmutableArray();
         }
 
-        var list = new List<IMethodSymbol>();
-        list.AddRange(methods.ToList());
-        list.AddRange(GetAllMethods(typeSymbol, name).ToList());
-
-        return list.ToImmutableArray();
+        var builder = ImmutableArray.CreateBuilder<IMethodSymbol>();
+        builder.AddRange(methods);
+        builder.AddRange(GetAllMethods(typeSymbol, name));
+        return builder.ToImmutable();
     }
 
     public static string ToFriendlyString(this Accessibility accessibility) => SyntaxFacts.GetText(accessibility);
@@ -108,38 +106,5 @@ public static class Helpers
         builder.AddRange(right);
 
         return builder.ToImmutableArray();
-    }
-
-    public static bool TryGetRootParentSyntax<T>(this SyntaxNode syntaxNode, out T result) where T : SyntaxNode
-    {
-        // set defaults
-        result = null;
-
-        if (syntaxNode == null)
-        {
-            return false;
-        }
-
-        try
-        {
-            syntaxNode = syntaxNode.Parent;
-
-            if (syntaxNode == null)
-            {
-                return false;
-            }
-
-            if (syntaxNode.GetType() == typeof (T))
-            {
-                result = syntaxNode as T;
-                return true;
-            }
-
-            return TryGetRootParentSyntax(syntaxNode, out result);
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

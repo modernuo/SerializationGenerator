@@ -199,7 +199,11 @@ public class EntitySerializationGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var classMigrationSet = builder[className] ??= new Dictionary<int, AdditionalText>();
+            if (!builder.TryGetValue(className, out var classMigrationSet))
+            {
+                builder[className] = classMigrationSet = new Dictionary<int, AdditionalText>();
+            }
+
             classMigrationSet[version] = additionalText;
         }
 

@@ -34,15 +34,14 @@ public static class SourceCodeAnalysis
 
         MSBuildLocator.RegisterDefaults();
 
-        var workspace = MSBuildWorkspace.Create();
-
-        var solutionToAnalyze = workspace.OpenSolutionAsync(solutionPath).Result;
-
-        var results = solutionToAnalyze.Projects.AsParallel()
+        return MSBuildWorkspace
+            .Create()
+            .OpenSolutionAsync(solutionPath)
+            .Result
+            .Projects
+            .AsParallel()
             .Select(project => (project, project?.GetCompilationAsync().Result))
             .Where(value => value.Result != null)
             .ToList();
-
-        return results;
     }
 }

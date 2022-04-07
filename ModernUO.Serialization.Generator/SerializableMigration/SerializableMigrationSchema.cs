@@ -13,16 +13,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.IO;
-using System.Text;
+using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
-using SerializationGenerator;
 
 namespace SerializableMigration;
 
@@ -52,66 +46,7 @@ public static class SerializableMigrationSchema
             return false;
         }
 
-        className = regexMatch.Captures[0].Value;
-        return int.TryParse(regexMatch.Captures[1].Value, out version);
-    }
-
-    // Used during schema migration which is not incremental
-    private static ImmutableDictionary<string, ImmutableDictionary<int, AdditionalText>>? _cache = null;
-
-    public static ImmutableDictionary<int, AdditionalText> GetMigrations(INamedTypeSymbol classSymbol, string migrationPath)
-    {
-        GetMigrations(migrationPath);
-
-        return _cache!.TryGetValue(classSymbol.ToDisplayString(), out var additionalTexts)
-            ? additionalTexts
-            : ImmutableDictionary<int, AdditionalText>.Empty;
-    }
-
-    private static void GetMigrations(string migrationPath)
-    {
-        if (_cache != null)
-        {
-            return;
-        }
-
-        var migrationFilesByClass = new Dictionary<string, List<(int, string)>>();
-
-        var migrationFiles = Directory.GetFiles(migrationPath, "*.v*.json");
-
-        foreach (var file in migrationFiles)
-        {
-            var fileName = Path.GetFileName(file);
-            if (!MatchMigrationFilename(fileName, out var className, out var version))
-            {
-                continue;
-            }
-
-            if (migrationFilesByClass.TryGetValue(className, out var fileList))
-            {
-                fileList.Add((version, file));
-            }
-            else
-            {
-                migrationFilesByClass[className] = new List<(int, string)> { (version, file) };
-            }
-        }
-
-        var cacheBuilder = ImmutableDictionary.CreateBuilder<string, ImmutableDictionary<int, AdditionalText>>();
-
-        foreach (var (className, fileList) in migrationFilesByClass)
-        {
-            var additionalTextBuilder = ImmutableDictionary.CreateBuilder<int, AdditionalText>();
-            foreach (var (version, file) in fileList)
-            {
-                var sourceText = SourceText.From(File.ReadAllText(file), Encoding.UTF8);
-                var additionalText = new AdditionalTextSchemaFile(file, sourceText);
-                additionalTextBuilder[version] = additionalText;
-            }
-
-            cacheBuilder[className] = additionalTextBuilder.ToImmutable();
-        }
-
-        _cache = cacheBuilder.ToImmutable();
+        className = regexMatch.Groups[1].Value;
+        return int.TryParse(regexMatch.Groups[2].Value, out version);
     }
 }

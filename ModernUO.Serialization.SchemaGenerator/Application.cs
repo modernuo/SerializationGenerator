@@ -15,8 +15,6 @@
 
 using System;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
 using SerializationGenerator;
@@ -44,15 +42,20 @@ public static class Application
                     return;
                 }
 
-                var driver = CSharpGeneratorDriver.Create(new EntitySerializationGenerator());
-                driver.RunGenerators(compilation);
+                var projectFile = new FileInfo(project.FilePath!);
+                var projectPath = projectFile.Directory?.FullName;
+                var migrationPath = Path.Join(projectPath, "Migrations");
+                Directory.CreateDirectory(migrationPath);
+
+                var migrations = MigrationHandler.GetMigrations(migrationPath);
+                Console.WriteLine("Migrations Found: {0}", migrations.Length);
+
+                var driver = CSharpGeneratorDriver
+                    .Create(new EntitySerializationGenerator())
+                    .AddAdditionalTexts(migrations)
+                    .RunGenerators(compilation);
                 // var result = driver.GetRunResult();
 
-                // var projectFile = new FileInfo(project.FilePath!);
-                // var projectPath = projectFile.Directory?.FullName;
-                // var migrationPath = Path.Join(projectPath, "Migrations");
-                // Directory.CreateDirectory(migrationPath);
-                //
                 // var syntaxReceiver = new SerializerSyntaxReceiver();
                 //
                 // foreach (var syntaxTree in compilation.SyntaxTrees)

@@ -34,34 +34,6 @@ public static partial class SerializableEntityGeneration
         INamedTypeSymbol classSymbol,
         AttributeData serializableAttr,
         JsonSerializerOptions? jsonSerializerOptions,
-        ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
-        CancellationToken token,
-        string? migrationPath
-    )
-    {
-        token.ThrowIfCancellationRequested();
-
-        var migrations = SerializableMigrationSchema.GetMigrations(
-            classSymbol,
-            migrationPath
-        );
-
-        return compilation.GenerateSerializationPartialClass(
-            classSymbol,
-            serializableAttr,
-            jsonSerializerOptions,
-            migrations,
-            fieldsAndProperties,
-            token,
-            migrationPath
-        );
-    }
-
-    public static string GenerateSerializationPartialClass(
-        this Compilation compilation,
-        INamedTypeSymbol classSymbol,
-        AttributeData serializableAttr,
-        JsonSerializerOptions? jsonSerializerOptions,
         ImmutableDictionary<int, AdditionalText> migrations,
         ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
         CancellationToken token,
@@ -225,31 +197,6 @@ public static partial class SerializableEntityGeneration
                 Name = (kvp.Value as IFieldSymbol)?.GetPropertyName() ?? ((IPropertySymbol)kvp.Value).Name
             }
         ).ToImmutableArray();
-
-        // If we are not inheriting ISerializable, then we need to define some stuff
-        // if (!isSerializable && !embedded)
-        // {
-        //     // long ISerializable.SavePosition { get; set; } = -1;
-        //     source.GenerateAutoProperty(
-        //         Accessibility.NotApplicable,
-        //         "long",
-        //         "ISerializable.SavePosition",
-        //         Accessibility.NotApplicable,
-        //         Accessibility.NotApplicable,
-        //         indent,
-        //         defaultValue: "-1"
-        //     );
-        //
-        //     // BufferWriter ISerializable.SaveBuffer { get; set; }
-        //     source.GenerateAutoProperty(
-        //         Accessibility.NotApplicable,
-        //         "BufferWriter",
-        //         "ISerializable.SaveBuffer",
-        //         Accessibility.NotApplicable,
-        //         Accessibility.NotApplicable,
-        //         indent
-        //     );
-        // }
 
         if (isSerializable)
         {
