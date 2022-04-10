@@ -33,40 +33,35 @@ public class RawSerializableMigrationRule : MigrationRule
         out string[] ruleArguments
     )
     {
+        ruleArguments = null;
         if (symbol is not INamedTypeSymbol namedTypeSymbol)
         {
-            ruleArguments = null;
             return false;
         }
 
         if (!namedTypeSymbol.TryGetEmptyOrParentCtor(parentSymbol as INamedTypeSymbol, out var requiresParent))
         {
-            ruleArguments = null;
             return false;
         }
 
         if (namedTypeSymbol.HasSerializableInterface(compilation))
         {
-            ruleArguments = null;
-            return false;
-        }
-
-        if (
-            !namedTypeSymbol.HasPublicSerializeMethod(compilation) &&
-            !namedTypeSymbol.HasPublicDeserializeMethod(compilation) &&
-            !namedTypeSymbol.IsSerializableRecursive(compilation)
-        )
-        {
-            ruleArguments = null;
             return false;
         }
 
         ruleArguments = new[] { requiresParent ? "DeserializationRequiresParent" : "" };
-        return true;
+        return namedTypeSymbol.HasPublicSerializeMethod(compilation) ||
+               namedTypeSymbol.HasPublicDeserializeMethod(compilation) ||
+               namedTypeSymbol.IsSerializableRecursive(compilation);
     }
 
     public override void GenerateDeserializationMethod(
-        StringBuilder source, string indent, SerializableProperty property, string? parentReference, bool isMigration = false
+        StringBuilder source,
+        string indent,
+        Compilation compilation,
+        SerializableProperty property,
+        string? parentReference,
+        bool isMigration = false
     )
     {
         var expectedRule = RuleName;
@@ -76,11 +71,13 @@ public class RawSerializableMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
+        var propertyType = property.Type;
         var propertyName = property.Name;
-        var argument = property.RuleArguments?.Length >= 1 &&
-                       property.RuleArguments[0] == "DeserializationRequiresParent" ? ", this" : "";
 
-        source.AppendLine($"{indent}{propertyName} = new {property.Type}({argument});");
+        var argument = property.RuleArguments?.Length >= 1 &&
+                       property.RuleArguments[0] == "DeserializationRequiresParent" ? (parentReference ?? "this") : "";
+
+        source.AppendLine($"{indent}{propertyName} = new {propertyType}({argument});");
         source.AppendLine($"{indent}{propertyName}.Deserialize(reader);");
     }
 

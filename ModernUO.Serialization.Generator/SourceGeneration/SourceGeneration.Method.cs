@@ -26,7 +26,7 @@ public static partial class SourceGeneration
         string returnType, ImmutableArray<(ITypeSymbol, string)> parameters
     )
     {
-        source.Append($"{indent}{accessors.ToFriendlyString()}{(isOverride ? " override" : "virtual")} {returnType} {methodName}(");
+        source.Append($"{indent}{accessors.ToFriendlyString()}{(isOverride ? " override" : " virtual")} {returnType} {methodName}(");
         source.GenerateSignatureArguments(parameters);
         source.AppendLine($")\n{indent}{{");
     }

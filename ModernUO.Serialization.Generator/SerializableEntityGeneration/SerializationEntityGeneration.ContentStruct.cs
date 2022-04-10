@@ -77,45 +77,44 @@ public static partial class SerializableEntityGeneration
             source.AppendLine($"{innerIndent}var saveFlags = reader.ReadEnum<V{migration.Version}SaveFlag>();");
         }
 
-        if (properties.Length > 0)
+        foreach (var property in properties)
         {
-            foreach (var property in properties)
+            if (property.UsesSaveFlag == true)
             {
-                if (property.UsesSaveFlag == true)
+                source.AppendLine();
+                // Special case
+                if (property.Type == "bool")
                 {
-                    source.AppendLine();
-                    // Special case
-                    if (property.Type == "bool")
-                    {
-                        source.AppendLine($"{innerIndent}{property.Name} = (saveFlags & V{migration.Version}SaveFlag.{property.Name}) != 0;");
-                    }
-                    else
-                    {
-                        source.AppendLine($"{innerIndent}if ((saveFlags & V{migration.Version}SaveFlag.{property.Name}) != 0)\n{innerIndent}{{");
-
-                        SerializableMigrationRulesEngine.Rules[property.Rule].GenerateDeserializationMethod(
-                            source,
-                            $"{innerIndent}    ",
-                            property,
-                            "entity",
-                            true
-                        );
-
-                        source.AppendLine($"{innerIndent}}}\n{innerIndent}else\n{innerIndent}{{");
-                        source.AppendLine($"{innerIndent}    {property.Name} = default;");
-                        source.AppendLine($"{innerIndent}}}");
-                    }
+                    source.AppendLine($"{innerIndent}{property.Name} = (saveFlags & V{migration.Version}SaveFlag.{property.Name}) != 0;");
                 }
                 else
                 {
+                    source.AppendLine($"{innerIndent}if ((saveFlags & V{migration.Version}SaveFlag.{property.Name}) != 0)\n{innerIndent}{{");
+
                     SerializableMigrationRulesEngine.Rules[property.Rule].GenerateDeserializationMethod(
                         source,
-                        innerIndent,
+                        $"{innerIndent}    ",
+                        compilation,
                         property,
                         "entity",
                         true
                     );
+
+                    source.AppendLine($"{innerIndent}}}\n{innerIndent}else\n{innerIndent}{{");
+                    source.AppendLine($"{innerIndent}    {property.Name} = default;");
+                    source.AppendLine($"{innerIndent}}}");
                 }
+            }
+            else
+            {
+                SerializableMigrationRulesEngine.Rules[property.Rule].GenerateDeserializationMethod(
+                    source,
+                    innerIndent,
+                    compilation,
+                    property,
+                    "entity",
+                    true
+                );
             }
         }
 

@@ -99,7 +99,12 @@ public class DictionaryMigrationRule : MigrationRule
     }
 
     public override void GenerateDeserializationMethod(
-        StringBuilder source, string indent, SerializableProperty property, string? parentReference, bool isMigration = false
+        StringBuilder source,
+        string indent,
+        Compilation compilation,
+        SerializableProperty property,
+        string? parentReference,
+        bool isMigration = false
     )
     {
         var expectedRule = RuleName;
@@ -153,7 +158,13 @@ public class DictionaryMigrationRule : MigrationRule
             RuleArguments = keyRuleArguments
         };
 
-        keyElementRule.GenerateDeserializationMethod(source, $"{indent}    ", serializableKeyElement, parentReference);
+        keyElementRule.GenerateDeserializationMethod(
+            source,
+            $"{indent}    ",
+            compilation,
+            serializableKeyElement,
+            parentReference
+        );
 
         var serializableValueElement = new SerializableProperty
         {
@@ -163,7 +174,13 @@ public class DictionaryMigrationRule : MigrationRule
             RuleArguments = valueRuleArguments
         };
 
-        valueElementRule.GenerateDeserializationMethod(source, $"{indent}    ", serializableValueElement, parentReference);
+        valueElementRule.GenerateDeserializationMethod(
+            source,
+            $"{indent}    ",
+            compilation,
+            serializableValueElement,
+            parentReference
+        );
         source.AppendLine($"{indent}    {propertyName}.Add({propertyKeyEntry}, {propertyValueEntry});");
 
         source.AppendLine($"{indent}}}");

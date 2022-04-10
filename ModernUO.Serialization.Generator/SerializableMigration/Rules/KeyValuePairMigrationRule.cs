@@ -92,7 +92,12 @@ public class KeyValuePairMigrationRule : MigrationRule
     }
 
     public override void GenerateDeserializationMethod(
-        StringBuilder source, string indent, SerializableProperty property, string? parentReference, bool isMigration = false
+        StringBuilder source,
+        string indent,
+        Compilation compilation,
+        SerializableProperty property,
+        string? parentReference,
+        bool isMigration = false
     )
     {
         var expectedRule = RuleName;
@@ -125,6 +130,7 @@ public class KeyValuePairMigrationRule : MigrationRule
         keyRule.GenerateDeserializationMethod(
             source,
             indent,
+            compilation,
             serializableKeyProperty,
             parentReference
         );
@@ -149,6 +155,7 @@ public class KeyValuePairMigrationRule : MigrationRule
         valueRule.GenerateDeserializationMethod(
             source,
             indent,
+            compilation,
             serializableValueProperty,
             parentReference
         );

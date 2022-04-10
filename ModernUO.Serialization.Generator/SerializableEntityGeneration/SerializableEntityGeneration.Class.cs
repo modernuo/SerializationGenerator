@@ -106,7 +106,7 @@ public static partial class SerializableEntityGeneration
         );
         source.AppendLine();
 
-        (ISymbol, AttributeData)? parentFieldOrProperty = null;
+        ISymbol? parentFieldOrProperty = null;
 
         var serializablePropertySet = new SortedDictionary<SerializableProperty, ISymbol>(new SerializablePropertyComparer());
 
@@ -118,7 +118,8 @@ public static partial class SerializableEntityGeneration
                 {
                     throw new Exception($"Multiple parent attributes for {className}.");
                 }
-                parentFieldOrProperty = (fieldOrPropertySymbol, attributeData);
+
+                parentFieldOrProperty = fieldOrPropertySymbol;
                 continue;
             }
 
@@ -152,11 +153,6 @@ public static partial class SerializableEntityGeneration
 
             var attrCtorArgs = attributeData.ConstructorArguments;
 
-            if (attrCtorArgs.Length == 0)
-            {
-                Console.WriteLine("WTF? {0} {1}", className, attributeData.AttributeClass.ToDisplayString());
-            }
-
             var order = (int)attrCtorArgs[0].Value!;
             var getterAccessor = Helpers.GetAccessibility(attrCtorArgs[1].Value?.ToString());
             var setterAccessor = Helpers.GetAccessibility(attrCtorArgs[2].Value?.ToString());
@@ -171,7 +167,7 @@ public static partial class SerializableEntityGeneration
                     getterAccessor,
                     setterAccessor,
                     virtualProperty,
-                    parentFieldOrProperty?.Item1
+                    parentFieldOrProperty
                 );
                 source.AppendLine();
             }
@@ -206,15 +202,15 @@ public static partial class SerializableEntityGeneration
         }
 
         var migrationsBuilder = ImmutableArray.CreateBuilder<SerializableMetadata>();
-        for (var i = 0; i < migrations.Count; i++)
+
+        for (var i = 0; i < version; i++)
         {
-            if (i < version)
+            if (!migrations.TryGetValue(i, out var additionalText))
             {
                 continue;
             }
 
-            var migrationAdditionalText = migrations[i];
-            var migrationSource = migrationAdditionalText.GetText(token);
+            var migrationSource = additionalText.GetText(token);
             if (migrationSource == null)
             {
                 continue;
@@ -232,31 +228,28 @@ public static partial class SerializableEntityGeneration
             migrationsBuilder.Add(migration);
         }
 
-        if (version > 0)
+        if (!isOverride && isSerializable)
         {
-            for (var i = 0; i < migrations.Count; i++)
-            {
-                if (i < version)
-                {
-                    continue;
-                }
+            // long ISerializable.SavePosition { get; set; } = -1;
+            source.GenerateAutoProperty(
+                Accessibility.NotApplicable,
+                "long",
+                "ISerializable.SavePosition",
+                Accessibility.NotApplicable,
+                Accessibility.NotApplicable,
+                indent,
+                defaultValue: "-1"
+            );
 
-                var migrationAdditionalText = migrations[i];
-                var migrationSource = migrationAdditionalText.GetText(token);
-                if (migrationSource == null)
-                {
-                    continue;
-                }
-
-                var chrArray = ArrayPool<char>.Shared.Rent(migrationSource.Length);
-                migrationSource.CopyTo(0, chrArray, 0, migrationSource.Length);
-                ReadOnlySpan<char> buffer = chrArray.AsSpan(0, migrationSource.Length);
-                SerializableMetadata migration = JsonSerializer.Deserialize<SerializableMetadata>(buffer, jsonSerializerOptions);
-                ArrayPool<char>.Shared.Return(chrArray);
-
-                source.GenerateMigrationContentStruct(compilation, indent, migration, classSymbol);
-                source.AppendLine();
-            }
+            // BufferWriter ISerializable.SaveBuffer { get; set; }
+            source.GenerateAutoProperty(
+                Accessibility.NotApplicable,
+                "BufferWriter",
+                "ISerializable.SaveBuffer",
+                Accessibility.NotApplicable,
+                Accessibility.NotApplicable,
+                indent
+            );
         }
 
         // Serialize Method
@@ -282,7 +275,7 @@ public static partial class SerializableEntityGeneration
             migrationsBuilder.ToImmutable(),
             serializableFields,
             serializableProperties,
-            parentFieldOrProperty?.Item1,
+            parentFieldOrProperty,
             serializableFieldSaveFlags
         );
 

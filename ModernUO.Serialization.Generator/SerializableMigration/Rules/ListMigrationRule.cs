@@ -73,7 +73,12 @@ public class ListMigrationRule : MigrationRule
     }
 
     public override void GenerateDeserializationMethod(
-        StringBuilder source, string indent, SerializableProperty property, string? parentReference, bool isMigration = false
+        StringBuilder source,
+        string indent,
+        Compilation compilation,
+        SerializableProperty property,
+        string? parentReference,
+        bool isMigration = false
     )
     {
         var expectedRule = RuleName;
@@ -112,7 +117,13 @@ public class ListMigrationRule : MigrationRule
             RuleArguments = listElementRuleArguments
         };
 
-        listElementRule.GenerateDeserializationMethod(source, $"{indent}    ", serializableListElement, parentReference);
+        listElementRule.GenerateDeserializationMethod(
+            source,
+            $"{indent}    ",
+            compilation,
+            serializableListElement,
+            parentReference
+        );
         source.AppendLine($"{indent}    {propertyName}.Add({propertyEntry});");
 
         source.AppendLine($"{indent}}}");

@@ -73,7 +73,12 @@ public class HashSetMigrationRule : MigrationRule
     }
 
     public override void GenerateDeserializationMethod(
-        StringBuilder source, string indent, SerializableProperty property, string? parentReference, bool isMigration = false
+        StringBuilder source,
+        string indent,
+        Compilation compilation,
+        SerializableProperty property,
+        string? parentReference,
+        bool isMigration = false
     )
     {
         var expectedRule = RuleName;
@@ -111,7 +116,13 @@ public class HashSetMigrationRule : MigrationRule
             RuleArguments = setElementRuleArguments
         };
 
-        setElementRule.GenerateDeserializationMethod(source, $"{indent}    ", serializableSetElement, parentReference);
+        setElementRule.GenerateDeserializationMethod(
+            source,
+            $"{indent}    ",
+            compilation,
+            serializableSetElement,
+            parentReference
+        );
         source.AppendLine($"{indent}    {property.Name}.Add({propertyEntry});");
 
         source.AppendLine($"{indent}}}");

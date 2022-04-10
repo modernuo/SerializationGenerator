@@ -51,7 +51,12 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
     }
 
     public override void GenerateDeserializationMethod(
-        StringBuilder source, string indent, SerializableProperty property, string? parentReference, bool isMigration = false
+        StringBuilder source,
+        string indent,
+        Compilation compilation,
+        SerializableProperty property,
+        string? parentReference,
+        bool isMigration = false
     )
     {
         var expectedRule = RuleName;
@@ -63,7 +68,7 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
 
         var propertyName = property.Name;
         var argument = property.RuleArguments?.Length >= 1 &&
-                       property.RuleArguments[0] == "DeserializationRequiresParent" ? ", this" : "";
+                       property.RuleArguments[0] == "DeserializationRequiresParent" ? $", {parentReference ?? "this"}" : "";
 
         source.AppendLine($"{indent}{propertyName} = new {property.Type}(reader{argument});");
     }

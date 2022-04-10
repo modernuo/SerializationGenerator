@@ -148,6 +148,7 @@ public static partial class SerializableEntityGeneration
                     rule.GenerateDeserializationMethod(
                         source,
                         innerIndent,
+                        compilation,
                         field,
                         parentFieldOrProperty?.Name ?? "this"
                     );
@@ -176,6 +177,7 @@ public static partial class SerializableEntityGeneration
                 rule.GenerateDeserializationMethod(
                     source,
                     bodyIndent,
+                    compilation,
                     field,
                     parentFieldOrProperty?.Name ?? "this"
                 );

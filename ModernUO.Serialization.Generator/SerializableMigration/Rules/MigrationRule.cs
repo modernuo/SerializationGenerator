@@ -27,7 +27,12 @@ public abstract class MigrationRule : ISerializableMigrationRule
     );
 
     public abstract void GenerateDeserializationMethod(
-        StringBuilder source, string indent, SerializableProperty property, string? parentReference, bool isMigration = false
+        StringBuilder source,
+        string indent,
+        Compilation compilation,
+        SerializableProperty property,
+        string? parentReference,
+        bool isMigration = false
     );
 
     public abstract void GenerateSerializationMethod(StringBuilder source, string indent, SerializableProperty property);

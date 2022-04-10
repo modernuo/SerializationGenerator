@@ -13,7 +13,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -261,28 +260,21 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         context.CancellationToken.ThrowIfCancellationRequested();
         var jsonOptions = SerializableMigrationSchema.GetJsonSerializerOptions();
 
-        try
-        {
-            string classSource = compilation.GenerateSerializationPartialClass(
-                classSymbol,
-                serializableAttribute,
-                jsonOptions,
-                migrations,
-                fieldsAndProperties,
-                context.CancellationToken
-            );
+        string classSource = compilation.GenerateSerializationPartialClass(
+            classSymbol,
+            serializableAttribute,
+            jsonOptions,
+            migrations,
+            fieldsAndProperties,
+            context.CancellationToken
+        );
 
-            if (classSource != null)
-            {
-                context.AddSource(
-                    $"{classSymbol.ToDisplayString()}.Serialization.cs",
-                    SourceText.From(classSource, Encoding.UTF8)
-                );
-            }
-        }
-        catch (Exception e)
+        if (classSource != null)
         {
-            Console.Write(e);
+            context.AddSource(
+                $"{classSymbol.ToDisplayString()}.Serialization.cs",
+                SourceText.From(classSource, Encoding.UTF8)
+            );
         }
     }
 }

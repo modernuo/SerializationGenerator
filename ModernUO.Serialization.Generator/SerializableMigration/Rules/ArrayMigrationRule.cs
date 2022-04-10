@@ -61,7 +61,12 @@ public class ArrayMigrationRule : MigrationRule
     }
 
     public override void GenerateDeserializationMethod(
-        StringBuilder source, string indent, SerializableProperty property, string? parentReference, bool isMigration = false
+        StringBuilder source,
+        string indent,
+        Compilation compilation,
+        SerializableProperty property,
+        string? parentReference,
+        bool isMigration = false
     )
     {
         var expectedRule = RuleName;
@@ -88,7 +93,13 @@ public class ArrayMigrationRule : MigrationRule
             RuleArguments = arrayElementRuleArguments
         };
 
-        arrayElementRule.GenerateDeserializationMethod(source, $"{indent}    ", serializableArrayElement, parentReference);
+        arrayElementRule.GenerateDeserializationMethod(
+            source,
+            $"{indent}    ",
+            compilation,
+            serializableArrayElement,
+            parentReference
+        );
 
         source.AppendLine($"{indent}}}");
     }
