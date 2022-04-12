@@ -69,6 +69,17 @@ public static class Helpers
         return node is T { AttributeLists.Count: > 0 };
     }
 
+    public static bool IsSyntaxNode<T, V>(this SyntaxNode node, CancellationToken token) where T : MemberDeclarationSyntax where V : MemberDeclarationSyntax
+    {
+        token.ThrowIfCancellationRequested();
+        return node is T { AttributeLists.Count: > 0 } or V { AttributeLists.Count: > 0};
+    }
+
+    public static IncrementalValueProvider<ImmutableDictionary<T, V>> ToImmutableDictionary<T, V>(this IncrementalValuesProvider<(T, V)> source) =>
+        source
+            .Collect()
+            .Select(MergeToDictionary);
+
     public static IncrementalValuesProvider<T> Flatten<T>(this IncrementalValuesProvider<ImmutableArray<T>> source) =>
         source.SelectMany(
             (array, token) =>
@@ -95,6 +106,12 @@ public static class Helpers
         .Collect()
         .Combine(right.Collect())
         .SelectMany(SelectMerge);
+
+    private static ImmutableDictionary<T, V> MergeToDictionary<T, V>(ImmutableArray<(T, V)> source, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        return source.ToImmutableDictionary(key => key.Item1, key => key.Item2);
+    }
 
     private static ImmutableArray<T> SelectMerge<T>((ImmutableArray<T>, ImmutableArray<T>) combined, CancellationToken token)
     {

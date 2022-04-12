@@ -36,6 +36,7 @@ public static partial class SerializableEntityGeneration
         JsonSerializerOptions? jsonSerializerOptions,
         ImmutableDictionary<int, AdditionalText> migrations,
         ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
+        ISymbol parentField,
         CancellationToken token,
         string? migrationPath = null
     )
@@ -46,8 +47,6 @@ public static partial class SerializableEntityGeneration
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE);
         var serializableFieldAttrAttribute =
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTR_ATTRIBUTE);
-        var parentSerializableAttribute =
-            compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_PARENT_ATTRIBUTE);
         var serializableFieldSaveFlagAttribute =
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE);
         var serializableFieldDefaultAttribute =
@@ -106,23 +105,10 @@ public static partial class SerializableEntityGeneration
         );
         source.AppendLine();
 
-        ISymbol? parentFieldOrProperty = null;
-
         var serializablePropertySet = new SortedDictionary<SerializableProperty, ISymbol>(new SerializablePropertyComparer());
 
         foreach (var (fieldOrPropertySymbol, attributeData) in fieldsAndProperties)
         {
-            if (!isSerializable && SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, parentSerializableAttribute))
-            {
-                if (parentFieldOrProperty != null)
-                {
-                    throw new Exception($"Multiple parent attributes for {className}.");
-                }
-
-                parentFieldOrProperty = fieldOrPropertySymbol;
-                continue;
-            }
-
             var allAttributes = fieldOrPropertySymbol.GetAttributes();
 
             foreach (var attr in allAttributes)
@@ -167,7 +153,7 @@ public static partial class SerializableEntityGeneration
                     getterAccessor,
                     setterAccessor,
                     virtualProperty,
-                    parentFieldOrProperty
+                    parentField?.Name ?? (isSerializable ? "this" : null)
                 );
                 source.AppendLine();
             }
@@ -275,7 +261,7 @@ public static partial class SerializableEntityGeneration
             migrationsBuilder.ToImmutable(),
             serializableFields,
             serializableProperties,
-            parentFieldOrProperty,
+            parentField?.Name ?? (isSerializable ? "this" : null),
             serializableFieldSaveFlags
         );
 

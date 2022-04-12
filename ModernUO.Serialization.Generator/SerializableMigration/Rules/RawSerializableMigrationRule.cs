@@ -75,7 +75,7 @@ public class RawSerializableMigrationRule : MigrationRule
         var propertyName = property.Name;
 
         var argument = property.RuleArguments?.Length >= 1 &&
-                       property.RuleArguments[0] == "DeserializationRequiresParent" ? (parentReference ?? "this") : "";
+                       property.RuleArguments[0] == "DeserializationRequiresParent" ? parentReference ?? "" : "";
 
         source.AppendLine($"{indent}{propertyName} = new {propertyType}({argument});");
         source.AppendLine($"{indent}{propertyName}.Deserialize(reader);");

@@ -35,7 +35,7 @@ public static partial class SerializableEntityGeneration
         ImmutableArray<SerializableMetadata> migrations,
         ImmutableArray<SerializableProperty> fields,
         ImmutableArray<SerializableProperty> properties,
-        ISymbol parentFieldOrProperty,
+        string? markDirtyProperty,
         SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary
     )
     {
@@ -85,7 +85,6 @@ public static partial class SerializableEntityGeneration
 
         if (version > 0)
         {
-            var parent = parentFieldOrProperty?.Name ?? "this";
             var nextVersion = 0;
 
             for (var i = 0; i < migrations.Length; i++)
@@ -100,7 +99,10 @@ public static partial class SerializableEntityGeneration
                 source.AppendLine($"{bodyIndent}if (version == {migrationVersion})");
                 source.AppendLine($"{bodyIndent}{{");
                 source.AppendLine($"{bodyIndent}    MigrateFrom(new V{migrationVersion}Content(reader, this));");
-                source.AppendLine($"{bodyIndent}    {parent}.MarkDirty();");
+                if (markDirtyProperty != null)
+                {
+                    source.AppendLine($"{bodyIndent}    {markDirtyProperty}.MarkDirty();");
+                }
                 source.GenerateAfterDeserialization($"{bodyIndent}    ", afterDeserialization);
                 source.AppendLine($"{bodyIndent}    return;");
                 source.AppendLine($"{bodyIndent}}}");
@@ -112,7 +114,10 @@ public static partial class SerializableEntityGeneration
                 source.AppendLine($"{bodyIndent}if (version < _version)");
                 source.AppendLine($"{bodyIndent}{{");
                 source.AppendLine($"{bodyIndent}    Deserialize(reader, version);");
-                source.AppendLine($"{bodyIndent}    {parent}.MarkDirty();");
+                if (markDirtyProperty != null)
+                {
+                    source.AppendLine($"{bodyIndent}    {markDirtyProperty}.MarkDirty();");
+                }
                 source.GenerateAfterDeserialization($"{bodyIndent}    ", afterDeserialization);
                 source.AppendLine($"{bodyIndent}    return;");
                 source.AppendLine($"{bodyIndent}}}");
@@ -150,7 +155,7 @@ public static partial class SerializableEntityGeneration
                         innerIndent,
                         compilation,
                         field,
-                        parentFieldOrProperty?.Name ?? "this"
+                        markDirtyProperty
                     );
                     (rule as IPostDeserializeMethod)?.PostDeserializeMethod(
                         source,
@@ -179,7 +184,7 @@ public static partial class SerializableEntityGeneration
                     bodyIndent,
                     compilation,
                     field,
-                    parentFieldOrProperty?.Name ?? "this"
+                    markDirtyProperty
                 );
                 (rule as IPostDeserializeMethod)?.PostDeserializeMethod(
                     source,
