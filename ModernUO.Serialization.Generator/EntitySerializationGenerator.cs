@@ -28,6 +28,14 @@ namespace SerializationGenerator;
 [Generator]
 public class EntitySerializationGenerator : IIncrementalGenerator
 {
+    private string _migrationPath;
+
+    public EntitySerializationGenerator() : this(null)
+    {
+    }
+
+    public EntitySerializationGenerator(string? migrationPath = null) => _migrationPath = migrationPath;
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Gather all classes with [ModernUO.Serialization.Serializable] attribute
@@ -297,6 +305,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             migrations,
             fieldsAndProperties,
             dirtyTrackingEntityField,
+            _migrationPath,
             context.CancellationToken
         );
 

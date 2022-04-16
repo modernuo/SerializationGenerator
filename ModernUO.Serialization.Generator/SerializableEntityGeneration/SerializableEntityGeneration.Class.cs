@@ -15,6 +15,7 @@
 
 using System;
 using System.Buffers;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -37,8 +38,8 @@ public static partial class SerializableEntityGeneration
         ImmutableDictionary<int, AdditionalText> migrations,
         ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
         ISymbol? dirtyTrackingEntityField,
-        CancellationToken token,
-        string? migrationPath = null
+        string? migrationPath,
+        CancellationToken token
     )
     {
         token.ThrowIfCancellationRequested();
@@ -61,6 +62,8 @@ public static partial class SerializableEntityGeneration
         var serializableFieldSaveFlags = new SortedDictionary<int, SerializableFieldSaveFlagMethods>();
         foreach (var m in classSymbol.GetMembers().OfType<IMethodSymbol>())
         {
+            token.ThrowIfCancellationRequested();
+
             var getSaveFlagAttribute = m.GetAttribute(serializableFieldSaveFlagAttribute);
             var getDefaultValueAttribute = m.GetAttribute(serializableFieldDefaultAttribute);
 
@@ -109,10 +112,14 @@ public static partial class SerializableEntityGeneration
 
         foreach (var (fieldOrPropertySymbol, attributeData) in fieldsAndProperties)
         {
+            token.ThrowIfCancellationRequested();
+
             var allAttributes = fieldOrPropertySymbol.GetAttributes();
 
             foreach (var attr in allAttributes)
             {
+                token.ThrowIfCancellationRequested();
+
                 if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, serializableFieldAttrAttribute))
                 {
                     continue;
@@ -191,6 +198,8 @@ public static partial class SerializableEntityGeneration
 
         for (var i = 0; i < version; i++)
         {
+            token.ThrowIfCancellationRequested();
+
             if (!migrations.TryGetValue(i, out var additionalText))
             {
                 continue;
@@ -316,14 +325,20 @@ public static partial class SerializableEntityGeneration
                 Properties = serializableProperties.Length > 0 ? serializableProperties : null
             };
 
-            WriteMigration(migrationPath, newMigration, jsonSerializerOptions);
+            WriteMigration(migrationPath, newMigration, jsonSerializerOptions, token);
         }
 
         return source.ToString();
     }
 
-    private static void WriteMigration(string migrationPath, SerializableMetadata metadata, JsonSerializerOptions options)
+    private static void WriteMigration(
+        string migrationPath,
+        SerializableMetadata metadata,
+        JsonSerializerOptions options,
+        CancellationToken token
+    )
     {
+        token.ThrowIfCancellationRequested();
         Directory.CreateDirectory(migrationPath);
         var filePath = Path.Combine(migrationPath, $"{metadata.Type}.v{metadata.Version}.json");
         File.WriteAllText(filePath, JsonSerializer.Serialize(metadata, options));

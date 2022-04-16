@@ -48,62 +48,11 @@ public static class Application
                 Directory.CreateDirectory(migrationPath);
 
                 var migrations = MigrationHandler.GetMigrations(migrationPath);
-                Console.WriteLine("Migrations Found: {0}", migrations.Length);
 
-                var driver = CSharpGeneratorDriver
-                    .Create(new EntitySerializationGenerator())
+                CSharpGeneratorDriver
+                    .Create(new EntitySerializationGenerator(migrationPath))
                     .AddAdditionalTexts(migrations)
                     .RunGenerators(compilation);
-
-                // var results = driver.GetRunResult().Results;
-
-                // var syntaxReceiver = new SerializerSyntaxReceiver();
-                //
-                // foreach (var syntaxTree in compilation.SyntaxTrees)
-                // {
-                //     var root = syntaxTree.GetRoot();
-                //     var syntaxVisitor = new SyntaxVisitor(compilation.GetSemanticModel(syntaxTree), syntaxReceiver);
-                //     syntaxVisitor.Visit(root);
-                // }
-                //
-                // var jsonOptions = new JsonSerializerOptions
-                // {
-                //     WriteIndented = true,
-                //     AllowTrailingCommas = true,
-                //     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-                //     ReadCommentHandling = JsonCommentHandling.Skip
-                // };
-                //
-                // var serializableTypes = syntaxReceiver.SerializableList;
-                // var embeddedSerializableTypes = syntaxReceiver.EmbeddedSerializableList;
-                //
-                // foreach (var (classSymbol, (attributeData, fieldsList)) in syntaxReceiver.ClassAndFields)
-                // {
-                //     var source = compilation.GenerateSerializationPartialClass(
-                //         classSymbol,
-                //         attributeData,
-                //         migrationPath,
-                //         false,
-                //         jsonOptions,
-                //         fieldsList.ToImmutableArray(),
-                //         serializableTypes,
-                //         embeddedSerializableTypes
-                //     );
-                // }
-                //
-                // foreach (var (classSymbol, (attributeData, fieldsList)) in syntaxReceiver.EmbeddedClassAndFields)
-                // {
-                //     var source = compilation.GenerateSerializationPartialClass(
-                //         classSymbol,
-                //         attributeData,
-                //         migrationPath,
-                //         true,
-                //         jsonOptions,
-                //         fieldsList.ToImmutableArray(),
-                //         serializableTypes,
-                //         embeddedSerializableTypes
-                //     );
-                // }
             }
         );
     }
