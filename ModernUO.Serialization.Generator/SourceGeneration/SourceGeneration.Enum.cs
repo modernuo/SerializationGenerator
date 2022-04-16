@@ -16,7 +16,7 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 
-namespace SerializationGenerator;
+namespace ModernUO.Serialization.Generator;
 
 public static partial class SourceGeneration
 {

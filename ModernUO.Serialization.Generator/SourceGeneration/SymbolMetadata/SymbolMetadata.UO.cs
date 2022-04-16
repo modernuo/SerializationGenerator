@@ -13,12 +13,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 
-namespace SerializationGenerator;
+namespace ModernUO.Serialization.Generator;
 
 public static partial class SymbolMetadata
 {

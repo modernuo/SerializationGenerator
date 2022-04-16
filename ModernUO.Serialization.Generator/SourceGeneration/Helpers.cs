@@ -21,7 +21,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace SerializationGenerator;
+namespace ModernUO.Serialization.Generator;
 
 public static class Helpers
 {

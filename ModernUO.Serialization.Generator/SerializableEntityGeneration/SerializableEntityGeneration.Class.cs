@@ -15,7 +15,6 @@
 
 using System;
 using System.Buffers;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -24,9 +23,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using Microsoft.CodeAnalysis;
-using SerializableMigration;
 
-namespace SerializationGenerator;
+namespace ModernUO.Serialization.Generator;
 
 public static partial class SerializableEntityGeneration
 {

@@ -15,7 +15,7 @@
 
 using System.Collections.Generic;
 
-namespace SerializableMigration;
+namespace ModernUO.Serialization.Generator;
 
 public class SerializablePropertyComparer : IComparer<SerializableProperty>
 {

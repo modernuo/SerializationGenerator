@@ -21,11 +21,11 @@ using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 
-namespace SerializationSchemaGenerator;
+namespace ModernUO.Serialization.SchemaGenerator;
 
 public static class SourceCodeAnalysis
 {
-    public static List<(Project, Compilation)> GetCompilation(string solutionPath)
+    public static IEnumerable<(Project, Compilation)> GetCompilation(string solutionPath)
     {
         if (!File.Exists(solutionPath) || !solutionPath.EndsWith(".sln", StringComparison.Ordinal))
         {
@@ -41,7 +41,6 @@ public static class SourceCodeAnalysis
             .Projects
             .AsParallel()
             .Select(project => (project, project?.GetCompilationAsync().Result))
-            .Where(value => value.Result != null)
-            .ToList();
+            .Where(value => value.Result != null);
     }
 }

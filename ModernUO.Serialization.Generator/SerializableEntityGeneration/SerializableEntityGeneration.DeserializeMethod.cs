@@ -18,9 +18,8 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
-using SerializableMigration;
 
-namespace SerializationGenerator;
+namespace ModernUO.Serialization.Generator;
 
 public static partial class SerializableEntityGeneration
 {

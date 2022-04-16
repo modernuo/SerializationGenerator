@@ -15,7 +15,7 @@
 
 using System.Collections.Generic;
 
-namespace SerializationGenerator;
+namespace ModernUO.Serialization.Generator;
 
 public static class Utility
 {

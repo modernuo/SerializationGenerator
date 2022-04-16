@@ -17,7 +17,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-namespace SerializableMigration;
+namespace ModernUO.Serialization.Generator;
 
 public static class SerializableMigrationSchema
 {

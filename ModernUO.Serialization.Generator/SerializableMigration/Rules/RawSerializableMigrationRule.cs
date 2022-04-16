@@ -17,9 +17,8 @@ using System;
 using System.Collections.Immutable;
 using System.Text;
 using Microsoft.CodeAnalysis;
-using SerializationGenerator;
 
-namespace SerializableMigration;
+namespace ModernUO.Serialization.Generator;
 
 public class RawSerializableMigrationRule : MigrationRule
 {

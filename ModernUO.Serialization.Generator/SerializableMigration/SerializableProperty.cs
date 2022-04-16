@@ -15,7 +15,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace SerializableMigration;
+namespace ModernUO.Serialization.Generator;
 
 public record SerializableProperty
 {

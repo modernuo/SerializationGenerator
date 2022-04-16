@@ -18,9 +18,8 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
-using SerializationGenerator;
 
-namespace SerializableMigration;
+namespace ModernUO.Serialization.Generator;
 
 public class DictionaryMigrationRule : MigrationRule
 {

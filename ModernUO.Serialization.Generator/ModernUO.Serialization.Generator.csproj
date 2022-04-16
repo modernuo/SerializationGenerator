@@ -7,7 +7,7 @@
         <AssemblyName>ModernUO.Serialization.Generator</AssemblyName>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>false</IncludeBuildOutput>
-        <RootNamespace>SerializationGenerator</RootNamespace>
+        <RootNamespace>ModernUO.Serialization.Generator</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

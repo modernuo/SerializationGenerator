@@ -17,9 +17,9 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
-using SerializationGenerator;
+using ModernUO.Serialization.Generator;
 
-namespace SerializationSchemaGenerator;
+namespace ModernUO.Serialization.SchemaGenerator;
 
 public static class Application
 {

@@ -21,9 +21,8 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using SerializableMigration;
 
-namespace SerializationGenerator;
+namespace ModernUO.Serialization.Generator;
 
 [Generator]
 public class EntitySerializationGenerator : IIncrementalGenerator
