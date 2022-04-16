@@ -13,6 +13,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -24,7 +25,7 @@ public static partial class SymbolMetadata
     public const string INVALIDATEPROPERTIES_ATTRIBUTE = "Server.InvalidatePropertiesAttribute";
     public const string AFTERDESERIALIZATION_ATTRIBUTE = "Server.AfterDeserializationAttribute";
     public const string SERIALIZABLE_ATTRIBUTE = "Server.SerializableAttribute";
-    public const string SERIALIZABLE_PARENT_ATTRIBUTE = "Server.SerializableParentAttribute";
+    public const string DIRTY_TRACKING_ENTITY_ATTRIBUTE = "Server.DirtyTrackingEntityAttribute";
     public const string SERIALIZABLE_FIELD_ATTRIBUTE = "Server.SerializableFieldAttribute";
     public const string SERIALIZABLE_FIELD_ATTR_ATTRIBUTE = "Server.SerializableFieldAttrAttribute";
     public const string SERIALIZABLE_INTERFACE = "Server.ISerializable";
@@ -119,10 +120,19 @@ public static partial class SymbolMetadata
         return genericCtor != null;
     }
 
-    public static bool HasPublicSerializeMethod(
-        this ITypeSymbol symbol,
-        Compilation compilation
-    )
+    // Note: Does not detect extension methods
+    public static bool HasMarkDirtyMethod(this ITypeSymbol symbol)
+    {
+        return symbol.GetAllMethods("MarkDirty")
+            .Any(
+                m => !m.IsStatic &&
+                     m.ReturnsVoid &&
+                     m.Parameters.Length == 0 &&
+                     m.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
+            );
+    }
+
+    public static bool HasPublicSerializeMethod(this ITypeSymbol symbol, Compilation compilation)
     {
         var genericWriterInterface = compilation.GetTypeByMetadataName(GENERIC_WRITER_INTERFACE);
 
@@ -207,12 +217,9 @@ public static partial class SymbolMetadata
 
     public static bool IsSerializableRecursive(this INamedTypeSymbol classSymbol, Compilation compilation)
     {
-        var serializableEntityAttribute =
-            compilation.GetTypeByMetadataName(SERIALIZABLE_ATTRIBUTE);
-
         while (classSymbol != null)
         {
-            if (classSymbol.GetAttribute(serializableEntityAttribute) != null)
+            if (classSymbol.TryGetSerializable(compilation, out _))
             {
                 return true;
             }
@@ -250,11 +257,11 @@ public static partial class SymbolMetadata
             out attributeData
         );
 
-    public static bool TryGetSerializableParentField(
+    public static bool TryGetDirtyTrackingEntityField(
         this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
     ) =>
         fieldSymbol.TryGetFieldWithAttribute(
-            compilation.GetTypeByMetadataName(SERIALIZABLE_PARENT_ATTRIBUTE),
+            compilation.GetTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
             out attributeData
         );
 }

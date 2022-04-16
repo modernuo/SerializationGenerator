@@ -54,7 +54,8 @@ public static class Application
                     .Create(new EntitySerializationGenerator())
                     .AddAdditionalTexts(migrations)
                     .RunGenerators(compilation);
-                // var result = driver.GetRunResult();
+
+                // var results = driver.GetRunResult().Results;
 
                 // var syntaxReceiver = new SerializerSyntaxReceiver();
                 //

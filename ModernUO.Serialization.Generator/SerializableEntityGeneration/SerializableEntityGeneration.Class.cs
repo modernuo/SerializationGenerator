@@ -36,15 +36,13 @@ public static partial class SerializableEntityGeneration
         JsonSerializerOptions? jsonSerializerOptions,
         ImmutableDictionary<int, AdditionalText> migrations,
         ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
-        ISymbol parentField,
+        ISymbol? dirtyTrackingEntityField,
         CancellationToken token,
         string? migrationPath = null
     )
     {
         token.ThrowIfCancellationRequested();
 
-        var serializableFieldAttribute =
-            compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE);
         var serializableFieldAttrAttribute =
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTR_ATTRIBUTE);
         var serializableFieldSaveFlagAttribute =
@@ -105,6 +103,8 @@ public static partial class SerializableEntityGeneration
         );
         source.AppendLine();
 
+        var hasMarkDirtyMethod = isSerializable || classSymbol.HasMarkDirtyMethod();
+
         var serializablePropertySet = new SortedDictionary<SerializableProperty, ISymbol>(new SerializablePropertyComparer());
 
         foreach (var (fieldOrPropertySymbol, attributeData) in fieldsAndProperties)
@@ -153,7 +153,7 @@ public static partial class SerializableEntityGeneration
                     getterAccessor,
                     setterAccessor,
                     virtualProperty,
-                    parentField?.Name ?? (isSerializable ? "this" : null)
+                    hasMarkDirtyMethod || dirtyTrackingEntityField != null ? "this" : null
                 );
                 source.AppendLine();
             }
@@ -238,6 +238,23 @@ public static partial class SerializableEntityGeneration
             );
         }
 
+        if (!hasMarkDirtyMethod && dirtyTrackingEntityField != null)
+        {
+            source.GenerateMethodStart(
+                indent,
+                "MarkDirty",
+                Accessibility.Public,
+                false,
+                "void",
+                ImmutableArray<(ITypeSymbol, string)>.Empty
+            );
+
+            source.AppendLine($"{indent}    {dirtyTrackingEntityField.Name}.MarkDirty();");
+
+            source.GenerateMethodEnd(indent);
+            source.AppendLine();
+        }
+
         // Serialize Method
         source.GenerateSerializeMethod(
             compilation,
@@ -261,7 +278,7 @@ public static partial class SerializableEntityGeneration
             migrationsBuilder.ToImmutable(),
             serializableFields,
             serializableProperties,
-            parentField?.Name ?? (isSerializable ? "this" : null),
+            hasMarkDirtyMethod || dirtyTrackingEntityField != null ? "this" : null,
             serializableFieldSaveFlags
         );
 

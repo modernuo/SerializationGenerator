@@ -50,9 +50,7 @@ public class RawSerializableMigrationRule : MigrationRule
         }
 
         ruleArguments = new[] { requiresParent ? "DeserializationRequiresParent" : "" };
-        return namedTypeSymbol.HasPublicSerializeMethod(compilation) ||
-               namedTypeSymbol.HasPublicDeserializeMethod(compilation) ||
-               namedTypeSymbol.IsSerializableRecursive(compilation);
+        return namedTypeSymbol.IsSerializableRecursive(compilation);
     }
 
     public override void GenerateDeserializationMethod(

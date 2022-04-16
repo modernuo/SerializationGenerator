@@ -31,15 +31,12 @@ public static class Helpers
 
     public static ImmutableArray<IMethodSymbol> GetAllMethods(this ITypeSymbol symbol, string name)
     {
-        var methods = symbol.GetMembers(name).OfType<IMethodSymbol>();
-        if (symbol.BaseType is not ITypeSymbol typeSymbol)
-        {
-            return methods.ToImmutableArray();
-        }
-
         var builder = ImmutableArray.CreateBuilder<IMethodSymbol>();
-        builder.AddRange(methods);
-        builder.AddRange(GetAllMethods(typeSymbol, name));
+        builder.AddRange(symbol.GetMembers(name).OfType<IMethodSymbol>());
+        if (symbol.BaseType is ITypeSymbol typeSymbol)
+        {
+            builder.AddRange(typeSymbol.GetAllMethods(name));
+        }
         return builder.ToImmutable();
     }
 
