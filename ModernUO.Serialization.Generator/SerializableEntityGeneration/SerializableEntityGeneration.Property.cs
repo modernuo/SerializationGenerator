@@ -39,7 +39,7 @@ public static partial class SerializableEntityGeneration
             .OfType<AttributeData>()
             .FirstOrDefault(
                 attr => attr.AttributeClass?.Equals(
-                    compilation.GetTypeByMetadataName(SymbolMetadata.INVALIDATEPROPERTIES_ATTRIBUTE),
+                    compilation.GetTypeByMetadataName(SymbolMetadata.INVALIDATE_PROPERTIES_ATTRIBUTE),
                     SymbolEqualityComparer.Default
                 ) ?? false
             );

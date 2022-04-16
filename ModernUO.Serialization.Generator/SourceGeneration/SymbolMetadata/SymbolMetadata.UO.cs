@@ -21,19 +21,24 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SymbolMetadata
 {
-    public const string INVALIDATEPROPERTIES_ATTRIBUTE = "Server.InvalidatePropertiesAttribute";
-    public const string AFTERDESERIALIZATION_ATTRIBUTE = "Server.AfterDeserializationAttribute";
-    public const string SERIALIZABLE_ATTRIBUTE = "Server.SerializableAttribute";
-    public const string DIRTY_TRACKING_ENTITY_ATTRIBUTE = "Server.DirtyTrackingEntityAttribute";
-    public const string SERIALIZABLE_FIELD_ATTRIBUTE = "Server.SerializableFieldAttribute";
-    public const string SERIALIZABLE_FIELD_ATTR_ATTRIBUTE = "Server.SerializableFieldAttrAttribute";
+    public const string INVALIDATE_PROPERTIES_ATTRIBUTE = "ModernUO.Serialization.InvalidatePropertiesAttribute";
+    public const string AFTER_DESERIALIZATION_ATTRIBUTE = "ModernUO.Serialization.AfterDeserializationAttribute";
+    public const string SERIALIZABLE_ATTRIBUTE = "ModernUO.Serialization.SerializableAttribute";
+    public const string DIRTY_TRACKING_ENTITY_ATTRIBUTE = "ModernUO.Serialization.DirtyTrackingEntityAttribute";
+    public const string SERIALIZABLE_FIELD_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttribute";
+    public const string SERIALIZABLE_FIELD_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttrAttribute";
+    public const string DELTA_DATE_TIME_ATTRIBUTE = "ModernUO.Serialization.DeltaDateTimeAttribute";
+    public const string INTERN_STRING_ATTRIBUTE = "ModernUO.Serialization.InternStringAttribute";
+    public const string ENCODED_INT_ATTRIBUTE = "ModernUO.Serialization.EncodedIntAttribute";
+    public const string TIDY_ATTRIBUTE = "ModernUO.Serialization.TidyAttribute";
+    public const string TIMER_DRIFT_ATTRIBUTE = "ModernUO.Serialization.TimerDriftAttribute";
+    public const string DESERIALIZE_TIMER_FIELD_ATTRIBUTE = "ModernUO.Serialization.DeserializeTimerFieldAttribute";
+    public const string SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldSaveFlagAttribute";
+    public const string SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldDefaultAttribute";
+
     public const string SERIALIZABLE_INTERFACE = "Server.ISerializable";
     public const string GENERIC_WRITER_INTERFACE = "Server.IGenericWriter";
     public const string GENERIC_READER_INTERFACE = "Server.IGenericReader";
-    public const string DELTA_DATE_TIME_ATTRIBUTE = "Server.DeltaDateTimeAttribute";
-    public const string INTERN_STRING_ATTRIBUTE = "Server.InternStringAttribute";
-    public const string ENCODED_INT_ATTRIBUTE = "Server.EncodedIntAttribute";
-    public const string TIDY_ATTRIBUTE = "Server.TidyAttribute";
     public const string POINT2D_STRUCT = "Server.Point2D";
     public const string POINT3D_STRUCT = "Server.Point3D";
     public const string RECTANGLE2D_STRUCT = "Server.Rectangle2D";
@@ -41,10 +46,6 @@ public static partial class SymbolMetadata
     public const string RACE_CLASS = "Server.Race";
     public const string MAP_CLASS = "Server.Map";
     public const string TIMER_CLASS = "Server.Timer";
-    public const string TIMER_DRIFT_ATTRIBUTE = "Server.TimerDriftAttribute";
-    public const string DESERIALIZE_TIMER_FIELD_ATTRIBUTE = "Server.DeserializeTimerFieldAttribute";
-    public const string SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE = "Server.SerializableFieldSaveFlagAttribute";
-    public const string SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE = "Server.SerializableFieldDefaultAttribute";
     // ModernUO modified BitArray
     public const string SERVER_BITARRAY_CLASS = "Server.Collections.BitArray";
 

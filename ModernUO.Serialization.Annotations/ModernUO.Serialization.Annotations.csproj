@@ -5,6 +5,7 @@
         <LangVersion>preview</LangVersion>
         <AssemblyVersion>2.0.0</AssemblyVersion>
         <PackageVersion>2.0.0</PackageVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
 </Project>

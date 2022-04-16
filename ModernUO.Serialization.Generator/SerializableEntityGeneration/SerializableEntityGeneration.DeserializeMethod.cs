@@ -73,7 +73,7 @@ public static partial class SerializableEntityGeneration
                         .FirstOrDefault(
                             attr => SymbolEqualityComparer.Default.Equals(
                                 attr.AttributeClass,
-                                compilation.GetTypeByMetadataName(SymbolMetadata.AFTERDESERIALIZATION_ATTRIBUTE)
+                                compilation.GetTypeByMetadataName(SymbolMetadata.AFTER_DESERIALIZATION_ATTRIBUTE)
                             )
                         ));
                 }
