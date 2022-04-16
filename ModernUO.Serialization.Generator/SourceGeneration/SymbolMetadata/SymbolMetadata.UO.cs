@@ -23,7 +23,7 @@ public static partial class SymbolMetadata
 {
     public const string INVALIDATE_PROPERTIES_ATTRIBUTE = "ModernUO.Serialization.InvalidatePropertiesAttribute";
     public const string AFTER_DESERIALIZATION_ATTRIBUTE = "ModernUO.Serialization.AfterDeserializationAttribute";
-    public const string SERIALIZABLE_ATTRIBUTE = "ModernUO.Serialization.SerializableAttribute";
+    public const string SERIALIZABLE_ATTRIBUTE = "ModernUO.Serialization.SerializationGeneratorAttribute";
     public const string DIRTY_TRACKING_ENTITY_ATTRIBUTE = "ModernUO.Serialization.DirtyTrackingEntityAttribute";
     public const string SERIALIZABLE_FIELD_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttribute";
     public const string SERIALIZABLE_FIELD_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttrAttribute";
