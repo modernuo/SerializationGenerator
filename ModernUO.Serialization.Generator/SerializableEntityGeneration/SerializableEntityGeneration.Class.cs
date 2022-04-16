@@ -245,7 +245,9 @@ public static partial class SerializableEntityGeneration
             );
         }
 
-        if (!hasMarkDirtyMethod && dirtyTrackingEntityField != null)
+        Console.WriteLine("We have a dirty tracking entity field for {0} and its {1}", className, dirtyTrackingEntityField);
+
+        if (!isSerializable && dirtyTrackingEntityField != null)
         {
             source.GenerateMethodStart(
                 indent,

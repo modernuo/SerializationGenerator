@@ -2,7 +2,7 @@
  * ModernUO                                                              *
  * Copyright 2019-2022 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: DirtyTrackingEntityAttribute.cs                                 *
+ * File: SerializationGeneratorAttribute.cs                              *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -17,14 +17,15 @@ using System;
 
 namespace ModernUO.Serialization;
 
-/// <summary>
-/// Hints to the source generator that this field or property indicates the ISerializable parent of this embedded class.
-/// If this is specified on an ISerializable type, it will be ignored.
-/// </summary>
-[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
-public sealed class DirtyTrackingEntity : Attribute
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public sealed class SerializationGeneratorAttribute : Attribute
 {
-    public DirtyTrackingEntity()
+    public int Version { get; }
+    public bool EncodedVersion { get; }
+
+    public SerializationGeneratorAttribute(int version, bool encodedVersion = true)
     {
+        Version = version;
+        EncodedVersion = encodedVersion;
     }
 }
