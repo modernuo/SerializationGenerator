@@ -14,7 +14,6 @@
  *************************************************************************/
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Build.Locator;
@@ -25,7 +24,7 @@ namespace ModernUO.Serialization.SchemaGenerator;
 
 public static class SourceCodeAnalysis
 {
-    public static IEnumerable<(Project, Compilation)> GetCompilation(string solutionPath)
+    public static ParallelQuery<Project> GetProjects(string solutionPath)
     {
         if (!File.Exists(solutionPath) || !solutionPath.EndsWith(".sln", StringComparison.Ordinal))
         {
@@ -40,7 +39,20 @@ public static class SourceCodeAnalysis
             .Result
             .Projects
             .AsParallel()
-            .Select(project => (project, project?.GetCompilationAsync().Result))
-            .Where(value => value.Result != null);
+            .Where(project => !project.Name.EndsWith(".Tests", StringComparison.Ordinal) && project.Name != "Benchmarks")
+            .Select(
+                project =>
+                {
+                    foreach (var reference in project.AnalyzerReferences)
+                    {
+                        if (reference.Display == "ModernUO.Serialization.Generator")
+                        {
+                            project = project.RemoveAnalyzerReference(reference);
+                        }
+                    }
+
+                    return project;
+                }
+            );
     }
 }
