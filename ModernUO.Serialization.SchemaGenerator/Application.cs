@@ -14,8 +14,9 @@
  *************************************************************************/
 
 using System;
+using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
+using System.Linq;
 using Microsoft.CodeAnalysis.CSharp;
 using ModernUO.Serialization.Generator;
 
@@ -32,28 +33,32 @@ public static class Application
 
         var solutionPath = args[0];
 
-        Parallel.ForEach(
-            SourceCodeAnalysis.GetCompilation(solutionPath),
-            projectCompilation =>
-            {
-                var (project, compilation) = projectCompilation;
-                if (project.Name.EndsWith(".Tests", StringComparison.Ordinal) || project.Name == "Benchmarks")
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        SourceCodeAnalysis
+            .GetProjects(solutionPath)
+            .ForAll(
+                project =>
                 {
-                    return;
+                    Console.WriteLine("Gathering compilation for {0}", project.Name);
+                    var compilation = project.GetCompilationAsync().Result;
+                    Console.WriteLine("Writing schema migrations for {0}", project.Name);
+                    var projectFile = new FileInfo(project.FilePath);
+                    var projectPath = projectFile.Directory?.FullName;
+                    var migrationPath = Path.Join(projectPath, "Migrations");
+                    Directory.CreateDirectory(migrationPath);
+
+                    CSharpGeneratorDriver
+                        .Create(new EntitySerializationGenerator(migrationPath))
+                        .RunGenerators(compilation);
+
+                    Console.WriteLine("Completed migrations for {0}", project.Name);
                 }
+            );
 
-                var projectFile = new FileInfo(project.FilePath!);
-                var projectPath = projectFile.Directory?.FullName;
-                var migrationPath = Path.Join(projectPath, "Migrations");
-                Directory.CreateDirectory(migrationPath);
+        stopwatch.Stop();
 
-                var migrations = MigrationHandler.GetMigrations(migrationPath);
-
-                CSharpGeneratorDriver
-                    .Create(new EntitySerializationGenerator(migrationPath))
-                    .AddAdditionalTexts(migrations)
-                    .RunGenerators(compilation);
-            }
-        );
+        Console.WriteLine("Completed in {0:N2} seconds", stopwatch.Elapsed.TotalSeconds);
     }
 }
