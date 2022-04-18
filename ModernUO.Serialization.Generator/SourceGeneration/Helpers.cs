@@ -54,6 +54,17 @@ public static class Helpers
             _                    => Accessibility.NotApplicable
         };
 
+    public static bool IsTypeRecurse(this ISymbol symbol, Compilation compilation, INamedTypeSymbol classSymbol)
+    {
+        if (symbol is not INamedTypeSymbol namedTypeSymbol)
+        {
+            return false;
+        }
+
+        return namedTypeSymbol.Equals(classSymbol, SymbolEqualityComparer.Default) ||
+               namedTypeSymbol.BaseType?.IsPoison(compilation) == true;
+    }
+
     public static bool CanBeConstructedFrom(this ITypeSymbol? symbol, ISymbol classSymbol) =>
         symbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.ConstructedFrom.Equals(
             classSymbol,

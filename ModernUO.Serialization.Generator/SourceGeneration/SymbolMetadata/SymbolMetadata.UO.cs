@@ -39,6 +39,7 @@ public static partial class SymbolMetadata
     public const string SERIALIZABLE_INTERFACE = "Server.ISerializable";
     public const string GENERIC_WRITER_INTERFACE = "Server.IGenericWriter";
     public const string GENERIC_READER_INTERFACE = "Server.IGenericReader";
+    public const string POISON_CLASS = "Server.Poison";
     public const string POINT2D_STRUCT = "Server.Point2D";
     public const string POINT3D_STRUCT = "Server.Point3D";
     public const string RECTANGLE2D_STRUCT = "Server.Rectangle2D";
@@ -163,6 +164,9 @@ public static partial class SymbolMetadata
             );
     }
 
+    public static bool IsPoison(this ISymbol symbol, Compilation compilation) =>
+        symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(POISON_CLASS));
+
     public static bool IsPoint2D(this ISymbol symbol, Compilation compilation) =>
         symbol.Equals(
             compilation.GetTypeByMetadataName(POINT2D_STRUCT),
@@ -188,10 +192,7 @@ public static partial class SymbolMetadata
         );
 
     public static bool IsRace(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(RACE_CLASS),
-            SymbolEqualityComparer.Default
-        );
+        symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(RACE_CLASS));
 
     public static bool IsMap(this ISymbol symbol, Compilation compilation) =>
         symbol.Equals(
