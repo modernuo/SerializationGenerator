@@ -34,6 +34,7 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
     {
         ruleArguments = symbol switch
         {
+            _ when symbol.IsPoison(compilation)      => new[] { "Poison" },
             _ when symbol.IsPoint2D(compilation)     => new[] { "Point2D" },
             _ when symbol.IsPoint3D(compilation)     => new[] { "Point3D" },
             _ when symbol.IsRectangle2D(compilation) => new[] { "Rect2D" },
