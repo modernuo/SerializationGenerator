@@ -45,7 +45,7 @@ All classes will at the very least have this kind of boilerplate:
 
 The source generator takes some of the tediousness out of writing content by abstracting out the code:
 ```cs
-    [Serializable(0)]
+    [SerializationGenerator(0)]
     public partial class ElegantLowTable : Item
     {
         [Constructible]
@@ -97,7 +97,7 @@ In our previous example, let's say we wanted to add a property that needs to be 
 ```cs
     // Bumped the version from 0 to 1 since we changing
     // the serialization schema by adding a property.
-    [Serializable(1)]
+    [SerializationGenerator(1)]
     public partial class ElegantLowTable : Item
     {
         [SerializableField(0)]
@@ -206,7 +206,7 @@ Here is a complete example of how we would convert this:
 
 ```cs
     // We bumped to version 3, and we used the `false` flag to indicate that when we serialize the version property, it is not encoded.
-    [Serializable(3, false)]
+    [SerializationGenerator(3, false)]
     public partial class DeathRobe : Robe
     {
         [TimerDrift]
