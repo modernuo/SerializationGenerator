@@ -42,6 +42,7 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
             _ when symbol.IsRace(compilation)        => new[] { "Race" },
             _ when symbol.IsMap(compilation)         => new[] { "Map" },
             _ when symbol.IsBitArray(compilation)    => new[] { "BitArray" },
+            _ when symbol.IsSerial(compilation)      => new[] { "Serial" },
             _                                        => null
         };
 
