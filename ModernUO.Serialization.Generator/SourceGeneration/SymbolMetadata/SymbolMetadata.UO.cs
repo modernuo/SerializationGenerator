@@ -265,11 +265,9 @@ public static partial class SymbolMetadata
             out attributeData
         );
 
-    public static bool TryGetDirtyTrackingEntityField(
-        this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
-    ) =>
+    public static bool TryGetDirtyTrackingEntityField(this ISymbol fieldSymbol, Compilation compilation) =>
         fieldSymbol.TryGetFieldWithAttribute(
             compilation.GetTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
-            out attributeData
+            out _
         );
 }

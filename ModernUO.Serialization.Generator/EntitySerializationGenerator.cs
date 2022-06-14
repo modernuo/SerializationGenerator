@@ -41,41 +41,9 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         var serializableClasses = context
             .SyntaxProvider
             .CreateSyntaxProvider(
-                Helpers.IsSyntaxNode<ClassDeclarationSyntax>,
-                GetSerializableClassDeclaration
-            )
-            .RemoveNulls();
-
-        // Used for dirty tracking embedded classes
-        var dirtyTrackingFields = context
-            .SyntaxProvider
-            .CreateSyntaxProvider(
-                Helpers.IsSyntaxNode<FieldDeclarationSyntax, PropertyDeclarationSyntax>,
-                GetDirtyTrackingEntityFieldDeclaration
-            )
-            .Flatten()
-            .ToImmutableDictionary();
-
-        var serializableFields = context
-            .SyntaxProvider
-            .CreateSyntaxProvider(
-                Helpers.IsSyntaxNode<FieldDeclarationSyntax>,
-                GetSerializableFieldDeclaration
-            )
-            .Flatten();
-
-        var serializableProperties = context
-            .SyntaxProvider
-            .CreateSyntaxProvider(
-                Helpers.IsSyntaxNode<PropertyDeclarationSyntax>,
-                GetSerializablePropertyDeclaration
-            )
-            .RemoveNulls();
-
-        var serializableFieldsAndProperties = serializableFields
-            .Merge(serializableProperties)
-            .Collect()
-            .Select(ToFieldsAndPropertiesSet);
+                (node, token) => node.IsAttributedSyntaxNode<ClassDeclarationSyntax>("SerializationGenerator", token),
+                GetSerializableClassAndProperties
+            );
 
         // Gather all migration JSON files and organize them by file name (namespace/class) and version.
         var migrationFiles = context
@@ -84,136 +52,100 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             .Select(ToMigrationFileSet);
 
         // Combine the classes, migrations, and fields into a single set
-        var classesWithMigrationsAndFields = serializableClasses
+        var classesWithMigrations = serializableClasses
             .Combine(migrationFiles)
             .Select(TransformToClassMigrationPairs)
-            .Combine(serializableFieldsAndProperties)
-            .Combine(dirtyTrackingFields)
-            .Select(
-                (tuple, token) =>
-                {
-                    token.ThrowIfCancellationRequested();
-                    var (((classSymbol, attributeData, additionalTexts), fieldsSet), dirtyTrackingEntitySet) = tuple;
-
-                    ImmutableArray<(ISymbol, AttributeData)> fields;
-                    if (fieldsSet.TryGetValue(classSymbol, out var fieldsList))
-                    {
-                        fields = fieldsList.ToImmutableArray();
-                    }
-                    else
-                    {
-                        fields = ImmutableArray<(ISymbol, AttributeData)>.Empty;
-                    }
-
-                    dirtyTrackingEntitySet.TryGetValue(classSymbol, out var dirtyTrackingEntityField);
-                    return (classSymbol, attributeData, additionalTexts, fields, dirtyTrackingEntityField);
-                }
-            );
+            .Combine(context.CompilationProvider);
 
         // Generate source code
-        context.RegisterSourceOutput(classesWithMigrationsAndFields.Combine(context.CompilationProvider), ExecuteIncremental);
+        context.RegisterSourceOutput(classesWithMigrations, ExecuteIncremental);
     }
 
-    private static ImmutableArray<(INamedTypeSymbol, ISymbol)> GetDirtyTrackingEntityFieldDeclaration(
+    private static SerializableClassRecord GetSerializableClassAndProperties(
         GeneratorSyntaxContext ctx,
         CancellationToken token
     )
     {
         token.ThrowIfCancellationRequested();
 
-        var fields = ImmutableArray.CreateBuilder<(INamedTypeSymbol, ISymbol)>();
-        if (ctx.Node is PropertyDeclarationSyntax propertyNode)
-        {
-            if (ctx.SemanticModel.GetDeclaredSymbol(propertyNode) is IPropertySymbol propertySymbol &&
-                propertyNode.Parent is ClassDeclarationSyntax classNode &&
-                ctx.SemanticModel.GetDeclaredSymbol(classNode) is INamedTypeSymbol classSymbol &&
-                classSymbol.TryGetSerializable(ctx.SemanticModel.Compilation, out _) &&
-                propertySymbol.TryGetDirtyTrackingEntityField(ctx.SemanticModel.Compilation, out _))
-            {
-                fields.Add((classSymbol, propertySymbol));
-            }
-        }
-        else if (ctx.Node is FieldDeclarationSyntax fieldNode)
-        {
-            foreach (var variable in fieldNode.Declaration.Variables)
-            {
-                token.ThrowIfCancellationRequested();
+        var compilation = ctx.SemanticModel.Compilation;
 
-                if (ctx.SemanticModel.GetDeclaredSymbol(variable) is IFieldSymbol fieldSymbol &&
-                    fieldNode.Parent is ClassDeclarationSyntax classNode &&
-                    ctx.SemanticModel.GetDeclaredSymbol(classNode) is INamedTypeSymbol classSymbol &&
-                    classSymbol.TryGetSerializable(ctx.SemanticModel.Compilation, out _) &&
-                    fieldSymbol.TryGetDirtyTrackingEntityField(ctx.SemanticModel.Compilation, out _))
+        var node = (ClassDeclarationSyntax)ctx.Node.Parent!.Parent!;
+        var fieldsAndProperties = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
+        ISymbol? dirtyTrackingEntity = null;
+        foreach (var m in node.Members)
+        {
+            token.ThrowIfCancellationRequested();
+
+            if (m is PropertyDeclarationSyntax propertyNode)
+            {
+                if (ctx.SemanticModel.GetDeclaredSymbol(propertyNode) is IPropertySymbol propertySymbol)
                 {
-                    fields.Add((classSymbol, fieldSymbol));
+                    if (propertySymbol.TryGetDirtyTrackingEntityField(compilation))
+                    {
+                        dirtyTrackingEntity = propertySymbol;
+                    }
+
+                    if (propertySymbol.TryGetSerializableField(compilation, out var attributeData))
+                    {
+                        fieldsAndProperties.Add((propertySymbol, attributeData));
+                    }
+                }
+            }
+            else if (m is FieldDeclarationSyntax fieldNode)
+            {
+                foreach (var variable in fieldNode.Declaration.Variables)
+                {
+                    token.ThrowIfCancellationRequested();
+
+                    if (ctx.SemanticModel.GetDeclaredSymbol(variable) is IFieldSymbol fieldSymbol)
+                    {
+                        if (fieldSymbol.TryGetDirtyTrackingEntityField(compilation))
+                        {
+                            dirtyTrackingEntity = fieldSymbol;
+                        }
+
+                        if (fieldSymbol.TryGetSerializableField(compilation, out var attributeData))
+                        {
+                            fieldsAndProperties.Add((fieldSymbol, attributeData));
+                        }
+                    }
                 }
             }
         }
 
-        return fields.ToImmutable();
+        var classSymbol = ctx.SemanticModel.GetDeclaredSymbol(node) as INamedTypeSymbol;
+        classSymbol.TryGetSerializable(compilation, out var serializationAttribute);
+        return new SerializableClassRecord(
+            classSymbol,
+            serializationAttribute,
+            fieldsAndProperties.ToImmutable(),
+            dirtyTrackingEntity,
+            ImmutableDictionary<int, AdditionalText>.Empty
+        );
     }
 
-    private static (INamedTypeSymbol, ISymbol, AttributeData)? GetSerializablePropertyDeclaration(
-        GeneratorSyntaxContext ctx,
+    private static SerializableClassRecord TransformToClassMigrationPairs(
+        (SerializableClassRecord, ImmutableDictionary<string, Dictionary<int, AdditionalText>>) pair,
         CancellationToken token
     )
     {
         token.ThrowIfCancellationRequested();
 
-        var propertyNode = (PropertyDeclarationSyntax)ctx.Node;
-        if (ctx.SemanticModel.GetDeclaredSymbol(propertyNode) is not IPropertySymbol propertySymbol ||
-            !propertySymbol.TryGetSerializableField(ctx.SemanticModel.Compilation, out var attributeData) ||
-            propertyNode.Parent is not ClassDeclarationSyntax classNode ||
-            ctx.SemanticModel.GetDeclaredSymbol(classNode) is not INamedTypeSymbol classSymbol ||
-            !classSymbol.TryGetSerializable(ctx.SemanticModel.Compilation, out _))
+        var (classRecord, additionalTexts) = pair;
+
+        var namespaceName = classRecord.classSymbol.ContainingNamespace.ToDisplayString();
+        var className = $"{namespaceName}.{classRecord.classSymbol.Name}";
+
+        if (additionalTexts.TryGetValue(className, out var migs))
         {
-            return null;
-        }
-
-        return (classSymbol, propertySymbol, attributeData);
-    }
-
-    private static ImmutableArray<(INamedTypeSymbol, ISymbol, AttributeData)> GetSerializableFieldDeclaration(
-        GeneratorSyntaxContext ctx,
-        CancellationToken token
-    )
-    {
-        token.ThrowIfCancellationRequested();
-
-        var fieldNode = (FieldDeclarationSyntax)ctx.Node;
-        var fields = new List<(INamedTypeSymbol, ISymbol, AttributeData)>();
-        foreach (var variable in fieldNode.Declaration.Variables)
-        {
-            token.ThrowIfCancellationRequested();
-            if (ctx.SemanticModel.GetDeclaredSymbol(variable) is IFieldSymbol fieldSymbol &&
-                fieldNode.Parent is ClassDeclarationSyntax classNode &&
-                ctx.SemanticModel.GetDeclaredSymbol(classNode) is INamedTypeSymbol classSymbol &&
-                classSymbol.TryGetSerializable(ctx.SemanticModel.Compilation, out _) &&
-                fieldSymbol.TryGetSerializableField(ctx.SemanticModel.Compilation, out var attributeData))
+            return classRecord with
             {
-                fields.Add((classSymbol, fieldSymbol, attributeData));
-            }
+                migrations = migs.ToImmutableDictionary()
+            };
         }
 
-        return fields.Count == 0 ? ImmutableArray<(INamedTypeSymbol, ISymbol, AttributeData)>.Empty : fields.ToImmutableArray();
-    }
-
-    private static
-        (INamedTypeSymbol, AttributeData, ImmutableDictionary<int, AdditionalText>)
-        TransformToClassMigrationPairs(
-            ((INamedTypeSymbol, AttributeData), ImmutableDictionary<string, Dictionary<int, AdditionalText>>) pair,
-            CancellationToken token
-        )
-    {
-        token.ThrowIfCancellationRequested();
-
-        var ((classSymbol, attributeData), additionalTexts) = pair;
-
-        var namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
-        var className = $"{namespaceName}.{classSymbol.Name}";
-        additionalTexts.TryGetValue(className, out var migrations);
-
-        return (classSymbol, attributeData, migrations?.ToImmutableDictionary() ?? ImmutableDictionary<int, AdditionalText>.Empty);
+        return classRecord;
     }
 
     private static ImmutableDictionary<string, Dictionary<int, AdditionalText>> ToMigrationFileSet(
@@ -247,63 +179,24 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         return builder.ToImmutable();
     }
 
-    private static ImmutableDictionary<INamedTypeSymbol, List<(ISymbol, AttributeData)>> ToFieldsAndPropertiesSet(
-        ImmutableArray<(INamedTypeSymbol, ISymbol, AttributeData)> fieldsAndProperties, CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-        var builder = ImmutableDictionary.CreateBuilder<INamedTypeSymbol, List<(ISymbol, AttributeData)>>(SymbolEqualityComparer.Default);
-
-        for (var i = 0; i < fieldsAndProperties.Length; i++)
-        {
-            var (classSymbol, fieldSymbol, fieldAttr) = fieldsAndProperties[i];
-            if (!builder.TryGetValue(classSymbol, out var list))
-            {
-                builder[classSymbol] = list = new List<(ISymbol, AttributeData)>();
-
-            }
-
-            list.Add((fieldSymbol, fieldAttr));
-        }
-
-        return builder.ToImmutable();
-    }
-
-    private static (INamedTypeSymbol, AttributeData)? GetSerializableClassDeclaration(
-        GeneratorSyntaxContext ctx,
-        CancellationToken token
-    )
-    {
-        token.ThrowIfCancellationRequested();
-        var classNode = (ClassDeclarationSyntax)ctx.Node;
-        var classSymbol = (INamedTypeSymbol)ctx.SemanticModel.GetDeclaredSymbol(classNode);
-
-        if (classSymbol.TryGetSerializable(ctx.SemanticModel.Compilation, out var attributeData))
-        {
-            return (classSymbol, attributeData);
-        }
-
-        return null;
-    }
-
     private void ExecuteIncremental(
         SourceProductionContext context,
-        ((INamedTypeSymbol classSymbol, AttributeData serializableAttribute, ImmutableDictionary<int, AdditionalText>
-            migrations, ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties, ISymbol? dirtyTrackingEntityField)
-            classData, Compilation compilation) combined
+        (SerializableClassRecord classRecord, Compilation compilation) combined
     )
     {
-        var ((classSymbol, serializableAttribute, migrations, fieldsAndProperties, dirtyTrackingEntityField), compilation) = combined;
-
         context.CancellationToken.ThrowIfCancellationRequested();
+
+        var (classRecord, compilation) = combined;
+
         var jsonOptions = SerializableMigrationSchema.GetJsonSerializerOptions();
 
         string classSource = compilation.GenerateSerializationPartialClass(
-            classSymbol,
-            serializableAttribute,
+            classRecord.classSymbol,
+            classRecord.serializationAttribute,
             jsonOptions,
-            migrations,
-            fieldsAndProperties,
-            dirtyTrackingEntityField,
+            classRecord.migrations,
+            classRecord.fieldsAndProperties,
+            classRecord.dirtyTrackingEntity,
             _migrationPath,
             context.CancellationToken
         );
@@ -311,7 +204,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         if (classSource != null)
         {
             context.AddSource(
-                $"{classSymbol.ToDisplayString()}.Serialization.cs",
+                $"{classRecord.classSymbol.ToDisplayString()}.Serialization.cs",
                 SourceText.From(classSource, Encoding.UTF8)
             );
         }
