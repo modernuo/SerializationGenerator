@@ -71,65 +71,39 @@ public static class Helpers
             SymbolEqualityComparer.Default
         ) || symbol != null && CanBeConstructedFrom(symbol.BaseType, classSymbol);
 
-    public static bool IsSyntaxNode<T>(this SyntaxNode node, CancellationToken token) where T : MemberDeclarationSyntax
+    public static bool IsAttributedSyntaxNode<T>(this SyntaxNode node, string attributeName, CancellationToken token)
+        where T : MemberDeclarationSyntax
     {
         token.ThrowIfCancellationRequested();
-        return node is T { AttributeLists.Count: > 0 };
+
+        if (node is AttributeSyntax { Parent.Parent: T } attributeSyntax &&
+            (attributeSyntax.Parent.Parent is not ClassDeclarationSyntax classSyntax || classSyntax.IsPartial()))
+        {
+            var name = attributeSyntax.Name.ExtractName();
+            return name == attributeName || name == $"{attributeName}Attribute";
+        }
+
+        return false;
     }
 
-    public static bool IsSyntaxNode<T, V>(this SyntaxNode node, CancellationToken token) where T : MemberDeclarationSyntax where V : MemberDeclarationSyntax
+    private static string? ExtractName(this NameSyntax? name) =>
+        name switch
+        {
+            SimpleNameSyntax ins    => ins.Identifier.Text,
+            QualifiedNameSyntax qns => qns.Right.Identifier.Text,
+            _                       => null
+        };
+
+    public static bool IsPartial(this ClassDeclarationSyntax classDeclaration)
     {
-        token.ThrowIfCancellationRequested();
-        return node is T { AttributeLists.Count: > 0 } or V { AttributeLists.Count: > 0};
-    }
-
-    public static IncrementalValueProvider<ImmutableDictionary<T, V>> ToImmutableDictionary<T, V>(this IncrementalValuesProvider<(T, V)> source) =>
-        source
-            .Collect()
-            .Select(MergeToDictionary);
-
-    public static IncrementalValuesProvider<T> Flatten<T>(this IncrementalValuesProvider<ImmutableArray<T>> source) =>
-        source.SelectMany(
-            (array, token) =>
+        foreach (var m in classDeclaration.Modifiers)
+        {
+            if (m.IsKind(SyntaxKind.PartialKeyword))
             {
-                token.ThrowIfCancellationRequested();
-                return array;
+                return true;
             }
-        );
+        }
 
-    public static IncrementalValuesProvider<T> RemoveNulls<T>(this IncrementalValuesProvider<T?> source) where T : struct =>
-        source
-            .Where(t => t.HasValue)
-            .Select(
-                (t, token) =>
-                {
-                    token.ThrowIfCancellationRequested();
-                    return (T)Convert.ChangeType(t, typeof(T));
-                }
-            );
-
-    public static IncrementalValuesProvider<T> Merge<T>(
-        this IncrementalValuesProvider<T> left, IncrementalValuesProvider<T> right
-    ) => left
-        .Collect()
-        .Combine(right.Collect())
-        .SelectMany(SelectMerge);
-
-    private static ImmutableDictionary<T, V> MergeToDictionary<T, V>(ImmutableArray<(T, V)> source, CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-        return source.ToImmutableDictionary(key => key.Item1, key => key.Item2);
-    }
-
-    private static ImmutableArray<T> SelectMerge<T>((ImmutableArray<T>, ImmutableArray<T>) combined, CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-
-        var (left, right) = combined;
-        var builder = ImmutableArray.CreateBuilder<T>();
-        builder.AddRange(left);
-        builder.AddRange(right);
-
-        return builder.ToImmutableArray();
+        return false;
     }
 }
