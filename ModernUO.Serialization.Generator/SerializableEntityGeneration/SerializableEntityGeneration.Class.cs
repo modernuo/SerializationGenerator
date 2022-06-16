@@ -174,7 +174,7 @@ public static partial class SerializableEntityGeneration
                 serializableFieldSaveFlagMethods
             );
 
-            serializablePropertySet.Add(serializableProperty, fieldOrPropertySymbol);
+            serializablePropertySet[serializableProperty] = fieldOrPropertySymbol;
         }
 
         var serializableFields = serializablePropertySet.Keys.ToImmutableArray();
