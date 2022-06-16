@@ -7,7 +7,7 @@ While it is not the most elegant solution (recommendations and contributions are
 Add `ModernUO.SerializationGenerator` as an analyzer project reference:
 ```xml
     <ItemGroup>
-        <PackageReference Include="ModernUO.SerializationGenerator" Version="2.1.0">
+        <PackageReference Include="ModernUO.SerializationGenerator" Version="2.1.1">
             <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
             <OutputItemType>Analyzer</OutputItemType>
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
