@@ -72,6 +72,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
 
         var node = (ClassDeclarationSyntax)ctx.Node.Parent!.Parent!;
         var fieldsAndProperties = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
+        var saveFlagMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
+        var defaultValueMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         ISymbol? dirtyTrackingEntity = null;
         foreach (var m in node.Members)
         {
@@ -85,8 +87,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
                     {
                         dirtyTrackingEntity = propertySymbol;
                     }
-
-                    if (propertySymbol.TryGetSerializableField(compilation, out var attributeData))
+                    else if (propertySymbol.TryGetSerializableField(compilation, out var attributeData))
                     {
                         fieldsAndProperties.Add((propertySymbol, attributeData));
                     }
@@ -104,11 +105,24 @@ public class EntitySerializationGenerator : IIncrementalGenerator
                         {
                             dirtyTrackingEntity = fieldSymbol;
                         }
-
-                        if (fieldSymbol.TryGetSerializableField(compilation, out var attributeData))
+                        else if (fieldSymbol.TryGetSerializableField(compilation, out var attributeData))
                         {
                             fieldsAndProperties.Add((fieldSymbol, attributeData));
                         }
+                    }
+                }
+            }
+            else if (m is MethodDeclarationSyntax methodNode)
+            {
+                if (ctx.SemanticModel.GetDeclaredSymbol(methodNode) is IMethodSymbol methodSymbol)
+                {
+                    if (methodSymbol.TryGetSerializableFieldSaveFlagMethod(compilation, out var attributeData))
+                    {
+                        saveFlagMethods.Add((methodSymbol, attributeData));
+                    }
+                    else if (methodSymbol.TryGetSerializableFieldDefaultMethod(compilation, out attributeData))
+                    {
+                        defaultValueMethods.Add((methodSymbol, attributeData));
                     }
                 }
             }
@@ -120,6 +134,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             classSymbol,
             serializationAttribute,
             fieldsAndProperties.ToImmutable(),
+            saveFlagMethods.ToImmutable(),
+            defaultValueMethods.ToImmutable(),
             dirtyTrackingEntity,
             ImmutableDictionary<int, AdditionalText>.Empty
         );
@@ -134,8 +150,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
 
         var (classRecord, additionalTexts) = pair;
 
-        var namespaceName = classRecord.classSymbol.ContainingNamespace.ToDisplayString();
-        var className = $"{namespaceName}.{classRecord.classSymbol.Name}";
+        var namespaceName = classRecord.ClassSymbol.ContainingNamespace.ToDisplayString();
+        var className = $"{namespaceName}.{classRecord.ClassSymbol.Name}";
 
         if (additionalTexts.TryGetValue(className, out var migs))
         {
@@ -191,12 +207,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         var jsonOptions = SerializableMigrationSchema.GetJsonSerializerOptions();
 
         string classSource = compilation.GenerateSerializationPartialClass(
-            classRecord.classSymbol,
-            classRecord.serializationAttribute,
+            classRecord,
             jsonOptions,
-            classRecord.migrations,
-            classRecord.fieldsAndProperties,
-            classRecord.dirtyTrackingEntity,
             _migrationPath,
             context.CancellationToken
         );
@@ -204,7 +216,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         if (classSource != null)
         {
             context.AddSource(
-                $"{classRecord.classSymbol.ToDisplayString()}.Serialization.cs",
+                $"{classRecord.ClassSymbol.ToDisplayString()}.Serialization.cs",
                 SourceText.From(classSource, Encoding.UTF8)
             );
         }

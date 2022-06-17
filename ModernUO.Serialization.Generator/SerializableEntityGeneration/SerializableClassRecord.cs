@@ -4,9 +4,11 @@ using Microsoft.CodeAnalysis;
 namespace ModernUO.Serialization.Generator;
 
 public record SerializableClassRecord(
-    INamedTypeSymbol classSymbol,
-    AttributeData serializationAttribute,
-    ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
-    ISymbol? dirtyTrackingEntity,
+    INamedTypeSymbol ClassSymbol,
+    AttributeData SerializationAttribute,
+    ImmutableArray<(ISymbol, AttributeData)> SerializableFieldsAndProperties,
+    ImmutableArray<(ISymbol, AttributeData)> SerializableFieldSaveFlags,
+    ImmutableArray<(ISymbol, AttributeData)> SerializableFieldDefault,
+    ISymbol? DirtyTrackingEntity,
     ImmutableDictionary<int, AdditionalText> migrations
 );
