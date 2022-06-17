@@ -270,4 +270,20 @@ public static partial class SymbolMetadata
             compilation.GetTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
             out _
         );
+
+    public static bool TryGetSerializableFieldSaveFlagMethod(
+        this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
+    ) =>
+        fieldSymbol.TryGetFieldWithAttribute(
+            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
+            out attributeData
+        );
+
+    public static bool TryGetSerializableFieldDefaultMethod(
+        this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
+    ) =>
+        fieldSymbol.TryGetFieldWithAttribute(
+            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
+            out attributeData
+        );
 }

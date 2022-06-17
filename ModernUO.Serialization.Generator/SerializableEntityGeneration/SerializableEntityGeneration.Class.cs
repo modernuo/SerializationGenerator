@@ -30,17 +30,23 @@ public static partial class SerializableEntityGeneration
 {
     public static string GenerateSerializationPartialClass(
         this Compilation compilation,
-        INamedTypeSymbol classSymbol,
-        AttributeData serializableAttr,
+        SerializableClassRecord classRecord,
         JsonSerializerOptions? jsonSerializerOptions,
-        ImmutableDictionary<int, AdditionalText> migrations,
-        ImmutableArray<(ISymbol, AttributeData)> fieldsAndProperties,
-        ISymbol? dirtyTrackingEntityField,
         string? migrationPath,
         CancellationToken token
     )
     {
         token.ThrowIfCancellationRequested();
+
+        var (
+            classSymbol,
+            serializableAttr,
+            fieldsAndProperties,
+            saveFlagMethods,
+            defaultMethods,
+            dirtyTrackingEntity,
+            migrations
+        ) = classRecord;
 
         var serializableFieldAttrAttribute =
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTR_ATTRIBUTE);
@@ -58,27 +64,54 @@ public static partial class SerializableEntityGeneration
 
         // Let's find out if we need to do serialization flags
         var serializableFieldSaveFlags = new SortedDictionary<int, SerializableFieldSaveFlagMethods>();
-        foreach (var m in classSymbol.GetMembers().OfType<IMethodSymbol>())
+        for (var i = 0; i < saveFlagMethods.Length; i++)
         {
-            token.ThrowIfCancellationRequested();
+            var (symbol, attrData) = saveFlagMethods[i];
+            var order = (int)attrData.ConstructorArguments[0].Value!;
 
-            var getSaveFlagAttribute = m.GetAttribute(serializableFieldSaveFlagAttribute);
-            var getDefaultValueAttribute = m.GetAttribute(serializableFieldDefaultAttribute);
-
-            if (getSaveFlagAttribute == null && getDefaultValueAttribute == null)
+            if (order < 0)
             {
                 continue;
             }
 
-            var attrCtorArgs = getSaveFlagAttribute?.ConstructorArguments ?? getDefaultValueAttribute.ConstructorArguments;
-            var order = (int)attrCtorArgs[0].Value!;
-
-            serializableFieldSaveFlags.TryGetValue(order, out var saveFlagMethods);
+            // Duplicate found, failure.
+            if (serializableFieldSaveFlags.TryGetValue(order, out _))
+            {
+                return null;
+            }
 
             serializableFieldSaveFlags[order] = new SerializableFieldSaveFlagMethods
             {
-                DetermineFieldShouldSerialize = getSaveFlagAttribute != null ? m : saveFlagMethods?.DetermineFieldShouldSerialize,
-                GetFieldDefaultValue = getDefaultValueAttribute != null ? m : saveFlagMethods?.GetFieldDefaultValue
+                DetermineFieldShouldSerialize = (IMethodSymbol)symbol
+            };
+        }
+
+        for (var i = 0; i < defaultMethods.Length; i++)
+        {
+            var (symbol, attrData) = defaultMethods[i];
+            var order = (int)attrData.ConstructorArguments[0].Value!;
+
+            if (order < 0)
+            {
+                continue;
+            }
+
+            // No default, so we remove the save flag too.
+            if (!serializableFieldSaveFlags.TryGetValue(order, out var serializableFieldSaveFlagMethods))
+            {
+                serializableFieldSaveFlags.Remove(order);
+                continue;
+            }
+
+            // Duplicate found, failure.
+            if (serializableFieldSaveFlagMethods.GetFieldDefaultValue != null)
+            {
+                return null;
+            }
+
+            serializableFieldSaveFlags[order] = serializableFieldSaveFlagMethods with
+            {
+                GetFieldDefaultValue = (IMethodSymbol)symbol
             };
         }
 
@@ -145,6 +178,12 @@ public static partial class SerializableEntityGeneration
             var attrCtorArgs = attributeData.ConstructorArguments;
 
             var order = (int)attrCtorArgs[0].Value!;
+
+            if (order < 0)
+            {
+                continue;
+            }
+
             var getterAccessor = Helpers.GetAccessibility(attrCtorArgs[1].Value?.ToString());
             var setterAccessor = Helpers.GetAccessibility(attrCtorArgs[2].Value?.ToString());
             var virtualProperty = (bool)attrCtorArgs[3].Value!;
@@ -158,7 +197,7 @@ public static partial class SerializableEntityGeneration
                     getterAccessor,
                     setterAccessor,
                     virtualProperty,
-                    hasMarkDirtyMethod || dirtyTrackingEntityField != null ? "this" : null
+                    hasMarkDirtyMethod || dirtyTrackingEntity != null ? "this" : null
                 );
                 source.AppendLine();
             }
@@ -174,10 +213,27 @@ public static partial class SerializableEntityGeneration
                 serializableFieldSaveFlagMethods
             );
 
+            // We can't continue if we have duplicates.
+            if (serializablePropertySet.ContainsKey(serializableProperty))
+            {
+                return null;
+            }
+
             serializablePropertySet[serializableProperty] = fieldOrPropertySymbol;
         }
 
         var serializableFields = serializablePropertySet.Keys.ToImmutableArray();
+        for (var i = 0; i < serializableFields.Length; i++)
+        {
+            token.ThrowIfCancellationRequested();
+
+            // They are out of order! (missing a number)
+            if (serializableFields[i].Order != i)
+            {
+                return null;
+            }
+        }
+
         var serializableProperties = serializablePropertySet.Select(
             kvp => kvp.Key with
             {
@@ -245,7 +301,7 @@ public static partial class SerializableEntityGeneration
             );
         }
 
-        if (!isSerializable && dirtyTrackingEntityField != null)
+        if (!isSerializable && dirtyTrackingEntity != null)
         {
             source.GenerateMethodStart(
                 indent,
@@ -256,7 +312,7 @@ public static partial class SerializableEntityGeneration
                 ImmutableArray<(ITypeSymbol, string)>.Empty
             );
 
-            source.AppendLine($"{indent}    {dirtyTrackingEntityField.Name}.MarkDirty();");
+            source.AppendLine($"{indent}    {dirtyTrackingEntity.Name}.MarkDirty();");
 
             source.GenerateMethodEnd(indent);
             source.AppendLine();
@@ -285,7 +341,7 @@ public static partial class SerializableEntityGeneration
             migrationsBuilder.ToImmutable(),
             serializableFields,
             serializableProperties,
-            hasMarkDirtyMethod || dirtyTrackingEntityField != null ? "this" : null,
+            hasMarkDirtyMethod || dirtyTrackingEntity != null ? "this" : null,
             serializableFieldSaveFlags
         );
 
