@@ -43,7 +43,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 (node, token) => node.IsAttributedSyntaxNode<ClassDeclarationSyntax>("SerializationGenerator", token),
                 GetSerializableClassAndProperties
-            );
+            )
+            .RemoveNulls();
 
         // Gather all migration JSON files and organize them by file name (namespace/class) and version.
         var migrationFiles = context
@@ -61,7 +62,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(classesWithMigrations, ExecuteIncremental);
     }
 
-    private static SerializableClassRecord GetSerializableClassAndProperties(
+    private static SerializableClassRecord? GetSerializableClassAndProperties(
         GeneratorSyntaxContext ctx,
         CancellationToken token
     )
@@ -71,6 +72,14 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         var compilation = ctx.SemanticModel.Compilation;
 
         var node = (ClassDeclarationSyntax)ctx.Node.Parent!.Parent!;
+        var classSymbol = ctx.SemanticModel.GetDeclaredSymbol(node) as INamedTypeSymbol;
+
+        // This happens when there is no using import
+        if (!classSymbol.TryGetSerializable(compilation, out var serializationAttribute))
+        {
+            return null;
+        }
+
         var fieldsAndProperties = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         var saveFlagMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         var defaultValueMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
@@ -128,8 +137,6 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             }
         }
 
-        var classSymbol = ctx.SemanticModel.GetDeclaredSymbol(node) as INamedTypeSymbol;
-        classSymbol.TryGetSerializable(compilation, out var serializationAttribute);
         return new SerializableClassRecord(
             classSymbol,
             serializationAttribute,

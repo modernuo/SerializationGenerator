@@ -50,10 +50,6 @@ public static partial class SerializableEntityGeneration
 
         var serializableFieldAttrAttribute =
             compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTR_ATTRIBUTE);
-        var serializableFieldSaveFlagAttribute =
-            compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE);
-        var serializableFieldDefaultAttribute =
-            compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE);
 
         // If we have a parent that is or derives from ISerializable, then we are in override
         var isOverride = classSymbol.BaseType.HasSerializableInterface(compilation);

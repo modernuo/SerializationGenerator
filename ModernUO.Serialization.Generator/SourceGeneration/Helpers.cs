@@ -106,4 +106,15 @@ public static class Helpers
 
         return false;
     }
+
+    public static IncrementalValuesProvider<T> RemoveNulls<T>(this IncrementalValuesProvider<T?> source) where T : class =>
+        source
+            .Where(t => t != null)
+            .Select(
+                (t, token) =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    return (T)Convert.ChangeType(t, typeof(T));
+                }
+            );
 }
