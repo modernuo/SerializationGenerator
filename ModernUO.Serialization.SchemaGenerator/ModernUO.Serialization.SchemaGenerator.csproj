@@ -5,8 +5,8 @@
         <TargetFramework>net6.0</TargetFramework>
         <LangVersion>preview</LangVersion>
         <OutputType>Exe</OutputType>
-        <AssemblyVersion>2.1.4</AssemblyVersion>
-        <PackageVersion>2.1.4</PackageVersion>
+        <AssemblyVersion>2.1.5</AssemblyVersion>
+        <PackageVersion>2.1.5</PackageVersion>
         <PackAsTool>true</PackAsTool>
         <AssemblyName>ModernUOSchemaGenerator</AssemblyName>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
