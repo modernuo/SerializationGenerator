@@ -91,11 +91,31 @@ public static partial class SymbolMetadata
     )
     {
         var genericCtor = symbol.Constructors.FirstOrDefault(
-            m => !m.IsStatic &&
-                 m.MethodKind == MethodKind.Constructor &&
-                 (m.Parameters.Length == 0 ||
-                  m.Parameters.Length == 1 &&
-                  parentSymbol?.CanBeConstructedFrom(m.Parameters[0].Type) == true)
+            m =>
+            {
+                if (m.IsStatic || m.MethodKind != MethodKind.Constructor || m.Parameters.Length > 1)
+                {
+                    return false;
+                }
+
+                if (m.Parameters.Length == 0)
+                {
+                    return true;
+                }
+
+                if (parentSymbol == null)
+                {
+                    return false;
+                }
+
+                var argType = m.Parameters[0].Type;
+                if (argType.TypeKind == TypeKind.Interface)
+                {
+                    return parentSymbol.Equals(argType, SymbolEqualityComparer.Default) || parentSymbol.ContainsInterface(argType);
+                }
+
+                return parentSymbol?.CanBeConstructedFrom(m.Parameters[0].Type) == true;
+            }
         );
 
         requiresParent = genericCtor?.Parameters.Length == 1;
