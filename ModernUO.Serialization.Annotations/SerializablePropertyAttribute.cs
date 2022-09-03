@@ -1,8 +1,8 @@
-/*************************************************************************
+﻿/*************************************************************************
  * ModernUO                                                              *
  * Copyright 2019-2022 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: SerializableProperty.cs                                         *
+ * File: SerializablePropertyAttribute.cs                                *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -13,30 +13,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
-using System.Text.Json.Serialization;
+using System;
 
-namespace ModernUO.Serialization.Generator;
+namespace ModernUO.Serialization;
 
-public record SerializableProperty
+/// <summary>
+/// Hints to the source generator that this property should be serialized.
+/// If useField is null or unspecified, the source generator will create a private backing field for you.
+/// Note: The user must call this.MarkDirty() after reassigning the value to the backing field.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Property)]
+public sealed class SerializablePropertyAttribute : Attribute
 {
-    [JsonPropertyName("name")]
-    public string Name { get; init; }
+    public int Order { get; }
+    public string UseField { get; }
 
-    [JsonPropertyName("type")]
-    public string Type { get; init; }
-
-    [JsonPropertyName("usesSaveFlag")]
-    public bool? UsesSaveFlag { get; init; }
-
-    [JsonPropertyName("rule")]
-    public string Rule { get; init; }
-
-    [JsonPropertyName("ruleArguments")]
-    public string[]? RuleArguments { get; init; }
-
-    [JsonIgnore]
-    public int Order { get; init; }
-
-    [JsonIgnore]
-    public string? FieldName { get; init; }
+    public SerializablePropertyAttribute(
+        int order,
+        string useField = null
+    )
+    {
+        Order = order;
+        UseField = useField;
+    }
 }

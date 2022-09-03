@@ -5,8 +5,8 @@
         <PackageId>ModernUO.Serialization.Annotations</PackageId>
         <TargetFramework>net6.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyVersion>2.0.2</AssemblyVersion>
-        <PackageVersion>2.0.2</PackageVersion>
+        <AssemblyVersion>2.2.0</AssemblyVersion>
+        <PackageVersion>2.2.0</PackageVersion>
         <AssemblyName>ModernUO.Serialization.Annotations</AssemblyName>
         <RootNamespace>ModernUO.Serialization</RootNamespace>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

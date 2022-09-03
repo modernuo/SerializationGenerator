@@ -58,8 +58,7 @@ public class SerializableInterfaceMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
-        source.AppendLine($"{indent}{propertyName} = reader.ReadEntity<{property.Type}>();");
+        source.AppendLine($"{indent}{property.FieldName ?? property.Name} = reader.ReadEntity<{property.Type}>();");
     }
 
     public override void GenerateSerializationMethod(StringBuilder source, string indent, SerializableProperty property)
@@ -71,7 +70,6 @@ public class SerializableInterfaceMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
-        source.AppendLine($"{indent}writer.Write({propertyName});");
+        source.AppendLine($"{indent}writer.Write({property.FieldName ?? property.Name});");
     }
 }

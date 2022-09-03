@@ -1,8 +1,8 @@
-/*************************************************************************
+﻿/*************************************************************************
  * ModernUO                                                              *
  * Copyright 2019-2022 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: SerializableMigrationRule.cs                                    *
+ * File: SourceGeneration.Field.cs                                       *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -13,43 +13,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
-using System.Collections.Immutable;
 using System.Text;
+using Humanizer;
 using Microsoft.CodeAnalysis;
 
 namespace ModernUO.Serialization.Generator;
 
-public interface ISerializableMigrationRule
+public static partial class SourceGeneration
 {
-    string RuleName { get; }
+    public static string GetFieldName(this string propertyName) => $"_{propertyName.Humanize().Camelize()}";
 
-    void GenerateMigrationProperty(
-        StringBuilder source,
-        Compilation compilation,
+    public static void GenerateField(
+        this StringBuilder source,
         string indent,
-        SerializableProperty property
-    );
-
-    bool GenerateRuleState(
-        Compilation compilation,
-        ISymbol symbol,
-        ImmutableArray<AttributeData> attributes,
-        ISymbol? parentSymbol,
-        out string[] ruleArguments
-    );
-
-    void GenerateDeserializationMethod(
-        StringBuilder source,
-        string indent,
-        Compilation compilation,
-        SerializableProperty property,
-        string? parentReference,
-        bool isMigration = false
-    );
-
-    void GenerateSerializationMethod(
-        StringBuilder source,
-        string indent,
-        SerializableProperty property
-    );
+        Accessibility accessors,
+        InstanceModifier instance,
+        string type,
+        string variableName,
+        string value = null
+    )
+    {
+        var instanceStr = instance == InstanceModifier.None ? "" : $"{instance.ToFriendlyString()} ";
+        var accessorStr = accessors == Accessibility.NotApplicable ? "" : $"{accessors.ToFriendlyString()} ";
+        var valueStr = value == null ? "" : $" = {value}";
+        source.AppendLine($"{indent}{accessorStr}{instanceStr}{type} {variableName}{valueStr};");
+    }
 }

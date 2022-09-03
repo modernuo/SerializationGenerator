@@ -33,7 +33,6 @@ public static partial class SerializableEntityGeneration
         bool encodedVersion,
         ImmutableArray<SerializableMetadata> migrations,
         ImmutableArray<SerializableProperty> fields,
-        ImmutableArray<SerializableProperty> properties,
         string? markDirtyProperty,
         SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary
     )
@@ -129,26 +128,25 @@ public static partial class SerializableEntityGeneration
             source.AppendLine($"{bodyIndent}var saveFlags = reader.ReadEnum<SaveFlag>();");
         }
 
-        for (var i = 0; i < properties.Length; i++)
+        for (var i = 0; i < fields.Length; i++)
         {
             var field = fields[i];
-            var property = properties[i];
-            var rule = SerializableMigrationRulesEngine.Rules[property.Rule];
+            var rule = SerializableMigrationRulesEngine.Rules[field.Rule];
 
             if (serializableFieldSaveFlagMethodsDictionary.TryGetValue(
-                    property.Order,
+                    field.Order,
                     out var serializableFieldSaveFlagMethods
                 ))
             {
                 source.AppendLine();
                 // Special case
-                if (property.Type == "bool")
+                if (field.Type == "bool")
                 {
-                    source.AppendLine($"{bodyIndent}{field.Name} = (saveFlags & SaveFlag.{property.Name}) != 0;");
+                    source.AppendLine($"{bodyIndent}{field.FieldName} = (saveFlags & SaveFlag.{field.Name}) != 0;");
                 }
                 else
                 {
-                    source.AppendLine($"{bodyIndent}if ((saveFlags & SaveFlag.{property.Name}) != 0)\n{bodyIndent}{{");
+                    source.AppendLine($"{bodyIndent}if ((saveFlags & SaveFlag.{field.Name}) != 0)\n{bodyIndent}{{");
                     rule.GenerateDeserializationMethod(
                         source,
                         innerIndent,
@@ -168,7 +166,7 @@ public static partial class SerializableEntityGeneration
                     {
                         source.AppendLine($"{bodyIndent}}}\n{bodyIndent}else\n{bodyIndent}{{");
                         source.AppendLine(
-                            $"{bodyIndent}    {field.Name} = {serializableFieldSaveFlagMethods.GetFieldDefaultValue.Name}();"
+                            $"{bodyIndent}    {field.FieldName} = {serializableFieldSaveFlagMethods.GetFieldDefaultValue.Name}();"
                         );
                     }
 

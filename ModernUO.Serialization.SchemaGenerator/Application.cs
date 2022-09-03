@@ -17,6 +17,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis.CSharp;
 using ModernUO.Serialization.Generator;
 
@@ -31,6 +32,8 @@ public static class Application
             throw new ArgumentException("Usage: ModernUO.Serialization.SchemaGenerator <path to solution>");
         }
 
+        LocateMSBuild();
+
         var solutionPath = args[0];
 
         var stopwatch = new Stopwatch();
@@ -41,9 +44,7 @@ public static class Application
             .ForAll(
                 project =>
                 {
-                    Console.WriteLine("Gathering compilation for {0}", project.Name);
                     var compilation = project.GetCompilationAsync().Result;
-                    Console.WriteLine("Writing schema migrations for {0}", project.Name);
                     var projectFile = new FileInfo(project.FilePath);
                     var projectPath = projectFile.Directory?.FullName;
                     var migrationPath = Path.Join(projectPath, "Migrations");
@@ -60,5 +61,11 @@ public static class Application
         stopwatch.Stop();
 
         Console.WriteLine("Completed in {0:N2} seconds", stopwatch.Elapsed.TotalSeconds);
+    }
+
+    private static void LocateMSBuild()
+    {
+        var instance = MSBuildLocator.RegisterDefaults();
+        return;
     }
 }

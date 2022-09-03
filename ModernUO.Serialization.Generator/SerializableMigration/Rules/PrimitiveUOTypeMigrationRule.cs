@@ -65,7 +65,7 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
+        var propertyName = property.FieldName ?? property.Name;
         source.AppendLine($"{indent}{propertyName} = reader.Read{property.RuleArguments?[0] ?? ""}();");
     }
 
@@ -78,7 +78,6 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
-        source.AppendLine($"{indent}writer.Write({propertyName});");
+        source.AppendLine($"{indent}writer.Write({property.FieldName ?? property.Name});");
     }
 }

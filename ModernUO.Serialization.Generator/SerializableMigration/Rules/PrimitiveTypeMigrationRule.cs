@@ -93,7 +93,7 @@ public class PrimitiveTypeMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
+        var propertyName = property.FieldName ?? property.Name;
         var argument = property.RuleArguments?.Length >= 1 ? property.RuleArguments[0] : null;
 
         const string ipAddress = SymbolMetadata.IPADDRESS_CLASS;
@@ -136,7 +136,7 @@ public class PrimitiveTypeMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
+        var propertyName = property.FieldName ?? property.Name;
         var argument = property.RuleArguments?.Length >= 1 ? property.RuleArguments[0] : null;
 
         var writeMethod = property.Type switch

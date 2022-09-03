@@ -159,8 +159,9 @@ public class KeyValuePairMigrationRule : MigrationRule
             parentReference
         );
 
+        var propertyName = property.FieldName ?? property.Name;
         source.AppendLine(
-            $"{indent}{property.Name} = new {SymbolMetadata.KEYVALUEPAIR_STRUCT}<{keyType}, {valueType}>(key, value);"
+            $"{indent}{propertyName} = new {SymbolMetadata.KEYVALUEPAIR_STRUCT}<{keyType}, {valueType}>(key, value);"
         );
     }
 
@@ -185,9 +186,11 @@ public class KeyValuePairMigrationRule : MigrationRule
             index += keyRuleArguments.Length;
         }
 
+        var propertyName = property.FieldName ?? property.Name;
+
         var serializableKeyProperty = new SerializableProperty
         {
-            Name = $"{property.Name}.Key",
+            Name = $"{propertyName}.Key",
             Type = keyType,
             Rule = keyRule.RuleName,
             RuleArguments = keyRuleArguments
@@ -210,7 +213,7 @@ public class KeyValuePairMigrationRule : MigrationRule
 
         var serializableValueProperty = new SerializableProperty
         {
-            Name = $"{property.Name}.Value",
+            Name = $"{propertyName}.Value",
             Type = valueType,
             Rule = valueRule.RuleName,
             RuleArguments = valueRuleArguments

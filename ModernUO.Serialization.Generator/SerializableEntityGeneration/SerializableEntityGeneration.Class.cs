@@ -41,7 +41,8 @@ public static partial class SerializableEntityGeneration
         var (
             classSymbol,
             serializableAttr,
-            fieldsAndProperties,
+            fields,
+            properties,
             saveFlagMethods,
             defaultMethods,
             dirtyTrackingEntity,
@@ -123,7 +124,7 @@ public static partial class SerializableEntityGeneration
 
         source.RecursiveGenerateClassStart(classSymbol, ImmutableArray<ITypeSymbol>.Empty, ref indent);
 
-        source.GenerateClassField(
+        source.GenerateField(
             indent,
             Accessibility.Private,
             InstanceModifier.Const,
@@ -135,13 +136,80 @@ public static partial class SerializableEntityGeneration
 
         var hasMarkDirtyMethod = isSerializable || classSymbol.HasMarkDirtyMethod();
 
-        var serializablePropertySet = new SortedDictionary<SerializableProperty, ISymbol>(new SerializablePropertyComparer());
+        var serializableFieldSet = new SortedSet<SerializableProperty>(new SerializablePropertyComparer());
 
-        foreach (var (fieldOrPropertySymbol, attributeData) in fieldsAndProperties)
+        foreach (var (symbol, attributeData) in properties)
+        {
+            var attrCtorArgs = attributeData.ConstructorArguments;
+
+            var order = (int)attrCtorArgs[0].Value!;
+
+            if (order < 0)
+            {
+                continue;
+            }
+
+            var useField = (string)attrCtorArgs[1].Value!;
+
+            if (symbol is IPropertySymbol propertySymbol)
+            {
+                var createField = string.IsNullOrWhiteSpace(useField);
+                var fieldName = createField ? propertySymbol.Name.GetFieldName() : useField;
+                var fieldType = propertySymbol.Type;
+
+                // useField was not specified, so we are creating the field
+                if (createField)
+                {
+                    source.GenerateField(
+                        indent,
+                        Accessibility.Private,
+                        InstanceModifier.None,
+                        fieldType.ToDisplayString(),
+                        fieldName
+                    );
+                    source.AppendLine();
+                }
+                else
+                {
+                    // find the member
+                    var fieldMember = classSymbol.GetMembers(fieldName)
+                        .FirstOrDefault(member => member is IFieldSymbol) as IFieldSymbol;
+
+                    if (fieldMember == null)
+                    {
+                        return null;
+                    }
+
+                    fieldType = fieldMember.Type;
+                }
+
+                serializableFieldSaveFlags.TryGetValue(order, out var serializableFieldSaveFlagMethods);
+
+                var serializableProperty = SerializableMigrationRulesEngine.GenerateSerializableProperty(
+                    compilation,
+                    propertySymbol.Name,
+                    fieldType,
+                    order,
+                    ImmutableArray<AttributeData>.Empty,
+                    classSymbol,
+                    serializableFieldSaveFlagMethods
+                ) with {
+                    FieldName = fieldName
+                };
+
+                // We can't continue if we have duplicates.
+                if (!serializableFieldSet.Add(serializableProperty))
+                {
+                    return null;
+                }
+            }
+        }
+
+        foreach (var (propertySymbol, attributeData) in fields)
         {
             token.ThrowIfCancellationRequested();
 
-            var allAttributes = fieldOrPropertySymbol.GetAttributes();
+            var allAttributes = propertySymbol.GetAttributes();
 
             foreach (var attr in allAttributes)
             {
@@ -184,7 +252,7 @@ public static partial class SerializableEntityGeneration
             var setterAccessor = Helpers.GetAccessibility(attrCtorArgs[2].Value?.ToString());
             var virtualProperty = (bool)attrCtorArgs[3].Value!;
 
-            if (fieldOrPropertySymbol is IFieldSymbol fieldSymbol)
+            if (propertySymbol is IFieldSymbol fieldSymbol)
             {
                 source.GenerateSerializableProperty(
                     compilation,
@@ -196,29 +264,30 @@ public static partial class SerializableEntityGeneration
                     hasMarkDirtyMethod || dirtyTrackingEntity != null ? "this" : null
                 );
                 source.AppendLine();
+
+                serializableFieldSaveFlags.TryGetValue(order, out var serializableFieldSaveFlagMethods);
+
+                var serializableProperty = SerializableMigrationRulesEngine.GenerateSerializableProperty(
+                    compilation,
+                    fieldSymbol.Name.GetPropertyName(),
+                    fieldSymbol.Type,
+                    order,
+                    allAttributes,
+                    classSymbol,
+                    serializableFieldSaveFlagMethods
+                ) with {
+                    FieldName = fieldSymbol.Name
+                };
+
+                // We can't continue if we have duplicates.
+                if (!serializableFieldSet.Add(serializableProperty))
+                {
+                    return null;
+                }
             }
-
-            serializableFieldSaveFlags.TryGetValue(order, out var serializableFieldSaveFlagMethods);
-
-            var serializableProperty = SerializableMigrationRulesEngine.GenerateSerializableProperty(
-                compilation,
-                fieldOrPropertySymbol,
-                order,
-                allAttributes,
-                classSymbol,
-                serializableFieldSaveFlagMethods
-            );
-
-            // We can't continue if we have duplicates.
-            if (serializablePropertySet.ContainsKey(serializableProperty))
-            {
-                return null;
-            }
-
-            serializablePropertySet[serializableProperty] = fieldOrPropertySymbol;
         }
 
-        var serializableFields = serializablePropertySet.Keys.ToImmutableArray();
+        var serializableFields = serializableFieldSet.ToImmutableArray();
         for (var i = 0; i < serializableFields.Length; i++)
         {
             token.ThrowIfCancellationRequested();
@@ -229,13 +298,6 @@ public static partial class SerializableEntityGeneration
                 return null;
             }
         }
-
-        var serializableProperties = serializablePropertySet.Select(
-            kvp => kvp.Key with
-            {
-                Name = (kvp.Value as IFieldSymbol)?.GetPropertyName() ?? ((IPropertySymbol)kvp.Value).Name
-            }
-        ).ToImmutableArray();
 
         if (isSerializable)
         {
@@ -321,7 +383,6 @@ public static partial class SerializableEntityGeneration
             isOverride,
             encodedVersion,
             serializableFields,
-            serializableProperties,
             serializableFieldSaveFlags
         );
         source.AppendLine();
@@ -336,7 +397,6 @@ public static partial class SerializableEntityGeneration
             encodedVersion,
             migrationsBuilder.ToImmutable(),
             serializableFields,
-            serializableProperties,
             hasMarkDirtyMethod || dirtyTrackingEntity != null ? "this" : null,
             serializableFieldSaveFlags
         );
@@ -356,7 +416,7 @@ public static partial class SerializableEntityGeneration
             int index = 0;
             foreach (var (order, _) in serializableFieldSaveFlags)
             {
-                source.GenerateEnumValue($"{indent}        ", true, serializableProperties[order].Name, index++);
+                source.GenerateEnumValue($"{indent}        ", true, serializableFields[order].Name, index++);
             }
 
             source.GenerateEnumEnd($"{indent}    ");
@@ -372,7 +432,7 @@ public static partial class SerializableEntityGeneration
             {
                 Version = version,
                 Type = classSymbol.ToDisplayString(),
-                Properties = serializableProperties.Length > 0 ? serializableProperties : null
+                Properties = serializableFields.Length > 0 ? serializableFields : null
             };
 
             WriteMigration(migrationPath, newMigration, jsonSerializerOptions, token);

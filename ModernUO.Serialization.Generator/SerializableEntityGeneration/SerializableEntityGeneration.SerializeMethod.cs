@@ -29,7 +29,6 @@ public static partial class SerializableEntityGeneration
         bool isOverride,
         bool encodedVersion,
         ImmutableArray<SerializableProperty> fields,
-        ImmutableArray<SerializableProperty> properties,
         SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary
     )
     {
@@ -65,7 +64,7 @@ public static partial class SerializableEntityGeneration
             {
                 source.AppendLine($"{bodyIndent}if ({saveFlagMethods.DetermineFieldShouldSerialize!.Name}())\n{bodyIndent}{{");
 
-                var propertyName = properties[order].Name;
+                var propertyName = fields[order].Name;
                 source.AppendLine($"{innerIndent}saveFlags |= SaveFlag.{propertyName};");
 
                 source.AppendLine($"{bodyIndent}}}");
@@ -74,17 +73,16 @@ public static partial class SerializableEntityGeneration
             source.AppendLine($"{bodyIndent}writer.WriteEnum(saveFlags);");
         }
 
-        for (var i = 0; i < properties.Length; i++)
+        for (var i = 0; i < fields.Length; i++)
         {
             var field = fields[i];
-            var property = properties[i];
-            if (serializableFieldSaveFlagMethodsDictionary.ContainsKey(property.Order))
+            if (serializableFieldSaveFlagMethodsDictionary.ContainsKey(field.Order))
             {
                 // Special case
-                if (property.Type != "bool")
+                if (field.Type != "bool")
                 {
-                    source.AppendLine($"\n{bodyIndent}if ((saveFlags & SaveFlag.{property.Name}) != 0)\n{bodyIndent}{{");
-                    SerializableMigrationRulesEngine.Rules[property.Rule]
+                    source.AppendLine($"\n{bodyIndent}if ((saveFlags & SaveFlag.{field.Name}) != 0)\n{bodyIndent}{{");
+                    SerializableMigrationRulesEngine.Rules[field.Rule]
                         .GenerateSerializationMethod(
                             source,
                             innerIndent,
@@ -96,7 +94,7 @@ public static partial class SerializableEntityGeneration
             else
             {
                 source.AppendLine();
-                SerializableMigrationRulesEngine.Rules[property.Rule]
+                SerializableMigrationRulesEngine.Rules[field.Rule]
                     .GenerateSerializationMethod(
                         source,
                         bodyIndent,

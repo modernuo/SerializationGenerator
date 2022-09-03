@@ -69,7 +69,7 @@ public class RawSerializableMigrationRule : MigrationRule
         }
 
         var propertyType = property.Type;
-        var propertyName = property.Name;
+        var propertyName = property.FieldName ?? property.Name;
 
         var argument = property.RuleArguments?.Length >= 1 &&
                        property.RuleArguments[0] == "DeserializationRequiresParent" ? parentReference ?? "" : "";
@@ -87,7 +87,6 @@ public class RawSerializableMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
-        source.AppendLine($"{indent}{propertyName}.Serialize(writer);");
+        source.AppendLine($"{indent}{property.FieldName ?? property.Name}.Serialize(writer);");
     }
 }
