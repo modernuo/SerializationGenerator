@@ -21,6 +21,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 
@@ -439,6 +440,8 @@ public static partial class SerializableEntityGeneration
         return source.ToString();
     }
 
+    private static Regex _newLineRegex;
+
     private static void WriteMigration(
         string migrationPath,
         SerializableMetadata metadata,
@@ -449,7 +452,13 @@ public static partial class SerializableEntityGeneration
         token.ThrowIfCancellationRequested();
         Directory.CreateDirectory(migrationPath);
         var filePath = Path.Combine(migrationPath, $"{metadata.Type}.v{metadata.Version}.json");
-        File.WriteAllText(filePath, JsonSerializer.Serialize(metadata, options));
+        var fileContents = JsonSerializer.Serialize(metadata, options);
+        if (Environment.NewLine != "\n")
+        {
+            _newLineRegex ??= new Regex(@"\r\n|\n\r|\n|\r");
+            fileContents = _newLineRegex.Replace(fileContents, "\n");
+        }
+        File.WriteAllText(filePath, fileContents);
     }
 
     private static void RecursiveGenerateClassStart(
