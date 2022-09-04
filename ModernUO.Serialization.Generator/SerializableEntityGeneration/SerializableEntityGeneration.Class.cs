@@ -172,10 +172,8 @@ public static partial class SerializableEntityGeneration
                 else
                 {
                     // find the member
-                    var fieldMember = classSymbol.GetMembers(fieldName)
-                        .FirstOrDefault(member => member is IFieldSymbol) as IFieldSymbol;
-
-                    if (fieldMember == null)
+                    if (classSymbol.GetMembers(fieldName)
+                            .FirstOrDefault(member => member is IFieldSymbol) is not IFieldSymbol fieldMember)
                     {
                         return null;
                     }
@@ -190,7 +188,7 @@ public static partial class SerializableEntityGeneration
                     propertySymbol.Name,
                     fieldType,
                     order,
-                    ImmutableArray<AttributeData>.Empty,
+                    propertySymbol.GetAttributes(),
                     classSymbol,
                     serializableFieldSaveFlagMethods
                 ) with {
