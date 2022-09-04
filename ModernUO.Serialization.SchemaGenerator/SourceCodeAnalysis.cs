@@ -16,6 +16,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 
@@ -29,6 +30,8 @@ public static class SourceCodeAnalysis
         {
             throw new FileNotFoundException($"Could not open a valid solution at location {solutionPath}");
         }
+
+        MSBuildLocator.RegisterDefaults();
 
         using var workspace = MSBuildWorkspace.Create();
         workspace.WorkspaceFailed += (sender, args) => Console.WriteLine(args.Diagnostic.Message);

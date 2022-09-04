@@ -17,7 +17,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis.CSharp;
 using ModernUO.Serialization.Generator;
 
@@ -31,8 +30,6 @@ public static class Application
         {
             throw new ArgumentException("Usage: ModernUO.Serialization.SchemaGenerator <path to solution>");
         }
-
-        MSBuildLocator.RegisterDefaults();
 
         var solutionPath = args[0];
 
