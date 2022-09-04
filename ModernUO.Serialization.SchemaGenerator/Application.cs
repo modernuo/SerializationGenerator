@@ -32,7 +32,7 @@ public static class Application
             throw new ArgumentException("Usage: ModernUO.Serialization.SchemaGenerator <path to solution>");
         }
 
-        LocateMSBuild();
+        MSBuildLocator.RegisterDefaults();
 
         var solutionPath = args[0];
 
@@ -61,11 +61,5 @@ public static class Application
         stopwatch.Stop();
 
         Console.WriteLine("Completed in {0:N2} seconds", stopwatch.Elapsed.TotalSeconds);
-    }
-
-    private static void LocateMSBuild()
-    {
-        var instance = MSBuildLocator.RegisterDefaults();
-        return;
     }
 }
