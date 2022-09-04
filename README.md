@@ -54,7 +54,7 @@ The source generator takes some of the tediousness out of writing content by abs
 ```
 
 In this example the source generator is aware that the parent class, `Server.Item`, is a `Server.ISerializable`.
-By adding the `Serializable` attribute to the class, we are telling the source generator to write the serialization code for us.
+By adding the `SerializationGenerator` attribute to the class, we are telling the source generator to write the serialization code for us.
 
 There is an accompanying application, the _Serialization Schema Generator_ that generates a migration file for all classes that are annotated.
 ModernUO automatically runs this tool through `publish.cmd`. Having the migration scripts will allow the source generator to have a reference to _older version_
