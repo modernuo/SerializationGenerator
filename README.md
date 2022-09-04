@@ -57,7 +57,7 @@ In this example the source generator is aware that the parent class, `Server.Ite
 By adding the `SerializationGenerator` attribute to the class, we are telling the source generator to write the serialization code for us.
 
 There is an accompanying application, the _Serialization Schema Generator_ that generates a migration file for all classes that are annotated.
-ModernUO automatically runs this tool through `publish.cmd`. Having the migration scripts will allow the source generator to have a reference to _older version_
+ModernUO automatically runs this tool through `publish.cmd`. Having the migration scripts will allow the source generator to have a reference to _older versions_
 of this object and therefore set up a migration path.
 
 _Note: We added `partial` to the class definition to facilitate the actual code generation process. You must use this._
