@@ -51,21 +51,4 @@ public static partial class SourceGeneration
     {
         source.AppendLine($"{indent}}}");
     }
-
-    // TODO: Generalize this to any field using dynamic indentation
-    public static void GenerateClassField(
-        this StringBuilder source,
-        string indent,
-        Accessibility accessors,
-        InstanceModifier instance,
-        string type,
-        string variableName,
-        string value
-    )
-    {
-        var instanceStr = instance == InstanceModifier.None ? "" : $"{instance.ToFriendlyString()} ";
-        var accessorStr = accessors == Accessibility.NotApplicable ? "" : $"{accessors.ToFriendlyString()} ";
-        var valueStr = value == null ? "" : $" = {value}";
-        source.AppendLine($"{indent}{accessorStr}{instanceStr}{type} {variableName}{valueStr};");
-    }
 }

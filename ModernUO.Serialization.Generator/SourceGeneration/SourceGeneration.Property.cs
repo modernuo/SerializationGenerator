@@ -22,10 +22,8 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SourceGeneration
 {
-    public static string GetPropertyName(this IFieldSymbol fieldSymbol)
+    public static string GetPropertyName(this string fieldName)
     {
-        var fieldName = fieldSymbol.Name;
-
         var propertyName = fieldName;
 
         if (propertyName.StartsWith("m_", StringComparison.OrdinalIgnoreCase))
@@ -48,7 +46,7 @@ public static partial class SourceGeneration
         IFieldSymbol fieldSymbol
     )
     {
-        var propertyName = fieldSymbol.GetPropertyName();
+        var propertyName = fieldSymbol.Name.GetPropertyName();
         var virt = isVirtual ? "virtual " : "";
 
         source.AppendLine($"{indent}{accessors.ToFriendlyString()} {virt}{fieldSymbol.Type} {propertyName}");

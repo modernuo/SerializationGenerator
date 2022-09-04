@@ -71,22 +71,7 @@ public static class Helpers
             SymbolEqualityComparer.Default
         ) || symbol != null && CanBeConstructedFrom(symbol.BaseType, classSymbol);
 
-    public static bool IsAttributedSyntaxNode<T>(this SyntaxNode node, string attributeName, CancellationToken token)
-        where T : MemberDeclarationSyntax
-    {
-        token.ThrowIfCancellationRequested();
-
-        if (node is AttributeSyntax { Parent.Parent: T } attributeSyntax &&
-            (attributeSyntax.Parent.Parent is not ClassDeclarationSyntax classSyntax || classSyntax.IsPartial()))
-        {
-            var name = attributeSyntax.Name.ExtractName();
-            return name == attributeName || name == $"{attributeName}Attribute";
-        }
-
-        return false;
-    }
-
-    private static string? ExtractName(this NameSyntax? name) =>
+    public static string? ExtractName(this NameSyntax? name) =>
         name switch
         {
             SimpleNameSyntax ins    => ins.Identifier.Text,

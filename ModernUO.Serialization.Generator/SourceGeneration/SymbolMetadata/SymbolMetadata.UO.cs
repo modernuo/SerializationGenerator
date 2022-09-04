@@ -26,6 +26,7 @@ public static partial class SymbolMetadata
     public const string SERIALIZABLE_ATTRIBUTE = "ModernUO.Serialization.SerializationGeneratorAttribute";
     public const string DIRTY_TRACKING_ENTITY_ATTRIBUTE = "ModernUO.Serialization.DirtyTrackingEntityAttribute";
     public const string SERIALIZABLE_FIELD_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttribute";
+    public const string SERIALIZABLE_PROPERTY_ATTRIBUTE = "ModernUO.Serialization.SerializablePropertyAttribute";
     public const string SERIALIZABLE_FIELD_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttrAttribute";
     public const string DELTA_DATE_TIME_ATTRIBUTE = "ModernUO.Serialization.DeltaDateTimeAttribute";
     public const string INTERN_STRING_ATTRIBUTE = "ModernUO.Serialization.InternStringAttribute";
@@ -269,7 +270,7 @@ public static partial class SymbolMetadata
         return attributeData != null;
     }
 
-    public static bool TryGetFieldWithAttribute(
+    public static bool TryGetMemberWithAttribute(
         this ISymbol symbol, INamedTypeSymbol attributeSymbol, out AttributeData? attributeData
     )
     {
@@ -279,31 +280,35 @@ public static partial class SymbolMetadata
 
     public static bool TryGetSerializableField(
         this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
-    ) =>
-        fieldSymbol.TryGetFieldWithAttribute(
-            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE),
-            out attributeData
-        );
+    ) => fieldSymbol.TryGetMemberWithAttribute(
+        compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE),
+        out attributeData
+    );
+
+    public static bool TryGetSerializableProperty(
+        this ISymbol propertySymbol, Compilation compilation, out AttributeData? attributeData
+    ) => propertySymbol.TryGetMemberWithAttribute(
+        compilation.GetTypeByMetadataName(SERIALIZABLE_PROPERTY_ATTRIBUTE),
+        out attributeData
+    );
 
     public static bool TryGetDirtyTrackingEntityField(this ISymbol fieldSymbol, Compilation compilation) =>
-        fieldSymbol.TryGetFieldWithAttribute(
+        fieldSymbol.TryGetMemberWithAttribute(
             compilation.GetTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
             out _
         );
 
     public static bool TryGetSerializableFieldSaveFlagMethod(
         this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
-    ) =>
-        fieldSymbol.TryGetFieldWithAttribute(
-            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
-            out attributeData
-        );
+    ) => fieldSymbol.TryGetMemberWithAttribute(
+        compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
+        out attributeData
+    );
 
     public static bool TryGetSerializableFieldDefaultMethod(
         this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
-    ) =>
-        fieldSymbol.TryGetFieldWithAttribute(
-            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
-            out attributeData
-        );
+    ) => fieldSymbol.TryGetMemberWithAttribute(
+        compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
+        out attributeData
+    );
 }

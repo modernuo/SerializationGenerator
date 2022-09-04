@@ -96,11 +96,10 @@ public class ListMigrationRule : MigrationRule
         var listElementRuleArguments = new string[ruleArguments.Length - 2 - argumentsOffset];
         Array.Copy(ruleArguments, 2 + argumentsOffset, listElementRuleArguments, 0, ruleArguments.Length - 2 - argumentsOffset);
 
-        var propertyName = property.Name;
-        var propertyVarPrefix = $"{char.ToLower(propertyName[0])}{propertyName.Substring(1, propertyName.Length - 1)}";
-        var propertyIndex = $"{propertyVarPrefix}Index";
-        var propertyEntry = $"{propertyVarPrefix}Entry";
-        var propertyCount = $"{propertyVarPrefix}Count";
+        var propertyName = property.FieldName ?? property.Name;
+        var propertyIndex = $"{propertyName}Index";
+        var propertyEntry = $"{propertyName}Entry";
+        var propertyCount = $"{propertyName}Count";
 
         source.AppendLine($"{indent}{ruleArguments[argumentsOffset]} {propertyEntry};");
         source.AppendLine($"{indent}var {propertyCount} = reader.ReadEncodedInt();");
@@ -146,20 +145,19 @@ public class ListMigrationRule : MigrationRule
         var listElementRuleArguments = new string[ruleArguments.Length - 2 - argumentsOffset];
         Array.Copy(ruleArguments, 2 + argumentsOffset, listElementRuleArguments, 0, ruleArguments.Length - 2 - argumentsOffset);
 
-        var propertyName = property.Name;
-        var propertyVarPrefix = $"{char.ToLower(propertyName[0])}{propertyName.Substring(1, propertyName.Length - 1)}";
-        var propertyEntry = $"{propertyVarPrefix}Entry";
-        var propertyCount = $"{propertyVarPrefix}Count";
+        var propertyName = property.FieldName ?? property.Name;
+        var propertyEntry = $"{propertyName}Entry";
+        var propertyCount = $"{propertyName}Count";
 
         if (shouldTidy)
         {
-            source.AppendLine($"{indent}{property.Name}?.Tidy();");
+            source.AppendLine($"{indent}{propertyName}?.Tidy();");
         }
-        source.AppendLine($"{indent}var {propertyCount} = {property.Name}?.Count ?? 0;");
+        source.AppendLine($"{indent}var {propertyCount} = {propertyName}?.Count ?? 0;");
         source.AppendLine($"{indent}writer.WriteEncodedInt({propertyCount});");
         source.AppendLine($"{indent}if ({propertyCount} > 0)");
         source.AppendLine($"{indent}{{");
-        source.AppendLine($"{indent}    foreach (var {propertyEntry} in {property.Name}!)");
+        source.AppendLine($"{indent}    foreach (var {propertyEntry} in {propertyName}!)");
         source.AppendLine($"{indent}    {{");
 
         var serializableListElement = new SerializableProperty

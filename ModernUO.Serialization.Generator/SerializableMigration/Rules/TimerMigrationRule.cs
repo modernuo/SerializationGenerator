@@ -47,11 +47,11 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
     }
 
     public override void GenerateMigrationProperty(
-        StringBuilder source, Compilation compilation, string indent, SerializableProperty serializableProperty
+        StringBuilder source, Compilation compilation, string indent, SerializableProperty property
     )
     {
-        source.AppendLine($"{indent}internal readonly System.DateTime {serializableProperty.Name}Next;");
-        source.AppendLine($"{indent}internal readonly System.TimeSpan {serializableProperty.Name}Delay;");
+        source.AppendLine($"{indent}internal readonly System.DateTime {property.Name}Next;");
+        source.AppendLine($"{indent}internal readonly System.TimeSpan {property.Name}Delay;");
     }
 
     public override void GenerateDeserializationMethod(

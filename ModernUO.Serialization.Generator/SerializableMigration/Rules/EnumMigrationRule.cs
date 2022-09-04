@@ -58,7 +58,7 @@ public class EnumMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        source.AppendLine($"{indent}{property.Name} = reader.ReadEnum<{property.Type}>();");
+        source.AppendLine($"{indent}{property.FieldName ?? property.Name} = reader.ReadEnum<{property.Type}>();");
     }
 
     public override void GenerateSerializationMethod(StringBuilder source, string indent, SerializableProperty property)
@@ -70,6 +70,6 @@ public class EnumMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        source.AppendLine($"{indent}writer.WriteEnum<{property.Type}>({property.Name});");
+        source.AppendLine($"{indent}writer.WriteEnum<{property.Type}>({property.FieldName ?? property.Name});");
     }
 }

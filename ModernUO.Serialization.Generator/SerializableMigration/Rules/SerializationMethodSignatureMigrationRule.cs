@@ -65,11 +65,10 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
         var argument = property.RuleArguments?.Length >= 1 &&
                        property.RuleArguments[0] == "DeserializationRequiresParent" ? $", {parentReference ?? "this"}" : "";
 
-        source.AppendLine($"{indent}{propertyName} = new {property.Type}(reader{argument});");
+        source.AppendLine($"{indent}{property.FieldName ?? property.Name} = new {property.Type}(reader{argument});");
     }
 
     public override void GenerateSerializationMethod(StringBuilder source, string indent, SerializableProperty property)
@@ -81,7 +80,6 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var propertyName = property.Name;
-        source.AppendLine($"{indent}{propertyName}.Serialize(writer);");
+        source.AppendLine($"{indent}{property.FieldName ?? property.Name}.Serialize(writer);");
     }
 }

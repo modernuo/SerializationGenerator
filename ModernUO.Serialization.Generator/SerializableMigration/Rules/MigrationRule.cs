@@ -24,15 +24,15 @@ public abstract class MigrationRule : ISerializableMigrationRule
     public abstract string RuleName { get; }
 
     public virtual void GenerateMigrationProperty(
-        StringBuilder source, Compilation compilation, string indent, SerializableProperty serializableProperty
+        StringBuilder source, Compilation compilation, string indent, SerializableProperty property
     )
     {
-        var propertyType = serializableProperty.Type;
+        var propertyType = property.Type;
         var type = compilation.GetTypeByMetadataName(propertyType)?.IsValueType == true
                    || SymbolMetadata.IsPrimitiveFromTypeDisplayString(propertyType) && propertyType != "bool"
-            ? $"{propertyType}{(serializableProperty.UsesSaveFlag == true ? "?" : "")}" : propertyType;
+            ? $"{propertyType}{(property.UsesSaveFlag == true ? "?" : "")}" : propertyType;
 
-        source.AppendLine($"{indent}internal readonly {type} {serializableProperty.Name};");
+        source.AppendLine($"{indent}internal readonly {type} {property.FieldName ?? property.Name};");
     }
 
     public abstract bool GenerateRuleState(

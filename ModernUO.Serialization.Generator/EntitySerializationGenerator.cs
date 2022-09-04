@@ -38,20 +38,22 @@ public class EntitySerializationGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Gather all classes with [ModernUO.Serialization.Serializable] attribute
+        // Gather all classes with [ModernUO.Serialization.SerializationGenerator] attribute
         var serializableClasses = context
             .SyntaxProvider
             .CreateSyntaxProvider(
-                (node, token) => node.IsAttributedSyntaxNode<ClassDeclarationSyntax>("SerializationGenerator", token),
+                IsSerializationGeneratorSyntaxNode,
                 GetSerializableClassAndProperties
             )
-            .RemoveNulls();
+            .RemoveNulls()
+            .WithTrackingName("serializableClasses");
 
         // Gather all migration JSON files and organize them by file name (namespace/class) and version.
         var migrationFiles = context
             .AdditionalTextsProvider
             .Collect()
-            .Select(ToMigrationFileSet);
+            .Select(ToMigrationFileSet)
+            .WithTrackingName("migrations");
 
         // Combine the classes, migrations, and fields into a single set
         var classesWithMigrations = serializableClasses
@@ -63,6 +65,13 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(classesWithMigrations, ExecuteIncremental);
     }
 
+    public static bool IsSerializationGeneratorSyntaxNode(SyntaxNode node, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var name = (node as AttributeSyntax)?.Name.ExtractName();
+        return name is "SerializationGenerator" or "SerializationGeneratorAttribute";
+    }
+
     private static SerializableClassRecord? GetSerializableClassAndProperties(
         GeneratorSyntaxContext ctx,
         CancellationToken token
@@ -71,6 +80,13 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         token.ThrowIfCancellationRequested();
 
         var compilation = ctx.SemanticModel.Compilation;
+
+        var syntaxNode = (AttributeSyntax)ctx.Node;
+
+        if ((syntaxNode.Parent?.Parent as ClassDeclarationSyntax)?.IsPartial() != true)
+        {
+            return null;
+        }
 
         var node = (ClassDeclarationSyntax)ctx.Node.Parent!.Parent!;
         var classSymbol = ctx.SemanticModel.GetDeclaredSymbol(node) as INamedTypeSymbol;
@@ -81,7 +97,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             return null;
         }
 
-        var fieldsAndProperties = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
+        var fields = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
+        var properties = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         var saveFlagMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         var defaultValueMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         ISymbol? dirtyTrackingEntity = null;
@@ -97,9 +114,9 @@ public class EntitySerializationGenerator : IIncrementalGenerator
                     {
                         dirtyTrackingEntity = propertySymbol;
                     }
-                    else if (propertySymbol.TryGetSerializableField(compilation, out var attributeData))
+                    else if (propertySymbol.TryGetSerializableProperty(compilation, out var attributeData))
                     {
-                        fieldsAndProperties.Add((propertySymbol, attributeData));
+                        properties.Add((propertySymbol, attributeData));
                     }
                 }
             }
@@ -117,7 +134,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
                         }
                         else if (fieldSymbol.TryGetSerializableField(compilation, out var attributeData))
                         {
-                            fieldsAndProperties.Add((fieldSymbol, attributeData));
+                            fields.Add((fieldSymbol, attributeData));
                         }
                     }
                 }
@@ -141,7 +158,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         return new SerializableClassRecord(
             classSymbol,
             serializationAttribute,
-            fieldsAndProperties.ToImmutable(),
+            fields.ToImmutable(),
+            properties.ToImmutable(),
             saveFlagMethods.ToImmutable(),
             defaultValueMethods.ToImmutable(),
             dirtyTrackingEntity,
@@ -165,7 +183,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         {
             return classRecord with
             {
-                migrations = migs.ToImmutableDictionary()
+                Migrations = migs.ToImmutableDictionary()
             };
         }
 

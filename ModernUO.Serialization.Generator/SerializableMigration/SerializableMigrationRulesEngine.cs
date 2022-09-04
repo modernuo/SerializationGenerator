@@ -48,44 +48,6 @@ public static class SerializableMigrationRulesEngine
         }
     }
 
-    public static SerializableProperty? GenerateSerializableProperty(
-        Compilation compilation,
-        ISymbol fieldOrPropertySymbol,
-        int order,
-        ImmutableArray<AttributeData> attributes,
-        ISymbol? parentSymbol,
-        SerializableFieldSaveFlagMethods? serializableFieldSaveFlagMethods
-    )
-    {
-        string propertyName;
-        ITypeSymbol propertyType;
-
-        if (fieldOrPropertySymbol is IFieldSymbol fieldSymbol)
-        {
-            propertyName = fieldSymbol.Name;
-            propertyType = fieldSymbol.Type;
-        }
-        else if (fieldOrPropertySymbol is IPropertySymbol propertySymbol)
-        {
-            propertyName = fieldOrPropertySymbol.Name;
-            propertyType = propertySymbol.Type;
-        }
-        else
-        {
-            return null;
-        }
-
-        return GenerateSerializableProperty(
-            compilation,
-            propertyName,
-            propertyType,
-            order,
-            attributes,
-            parentSymbol,
-            serializableFieldSaveFlagMethods
-        );
-    }
-
     public static SerializableProperty GenerateSerializableProperty(
         Compilation compilation,
         string propertyName,
