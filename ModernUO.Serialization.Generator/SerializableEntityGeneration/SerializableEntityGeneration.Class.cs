@@ -29,7 +29,7 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SerializableEntityGeneration
 {
-    public static string GenerateSerializationPartialClass(
+    public static (string?, Diagnostic[]) GenerateSerializationPartialClass(
         this Compilation compilation,
         SerializableClassRecord classRecord,
         JsonSerializerOptions? jsonSerializerOptions,
@@ -40,6 +40,7 @@ public static partial class SerializableEntityGeneration
         token.ThrowIfCancellationRequested();
 
         var (
+            classNode,
             classSymbol,
             serializableAttr,
             fields,
@@ -75,7 +76,7 @@ public static partial class SerializableEntityGeneration
             // Duplicate found, failure.
             if (serializableFieldSaveFlags.TryGetValue(order, out _))
             {
-                return null;
+                return (null, Array.Empty<Diagnostic>());
             }
 
             serializableFieldSaveFlags[order] = new SerializableFieldSaveFlagMethods
@@ -104,7 +105,7 @@ public static partial class SerializableEntityGeneration
             // Duplicate found, failure.
             if (serializableFieldSaveFlagMethods.GetFieldDefaultValue != null)
             {
-                return null;
+                return (null, Array.Empty<Diagnostic>());
             }
 
             serializableFieldSaveFlags[order] = serializableFieldSaveFlagMethods with
@@ -176,7 +177,7 @@ public static partial class SerializableEntityGeneration
                     if (classSymbol.GetMembers(fieldName)
                             .FirstOrDefault(member => member is IFieldSymbol) is not IFieldSymbol fieldMember)
                     {
-                        return null;
+                        return (null, Array.Empty<Diagnostic>());
                     }
 
                     fieldType = fieldMember.Type;
@@ -199,7 +200,7 @@ public static partial class SerializableEntityGeneration
                 // We can't continue if we have duplicates.
                 if (!serializableFieldSet.Add(serializableProperty))
                 {
-                    return null;
+                    return (null, Array.Empty<Diagnostic>());
                 }
             }
         }
@@ -281,7 +282,7 @@ public static partial class SerializableEntityGeneration
                 // We can't continue if we have duplicates.
                 if (!serializableFieldSet.Add(serializableProperty))
                 {
-                    return null;
+                    return (null, Array.Empty<Diagnostic>());
                 }
             }
         }
@@ -294,7 +295,7 @@ public static partial class SerializableEntityGeneration
             // They are out of order! (missing a number)
             if (serializableFields[i].Order != i)
             {
-                return null;
+                return (null, Array.Empty<Diagnostic>());
             }
         }
 
@@ -437,7 +438,7 @@ public static partial class SerializableEntityGeneration
             WriteMigration(migrationPath, newMigration, jsonSerializerOptions, token);
         }
 
-        return source.ToString();
+        return (source.ToString(), Array.Empty<Diagnostic>());
     }
 
     private static Regex _newLineRegex;
