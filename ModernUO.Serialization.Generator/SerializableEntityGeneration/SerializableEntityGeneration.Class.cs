@@ -191,22 +191,30 @@ public static partial class SerializableEntityGeneration
 
                 serializableFieldSaveFlags.TryGetValue(order, out var serializableFieldSaveFlagMethods);
 
-                var serializableProperty = SerializableMigrationRulesEngine.GenerateSerializableProperty(
-                    compilation,
-                    propertySymbol.Name,
-                    fieldType,
-                    order,
-                    propertySymbol.GetAttributes(),
-                    classSymbol,
-                    serializableFieldSaveFlagMethods
-                ) with {
-                    FieldName = fieldName
-                };
-
-                // We can't continue if we have duplicates.
-                if (!serializableFieldSet.Add(serializableProperty))
+                try
                 {
-                    var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, order);
+                    var serializableProperty = SerializableMigrationRulesEngine.GenerateSerializableProperty(
+                        compilation,
+                        propertySymbol.Name,
+                        fieldType,
+                        order,
+                        propertySymbol.GetAttributes(),
+                        classSymbol,
+                        serializableFieldSaveFlagMethods
+                    ) with {
+                        FieldName = fieldName
+                    };
+
+                    // We can't continue if we have duplicates.
+                    if (!serializableFieldSet.Add(serializableProperty))
+                    {
+                        var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, order);
+                        return (null, new[] { diag });
+                    }
+                }
+                catch (NoRuleFoundException e)
+                {
+                    var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
                     return (null, new[] { diag });
                 }
             }
@@ -275,22 +283,30 @@ public static partial class SerializableEntityGeneration
 
                 serializableFieldSaveFlags.TryGetValue(order, out var serializableFieldSaveFlagMethods);
 
-                var serializableProperty = SerializableMigrationRulesEngine.GenerateSerializableProperty(
-                    compilation,
-                    fieldSymbol.Name.GetPropertyName(),
-                    fieldSymbol.Type,
-                    order,
-                    allAttributes,
-                    classSymbol,
-                    serializableFieldSaveFlagMethods
-                ) with {
-                    FieldName = fieldSymbol.Name
-                };
-
-                // We can't continue if we have duplicates.
-                if (!serializableFieldSet.Add(serializableProperty))
+                try
                 {
-                    var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, order);
+                    var serializableProperty = SerializableMigrationRulesEngine.GenerateSerializableProperty(
+                        compilation,
+                        fieldSymbol.Name.GetPropertyName(),
+                        fieldSymbol.Type,
+                        order,
+                        allAttributes,
+                        classSymbol,
+                        serializableFieldSaveFlagMethods
+                    ) with {
+                        FieldName = fieldSymbol.Name
+                    };
+
+                    // We can't continue if we have duplicates.
+                    if (!serializableFieldSet.Add(serializableProperty))
+                    {
+                        var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, order);
+                        return (null, new[] { diag });
+                    }
+                }
+                catch (NoRuleFoundException e)
+                {
+                    var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
                     return (null, new[] { diag });
                 }
             }

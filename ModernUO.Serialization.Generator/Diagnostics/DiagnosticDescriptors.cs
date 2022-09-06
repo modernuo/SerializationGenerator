@@ -76,6 +76,15 @@ public static class DiagnosticDescriptors
         true
     );
 
+    public static readonly DiagnosticDescriptor SG3007 = new(
+        "SG3007",
+        "No migration rule found",
+        "No migration rule found for field '{0}' of type '{1}'. If this is a bug, please notify the author.",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
     public static DiagnosticDescriptor GeneratorCrashedDiagnostic(Exception e) =>
         new(
             "SG0001",
