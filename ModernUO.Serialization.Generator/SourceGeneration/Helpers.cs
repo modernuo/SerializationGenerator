@@ -102,4 +102,11 @@ public static class Helpers
                     return (T)Convert.ChangeType(t, typeof(T));
                 }
             );
+
+    public static Diagnostic GenerateDiagnostic(this SyntaxNode node, DiagnosticDescriptor descriptor, params object[] msgParams)
+    {
+        var location = Location.Create(node.SyntaxTree, node.Span);
+
+        return Diagnostic.Create(descriptor, location, msgParams);
+    }
 }

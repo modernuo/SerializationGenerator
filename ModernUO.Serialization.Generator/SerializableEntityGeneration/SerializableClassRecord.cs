@@ -1,9 +1,11 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ModernUO.Serialization.Generator;
 
 public record SerializableClassRecord(
+    ClassDeclarationSyntax ClassNode,
     INamedTypeSymbol ClassSymbol,
     AttributeData SerializationAttribute,
     ImmutableArray<(ISymbol, AttributeData)> SerializableFields,

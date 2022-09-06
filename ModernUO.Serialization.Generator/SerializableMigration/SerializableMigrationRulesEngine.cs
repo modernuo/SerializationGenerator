@@ -80,6 +80,6 @@ public static class SerializableMigrationRulesEngine
             }
         }
 
-        throw new Exception($"No rule found for property {propertyName} of type {propertyType} ({Rules.Count})");
+        throw new NoRuleFoundException(propertyName, propertyType.ToDisplayString());
     }
 }

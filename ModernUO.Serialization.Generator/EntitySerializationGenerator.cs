@@ -45,7 +45,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
                 IsSerializationGeneratorSyntaxNode,
                 GetSerializableClassAndProperties
             )
-            .RemoveNulls()
+            .Where(t => t != null && (t.Value.Item1 != null || t.Value.Item2 != null))
             .WithTrackingName("serializableClasses");
 
         // Gather all migration JSON files and organize them by file name (namespace/class) and version.
@@ -72,7 +72,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         return name is "SerializationGenerator" or "SerializationGeneratorAttribute";
     }
 
-    private static SerializableClassRecord? GetSerializableClassAndProperties(
+    private static (SerializableClassRecord, Diagnostic[])? GetSerializableClassAndProperties(
         GeneratorSyntaxContext ctx,
         CancellationToken token
     )
@@ -83,9 +83,20 @@ public class EntitySerializationGenerator : IIncrementalGenerator
 
         var syntaxNode = (AttributeSyntax)ctx.Node;
 
-        if ((syntaxNode.Parent?.Parent as ClassDeclarationSyntax)?.IsPartial() != true)
+        if (syntaxNode.Parent?.Parent is not ClassDeclarationSyntax classNode)
         {
             return null;
+        }
+
+        if (!classNode.IsPartial())
+        {
+            var className = compilation
+                .GetSemanticModel(classNode.SyntaxTree)
+                .GetDeclaredSymbol(classNode)?
+                .Name;
+
+            var diagnostic = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3001, className);
+            return (null, new[] { diagnostic });
         }
 
         var node = (ClassDeclarationSyntax)ctx.Node.Parent!.Parent!;
@@ -94,7 +105,14 @@ public class EntitySerializationGenerator : IIncrementalGenerator
         // This happens when there is no using import
         if (!classSymbol.TryGetSerializable(compilation, out var serializationAttribute))
         {
-            return null;
+            var className = compilation
+                .GetSemanticModel(classNode.SyntaxTree)
+                .GetDeclaredSymbol(classNode)?
+                .Name;
+
+            var diagnostic = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3002, className);
+
+            return (null, new[] { diagnostic });
         }
 
         var fields = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
@@ -155,7 +173,8 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             }
         }
 
-        return new SerializableClassRecord(
+        var record = new SerializableClassRecord(
+            classNode,
             classSymbol,
             serializationAttribute,
             fields.ToImmutable(),
@@ -165,29 +184,35 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             dirtyTrackingEntity,
             ImmutableDictionary<int, AdditionalText>.Empty
         );
+
+        return (record, Array.Empty<Diagnostic>());
     }
 
-    private static SerializableClassRecord TransformToClassMigrationPairs(
-        (SerializableClassRecord, ImmutableDictionary<string, Dictionary<int, AdditionalText>>) pair,
+    private static (SerializableClassRecord, Diagnostic[]) TransformToClassMigrationPairs(
+        ((SerializableClassRecord, Diagnostic[])?, ImmutableDictionary<string, Dictionary<int, AdditionalText>>) pair,
         CancellationToken token
     )
     {
         token.ThrowIfCancellationRequested();
 
-        var (classRecord, additionalTexts) = pair;
+        var (recordPair, additionalTexts) = pair;
+        var (classRecord, diags) = recordPair.Value;
 
-        var namespaceName = classRecord.ClassSymbol.ContainingNamespace.ToDisplayString();
-        var className = $"{namespaceName}.{classRecord.ClassSymbol.Name}";
-
-        if (additionalTexts.TryGetValue(className, out var migs))
+        if (classRecord != null)
         {
-            return classRecord with
+            var namespaceName = classRecord.ClassSymbol.ContainingNamespace.ToDisplayString();
+            var className = $"{namespaceName}.{classRecord.ClassSymbol.Name}";
+
+            if (additionalTexts.TryGetValue(className, out var migs))
             {
-                Migrations = migs.ToImmutableDictionary()
-            };
+                classRecord = classRecord with
+                {
+                    Migrations = migs.ToImmutableDictionary()
+                };
+            }
         }
 
-        return classRecord;
+        return (classRecord, diags);
     }
 
     private static ImmutableDictionary<string, Dictionary<int, AdditionalText>> ToMigrationFileSet(
@@ -223,35 +248,62 @@ public class EntitySerializationGenerator : IIncrementalGenerator
 
     private void ExecuteIncremental(
         SourceProductionContext context,
-        (SerializableClassRecord classRecord, Compilation compilation) combined
+        ((SerializableClassRecord, Diagnostic[]), Compilation) combined
     )
     {
         context.CancellationToken.ThrowIfCancellationRequested();
+        var ((classRecord, prereqFailures), compilation) = combined;
 
-        var (classRecord, compilation) = combined;
-
-        var jsonOptions = SerializableMigrationSchema.GetJsonSerializerOptions();
-
-        try
+        if (prereqFailures.Length > 0)
         {
-            string classSource = compilation.GenerateSerializationPartialClass(
-                classRecord,
-                jsonOptions,
-                _migrationPath,
-                context.CancellationToken
-            );
-
-            if (classSource != null)
+            for (var i = 0; i < prereqFailures.Length; i++)
             {
-                context.AddSource(
-                    $"{classRecord.ClassSymbol.ToDisplayString()}.Serialization.cs",
-                    SourceText.From(classSource, Encoding.UTF8)
-                );
+                context.ReportDiagnostic(prereqFailures[i]);
             }
+
+            return;
         }
-        catch (Exception e)
+
+        if (classRecord != null)
         {
-            Console.WriteLine(e);
+            var jsonOptions = SerializableMigrationSchema.GetJsonSerializerOptions();
+
+            try
+            {
+                var (classSource, diags) = compilation.GenerateSerializationPartialClass(
+                    classRecord,
+                    jsonOptions,
+                    _migrationPath,
+                    context.CancellationToken
+                );
+
+                if (classSource != null)
+                {
+                    context.AddSource(
+                        $"{classRecord.ClassSymbol.ToDisplayString()}.Serialization.cs",
+                        SourceText.From(classSource, Encoding.UTF8)
+                    );
+                }
+                else
+                {
+                    for (var i = 0; i < diags.Length; i++)
+                    {
+                        context.ReportDiagnostic(diags[i]);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                var descriptor = DiagnosticDescriptors.GeneratorCrashedDiagnostic(e);
+                var diagnostic = classRecord.ClassNode.GenerateDiagnostic(
+                    descriptor,
+                    e.GetType(),
+                    classRecord.ClassSymbol.Name,
+                    e.Message
+                );
+
+                context.ReportDiagnostic(diagnostic);
+            }
         }
     }
 }
