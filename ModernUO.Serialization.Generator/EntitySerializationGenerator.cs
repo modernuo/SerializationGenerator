@@ -294,11 +294,12 @@ public class EntitySerializationGenerator : IIncrementalGenerator
             }
             catch (Exception e)
             {
+                var descriptor = DiagnosticDescriptors.GeneratorCrashedDiagnostic(e);
                 var diagnostic = classRecord.ClassNode.GenerateDiagnostic(
-                    DiagnosticDescriptors.SG9999,
+                    descriptor,
+                    e.GetType(),
                     classRecord.ClassSymbol.Name,
-                    e.Message,
-                    e.StackTrace
+                    e.Message
                 );
 
                 context.ReportDiagnostic(diagnostic);
