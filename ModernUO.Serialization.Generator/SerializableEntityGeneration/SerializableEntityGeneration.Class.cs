@@ -321,7 +321,7 @@ public static partial class SerializableEntityGeneration
             var order = serializableFields[i].Order;
             if (order != i)
             {
-                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3005, i, order);
+                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3005, serializableFields[i].Name, i, order);
                 return (null, new[] { diag });
             }
         }

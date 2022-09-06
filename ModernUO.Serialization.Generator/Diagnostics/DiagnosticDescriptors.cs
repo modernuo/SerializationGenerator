@@ -61,7 +61,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3005 = new(
         "SG3005",
         "Order of serializable fields is invalid",
-        "Expected a {0} attribute with order `{1}` but found `{2}'.",
+        "Expected field '{0}' with order `{1}` but found `{2}'.",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
