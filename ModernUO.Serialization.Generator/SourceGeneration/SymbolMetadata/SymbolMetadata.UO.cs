@@ -85,6 +85,19 @@ public static partial class SymbolMetadata
         symbol is INamedTypeSymbol namedSymbol &&
         symbols.Contains(namedSymbol, SymbolEqualityComparer.Default) || symbols.Contains(symbol?.BaseType);
 
+    public static bool HasSerialCtor(
+        this INamedTypeSymbol symbol,
+        Compilation compilation
+    )
+    {
+        var serialType = compilation.GetTypeByMetadataName(SERIAL_STRUCT);
+        return symbol.Constructors.FirstOrDefault(
+            member =>
+                member.Parameters.Length == 1
+                && SymbolEqualityComparer.Default.Equals(member.Parameters[0].Type, serialType)
+        ) != null;
+    }
+
     public static bool TryGetEmptyOrParentCtor(
         this INamedTypeSymbol symbol,
         INamedTypeSymbol? parentSymbol,

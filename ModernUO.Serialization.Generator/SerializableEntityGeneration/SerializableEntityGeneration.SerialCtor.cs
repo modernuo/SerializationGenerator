@@ -22,6 +22,7 @@ namespace ModernUO.Serialization.Generator;
 public static partial class SerializableEntityGeneration
 {
     private static readonly ImmutableArray<string> _baseParameters = new[] { "serial" }.ToImmutableArray();
+
     public static void GenerateSerialCtor(
         this StringBuilder source,
         Compilation compilation,
@@ -37,13 +38,12 @@ public static partial class SerializableEntityGeneration
             className,
             Accessibility.Public,
             new []{ (serialType, "serial") }.ToImmutableArray(),
-            isOverride ? _baseParameters : ImmutableArray<string>.Empty
+            isOverride ? _baseParameters : null
         );
 
         if (!isOverride)
         {
             source.AppendLine($"{indent}    Serial = serial;");
-            source.AppendLine($"{indent}    SetTypeRef(typeof({className}));");
         }
 
         source.GenerateMethodEnd(indent);

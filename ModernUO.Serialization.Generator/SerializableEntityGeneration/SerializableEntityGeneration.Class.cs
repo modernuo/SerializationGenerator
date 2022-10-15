@@ -326,7 +326,7 @@ public static partial class SerializableEntityGeneration
             }
         }
 
-        if (isSerializable)
+        if (isSerializable && !classSymbol.HasSerialCtor(compilation))
         {
             // Serial constructor
             source.GenerateSerialCtor(compilation, className, indent, isOverride);

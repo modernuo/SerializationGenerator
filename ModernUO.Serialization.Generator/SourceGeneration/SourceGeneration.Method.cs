@@ -35,20 +35,20 @@ public static partial class SourceGeneration
 
     public static void GenerateConstructorStart(
         this StringBuilder source, string indent, string className, Accessibility accessors, ImmutableArray<(ITypeSymbol, string)> parameters,
-        ImmutableArray<string> baseParameters, bool isOverload = false
+        ImmutableArray<string>? baseParameters, bool isOverload = false
     )
     {
         source.Append($"{indent}{accessors.ToFriendlyString()} {className}(");
         source.GenerateSignatureArguments(parameters);
         source.Append(')');
-        bool hasBaseParams = baseParameters.Length > 0;
-        if (hasBaseParams)
+        if ((baseParameters?.Length ?? 0) > 0)
         {
             source.AppendFormat(" : {0}(", isOverload ? "this" : "base");
-            for (int i = 0; i < baseParameters.Length; i++)
+            var baseParametersValue = baseParameters.Value;
+            for (int i = 0; i < baseParametersValue.Length; i++)
             {
-                source.Append(baseParameters[i]);
-                if (i < baseParameters.Length - 1)
+                source.Append(baseParametersValue[i]);
+                if (i < baseParametersValue.Length - 1)
                 {
                     source.Append(',');
                 }
