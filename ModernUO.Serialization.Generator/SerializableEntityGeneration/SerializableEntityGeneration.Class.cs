@@ -140,7 +140,7 @@ public static partial class SerializableEntityGeneration
 
         var indent = "    ";
 
-        source.AppendLine($"[System.CodeDom.Compiler.GeneratedCode(\"ModernUO.Serialization.Generator\", \"{Version}\")]");
+        source.AppendLine($"{indent}[System.CodeDom.Compiler.GeneratedCode(\"ModernUO.Serialization.Generator\", \"{Version}\")]");
         source.RecursiveGenerateClassStart(classSymbol, ImmutableArray<ITypeSymbol>.Empty, ref indent);
 
         source.GenerateField(
