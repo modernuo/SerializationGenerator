@@ -280,7 +280,7 @@ public class EntitySerializationGenerator : IIncrementalGenerator
                 if (classSource != null)
                 {
                     context.AddSource(
-                        $"{classRecord.ClassSymbol.ToDisplayString()}.Serialization.cs",
+                        $"{classRecord.ClassSymbol.ToDisplayString()}.Serialization.g.cs",
                         SourceText.From(classSource, Encoding.UTF8)
                     );
                 }
