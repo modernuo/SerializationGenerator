@@ -140,7 +140,6 @@ public static partial class SerializableEntityGeneration
 
         var indent = "    ";
 
-        source.AppendLine($"{indent}[System.CodeDom.Compiler.GeneratedCode(\"ModernUO.Serialization.Generator\", \"{Version}\")]");
         source.RecursiveGenerateClassStart(classSymbol, ImmutableArray<ITypeSymbol>.Empty, ref indent);
 
         source.GenerateField(
@@ -522,7 +521,14 @@ public static partial class SerializableEntityGeneration
         for (var i = 0; i < containingSymbolList.Count; i++)
         {
             var symbol = containingSymbolList[i];
-            source.GenerateClassStart(symbol, indent, i == containingSymbolList.Count - 1 ? interfaces : ImmutableArray<ITypeSymbol>.Empty);
+            var last = i == containingSymbolList.Count - 1;
+
+            if (last)
+            {
+                source.AppendLine($"{indent}[System.CodeDom.Compiler.GeneratedCode(\"ModernUO.Serialization.Generator\", \"{Version}\")]");
+            }
+
+            source.GenerateClassStart(symbol, indent, last ? interfaces : ImmutableArray<ITypeSymbol>.Empty);
             indent += "    ";
         }
     }
