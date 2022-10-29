@@ -98,6 +98,10 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
                 source.AppendLine($"{indent}{{");
                 GenerateDeserialize(source, $"{indent}    ", propertyName, propertyType, parentReference);
                 source.AppendLine($"{indent}}}");
+                source.AppendLine($"{indent}else");
+                source.AppendLine($"{indent}{{");
+                source.AppendLine($"{indent}    {propertyName} = default;");
+                source.AppendLine($"{indent}}}");
             }
             else
             {

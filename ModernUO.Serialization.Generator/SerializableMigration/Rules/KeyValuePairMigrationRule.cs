@@ -65,16 +65,10 @@ public class KeyValuePairMigrationRule : MigrationRule
 
         var keyArgumentsLength = keySerializedProperty.RuleArguments?.Length ?? 0;
         var valueArgumentsLength = valueSerializedProperty.RuleArguments?.Length ?? 0;
-        var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
 
-        ruleArguments = new string[(canBeNull ? 1 : 0) + 6 + keyArgumentsLength + valueArgumentsLength];
+        ruleArguments = new string[6 + keyArgumentsLength + valueArgumentsLength];
 
         var index = 0;
-
-        if (canBeNull)
-        {
-            ruleArguments[index++] = "@CanBeNull";
-        }
 
         // Key
         ruleArguments[index++] = keySymbolType.ToDisplayString();
@@ -116,8 +110,7 @@ public class KeyValuePairMigrationRule : MigrationRule
         }
 
         var ruleArguments = property.RuleArguments;
-        var canBeNull = property.RuleArguments![0] == "@CanBeNull";
-        var index = canBeNull || property.RuleArguments![0] == "" ? 1 : 0; // Skip the blank argument option
+        var index = property.RuleArguments![0] == "" ? 1 : 0; // Skip the blank argument option
 
         var keyType = ruleArguments![index++];
         var keyRule = SerializableMigrationRulesEngine.Rules[ruleArguments[index++]];
@@ -140,41 +133,19 @@ public class KeyValuePairMigrationRule : MigrationRule
 
         var propertyName = property.FieldName ?? property.Name;
 
-        if (canBeNull)
-        {
-            source.AppendLine($"{indent}if (reader.ReadBool())");
-            source.AppendLine($"{indent}{{");
-            GenerateDeserialize(
-                source,
-                compilation,
-                $"{indent}    ",
-                propertyName,
-                parentReference,
-                keyType,
-                valueType,
-                keyRule,
-                keyRuleArguments,
-                valueRule,
-                valueRuleArguments
-            );
-            source.AppendLine($"{indent}}}");
-        }
-        else
-        {
-            GenerateDeserialize(
-                source,
-                compilation,
-                indent,
-                propertyName,
-                parentReference,
-                keyType,
-                valueType,
-                keyRule,
-                keyRuleArguments,
-                valueRule,
-                valueRuleArguments
-            );
-        }
+        GenerateDeserialize(
+            source,
+            compilation,
+            indent,
+            propertyName,
+            parentReference,
+            keyType,
+            valueType,
+            keyRule,
+            keyRuleArguments,
+            valueRule,
+            valueRuleArguments
+        );
     }
 
     private static void GenerateDeserialize(
@@ -238,8 +209,7 @@ public class KeyValuePairMigrationRule : MigrationRule
         }
 
         var ruleArguments = property.RuleArguments;
-        var canBeNull = property.RuleArguments![0] == "@CanBeNull";
-        var index = canBeNull || property.RuleArguments![0] == "" ? 1 : 0; // Skip the blank argument option
+        var index = property.RuleArguments![0] == "" ? 1 : 0; // Skip the blank argument option
 
         var keyType = ruleArguments![index++];
         var keyRule = SerializableMigrationRulesEngine.Rules[ruleArguments[index++]];
@@ -262,43 +232,17 @@ public class KeyValuePairMigrationRule : MigrationRule
 
         var propertyName = property.FieldName ?? property.Name;
 
-        if (canBeNull)
-        {
-            var newIndent = $"{indent}    ";
-            source.AppendLine($"{indent}if ({propertyName} != default)");
-            source.AppendLine($"{indent}{{");
-            source.AppendLine($"{newIndent}writer.Write(true);");
-            GenerateSerialize(
-                source,
-                newIndent,
-                propertyName,
-                keyType,
-                valueType,
-                keyRule,
-                keyRuleArguments,
-                valueRule,
-                valueRuleArguments
-            );
-            source.AppendLine($"{indent}}}");
-            source.AppendLine($"{indent}else");
-            source.AppendLine($"{indent}{{");
-            source.AppendLine($"{newIndent}writer.Write(false);");
-            source.AppendLine($"{indent}}}");
-        }
-        else
-        {
-            GenerateSerialize(
-                source,
-                indent,
-                propertyName,
-                keyType,
-                valueType,
-                keyRule,
-                keyRuleArguments,
-                valueRule,
-                valueRuleArguments
-            );
-        }
+        GenerateSerialize(
+            source,
+            indent,
+            propertyName,
+            keyType,
+            valueType,
+            keyRule,
+            keyRuleArguments,
+            valueRule,
+            valueRuleArguments
+        );
     }
 
     private static void GenerateSerialize(

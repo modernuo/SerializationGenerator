@@ -127,6 +127,10 @@ public class HashSetMigrationRule : MigrationRule
                 setElementRuleArguments
             );
             source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{indent}    {propertyName} = default;");
+            source.AppendLine($"{indent}}}");
         }
         else
         {
