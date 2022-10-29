@@ -63,18 +63,25 @@ public class DictionaryMigrationRule : MigrationRule
             null
         );
 
-        var extraOptions = "";
-        if (attributes.Any(a => a.IsTidy(compilation)))
-        {
-            extraOptions += "@Tidy";
-        }
-
         var keyArgumentsLength = serializableKeyProperty.RuleArguments?.Length ?? 0;
         var valueArgumentsLength = serializableValueProperty.RuleArguments?.Length ?? 0;
+        var isTidy = attributes.Any(a => a.IsTidy(compilation));
+        var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
+
+        ruleArguments = new string[(isTidy ? 1 : 0) + (canBeNull ? 1 : 0) + 6 + keyArgumentsLength + valueArgumentsLength];
+
         var index = 0;
 
-        ruleArguments = new string[7 + keyArgumentsLength + valueArgumentsLength];
-        ruleArguments[index++] = extraOptions;
+        if (isTidy)
+        {
+            ruleArguments[index++] = "@Tidy";
+        }
+
+        if (canBeNull)
+        {
+            ruleArguments[index++] = "@CanBeNull";
+        }
+
         ruleArguments[index++] = keySymbolType.ToDisplayString();
         ruleArguments[index++] = serializableKeyProperty.Rule;
         ruleArguments[index++] = keyArgumentsLength.ToString();
@@ -114,7 +121,14 @@ public class DictionaryMigrationRule : MigrationRule
         }
 
         var ruleArguments = property.RuleArguments;
-        var index = 1;
+        var index = property.RuleArguments![0] == "@Tidy" ? 1 : 0;
+        var canBeNull = property.RuleArguments[index] == "@CanBeNull";
+
+        if (canBeNull)
+        {
+            index++;
+        }
+
         var keyType = ruleArguments![index++];
 
         var keyElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments[index++]];
@@ -136,12 +150,64 @@ public class DictionaryMigrationRule : MigrationRule
         }
 
         var propertyName = property.FieldName ?? property.Name;
+
+        if (canBeNull)
+        {
+            source.AppendLine($"{indent}if (reader.ReadBool())");
+            source.AppendLine($"{indent}{{");
+            GenerateDeserialize(
+                source,
+                compilation,
+                $"{indent}    ",
+                propertyName,
+                parentReference,
+                keyType,
+                valueType,
+                keyElementRule,
+                keyRuleArguments,
+                valueElementRule,
+                valueRuleArguments
+            );
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            GenerateDeserialize(
+                source,
+                compilation,
+                indent,
+                propertyName,
+                parentReference,
+                keyType,
+                valueType,
+                keyElementRule,
+                keyRuleArguments,
+                valueElementRule,
+                valueRuleArguments
+            );
+        }
+    }
+
+    private static void GenerateDeserialize(
+        StringBuilder source,
+        Compilation compilation,
+        string indent,
+        string propertyName,
+        string parentReference,
+        string keyType,
+        string valueType,
+        ISerializableMigrationRule keyElementRule,
+        string[] keyRuleArguments,
+        ISerializableMigrationRule valueElementRule,
+        string[] valueRuleArguments
+    )
+    {
         var propertyIndex = $"{propertyName}Index";
         var propertyKeyEntry = $"{propertyName}Key";
         var propertyValueEntry = $"{propertyName}Value";
         var propertyCount = $"{propertyName}Count";
 
-        source.AppendLine($"{indent}{ruleArguments[1]} {propertyKeyEntry};");
+        source.AppendLine($"{indent}{keyType} {propertyKeyEntry};");
         source.AppendLine($"{indent}{valueType} {propertyValueEntry};");
         source.AppendLine($"{indent}var {propertyCount} = reader.ReadEncodedInt();");
         source.AppendLine($"{indent}{propertyName} = new System.Collections.Generic.Dictionary<{keyType}, {valueType}>({propertyCount});");
@@ -194,10 +260,16 @@ public class DictionaryMigrationRule : MigrationRule
         }
 
         var ruleArguments = property.RuleArguments;
-        var index = 0;
-        var shouldTidy = ruleArguments![index++].Contains("@Tidy");
-        var keyType = ruleArguments![index++];
+        var shouldTidy = property.RuleArguments![0] == "@Tidy";
+        var index = shouldTidy ? 1 : 0;
+        var canBeNull = property.RuleArguments[index] == "@CanBeNull";
 
+        if (canBeNull)
+        {
+            index++;
+        }
+
+        var keyType = ruleArguments![index++];
         var keyElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments![index++]];
         var keyRuleArguments = new string[int.Parse(ruleArguments[index++])];
 
@@ -217,6 +289,60 @@ public class DictionaryMigrationRule : MigrationRule
         }
 
         var propertyName = property.FieldName ?? property.Name;
+
+        if (canBeNull)
+        {
+            var newIndent = $"{indent}    ";
+            source.AppendLine($"{indent}if ({propertyName} != default)");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(false);");
+            GenerateSerialize(
+                source,
+                newIndent,
+                propertyName,
+                shouldTidy,
+                keyType,
+                valueType,
+                keyElementRule,
+                keyRuleArguments,
+                valueElementRule,
+                valueRuleArguments
+            );
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(false);");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            GenerateSerialize(
+                source,
+                indent,
+                propertyName,
+                shouldTidy,
+                keyType,
+                valueType,
+                keyElementRule,
+                keyRuleArguments,
+                valueElementRule,
+                valueRuleArguments
+            );
+        }
+    }
+
+    private static void GenerateSerialize(
+        StringBuilder source,
+        string indent,
+        string propertyName,
+        bool shouldTidy,
+        string keyType,
+        string valueType,
+        ISerializableMigrationRule keyElementRule,
+        string[] keyRuleArguments,
+        ISerializableMigrationRule valueElementRule,
+        string[] valueRuleArguments)
+    {
         var propertyKeyEntry = $"{propertyName}Key";
         var propertyValueEntry = $"{propertyName}Value";
         var propertyCount = $"{propertyName}Count";
@@ -232,6 +358,7 @@ public class DictionaryMigrationRule : MigrationRule
         source.AppendLine($"{indent}    foreach (var ({propertyKeyEntry}, {propertyValueEntry}) in {propertyName}!)");
         source.AppendLine($"{indent}    {{");
 
+        var newIndent = $"{indent}        ";
         var serializableKeyElement = new SerializableProperty
         {
             Name = propertyKeyEntry,
@@ -240,7 +367,7 @@ public class DictionaryMigrationRule : MigrationRule
             RuleArguments = keyRuleArguments
         };
 
-        keyElementRule.GenerateSerializationMethod(source, $"{indent}        ", serializableKeyElement);
+        keyElementRule.GenerateSerializationMethod(source, newIndent, serializableKeyElement);
 
         var serializableValueElement = new SerializableProperty
         {
@@ -250,7 +377,7 @@ public class DictionaryMigrationRule : MigrationRule
             RuleArguments = valueRuleArguments
         };
 
-        valueElementRule.GenerateSerializationMethod(source, $"{indent}        ", serializableValueElement);
+        valueElementRule.GenerateSerializationMethod(source, newIndent, serializableValueElement);
 
         source.AppendLine($"{indent}    }}");
         source.AppendLine($"{indent}}}");

@@ -52,18 +52,17 @@ public class ArrayMigrationRule : MigrationRule
         var length = serializableArrayType.RuleArguments?.Length ?? 0;
         var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
         ruleArguments = new string[length + 2 + (canBeNull ? 1 : 0)];
-        var offset = 0;
+        var index = 0;
         if (canBeNull)
         {
-            ruleArguments[0] = "@CanBeNull";
-            offset++;
+            ruleArguments[index++] = "@CanBeNull";
         }
 
-        ruleArguments[offset] = arrayTypeSymbol.ElementType.ToDisplayString();
-        ruleArguments[offset + 1] = serializableArrayType.Rule;
+        ruleArguments[index++] = arrayTypeSymbol.ElementType.ToDisplayString();
+        ruleArguments[index++] = serializableArrayType.Rule;
         if (length > 0)
         {
-            Array.Copy(serializableArrayType.RuleArguments!, 0, ruleArguments, 2 + offset, length);
+            Array.Copy(serializableArrayType.RuleArguments!, 0, ruleArguments, index, length);
         }
 
         return true;
@@ -187,6 +186,7 @@ public class ArrayMigrationRule : MigrationRule
             var newIndent = $"{indent}    ";
             source.AppendLine($"{indent}if ({propertyName} != default)");
             source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(false);");
             GenerateSerialize(
                 source,
                 newIndent,
