@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -48,13 +49,21 @@ public class ArrayMigrationRule : MigrationRule
             null
         );
 
-        var length = serializableArrayType.RuleArguments?.Length?? 0;
-        ruleArguments = new string[length + 2];
-        ruleArguments[0] = arrayTypeSymbol.ElementType.ToDisplayString();
-        ruleArguments[1] = serializableArrayType.Rule;
+        var length = serializableArrayType.RuleArguments?.Length ?? 0;
+        var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
+        ruleArguments = new string[length + 2 + (canBeNull ? 1 : 0)];
+        var offset = 0;
+        if (canBeNull)
+        {
+            ruleArguments[0] = "@CanBeNull";
+            offset++;
+        }
+
+        ruleArguments[offset] = arrayTypeSymbol.ElementType.ToDisplayString();
+        ruleArguments[offset + 1] = serializableArrayType.Rule;
         if (length > 0)
         {
-            Array.Copy(serializableArrayType.RuleArguments!, 0, ruleArguments, 2, length);
+            Array.Copy(serializableArrayType.RuleArguments!, 0, ruleArguments, 2 + offset, length);
         }
 
         return true;
@@ -76,23 +85,71 @@ public class ArrayMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
         var ruleArguments = property.RuleArguments;
-        var arrayElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments![1]];
-        var arrayElementRuleArguments = new string[ruleArguments.Length - 2];
-        Array.Copy(ruleArguments, 2, arrayElementRuleArguments, 0, ruleArguments.Length - 2);
+        var canBeNull = ruleArguments![0] == "@CanBeNull";
+        var offset = canBeNull ? 1 : 0;
+
+        var arrayElementType = ruleArguments[offset];
+        var arrayElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments![offset + 1]];
+        var arrayElementRuleArguments = new string[ruleArguments.Length - 2 - offset];
+        Array.Copy(ruleArguments, 2, arrayElementRuleArguments, 0, ruleArguments.Length - 2 - offset);
 
         var propertyName = property.FieldName ?? property.Name;
-        var propertyIndex = $"{property.Name}Index";
-        source.AppendLine($"{indent}{propertyName} = new {ruleArguments[0]}[reader.ReadEncodedInt()];");
-        source.AppendLine($"{indent}for (var {propertyIndex} = 0; {propertyIndex} < {propertyName}.Length; {propertyIndex}++)");
-        source.AppendLine($"{indent}{{");
+
+        if (canBeNull)
+        {
+            source.AppendLine($"{indent}if (reader.ReadBool())");
+            source.AppendLine($"{indent}{{");
+            GenerateDeserialize(
+                source,
+                compilation,
+                $"{indent}    ",
+                propertyName,
+                parentReference,
+                arrayElementType,
+                arrayElementRule,
+                arrayElementRuleArguments
+            );
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            GenerateDeserialize(
+                source,
+                compilation,
+                indent,
+                propertyName,
+                parentReference,
+                arrayElementType,
+                arrayElementRule,
+                arrayElementRuleArguments
+            );
+        }
+    }
+
+    private static void GenerateDeserialize(
+        StringBuilder source,
+        Compilation compilation,
+        string indent,
+        string propertyName,
+        string parentReference,
+        string arrayElementType,
+        ISerializableMigrationRule arrayElementRule,
+        string[] arrayElementRuleArguments
+    )
+    {
+        var propertyIndex = $"{propertyName}Index";
 
         var serializableArrayElement = new SerializableProperty
         {
             Name = $"{propertyName}[{propertyIndex}]",
-            Type = ruleArguments[0],
+            Type = arrayElementType,
             Rule = arrayElementRule.RuleName,
             RuleArguments = arrayElementRuleArguments
         };
+
+        source.AppendLine($"{indent}{propertyName} = new {arrayElementType}[reader.ReadEncodedInt()];");
+        source.AppendLine($"{indent}for (var {propertyIndex} = 0; {propertyIndex} < {propertyName}.Length; {propertyIndex}++)");
+        source.AppendLine($"{indent}{{");
 
         arrayElementRule.GenerateDeserializationMethod(
             source,
@@ -115,11 +172,57 @@ public class ArrayMigrationRule : MigrationRule
         }
 
         var ruleArguments = property.RuleArguments;
-        var arrayElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments![1]];
-        var arrayElementRuleArguments = new string[ruleArguments.Length - 2];
-        Array.Copy(ruleArguments, 2, arrayElementRuleArguments, 0, ruleArguments.Length - 2);
+        var canBeNull = ruleArguments![0] == "@CanBeNull";
+        var offset = canBeNull ? 1 : 0;
+
+        var arrayElementType = ruleArguments[offset];
+        var arrayElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments![offset + 1]];
+        var arrayElementRuleArguments = new string[ruleArguments.Length - 2 - offset];
+        Array.Copy(ruleArguments, 2, arrayElementRuleArguments, 0, ruleArguments.Length - 2 - offset);
 
         var propertyName = property.FieldName ?? property.Name;
+
+        if (canBeNull)
+        {
+            var newIndent = $"{indent}    ";
+            source.AppendLine($"{indent}if ({propertyName} != default)");
+            source.AppendLine($"{indent}{{");
+            GenerateSerialize(
+                source,
+                newIndent,
+                propertyName,
+                arrayElementType,
+                arrayElementRule,
+                arrayElementRuleArguments
+            );
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(false);");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            GenerateSerialize(
+                source,
+                indent,
+                propertyName,
+                arrayElementType,
+                arrayElementRule,
+                arrayElementRuleArguments
+            );
+        }
+    }
+
+    private static void GenerateSerialize(
+        StringBuilder source,
+        string indent,
+        string propertyName,
+        string arrayElementType,
+        ISerializableMigrationRule arrayElementRule,
+        string[] arrayElementRuleArguments
+    )
+    {
         var propertyIndex = $"{propertyName}Index";
         var propertyLength = $"{propertyName}Length";
         source.AppendLine($"{indent}var {propertyLength} = {propertyName}?.Length ?? 0;");
@@ -130,7 +233,7 @@ public class ArrayMigrationRule : MigrationRule
         var serializableArrayElement = new SerializableProperty
         {
             Name = $"{propertyName}![{propertyIndex}]",
-            Type = ruleArguments[0],
+            Type = arrayElementType,
             Rule = arrayElementRule.RuleName,
             RuleArguments = arrayElementRuleArguments
         };

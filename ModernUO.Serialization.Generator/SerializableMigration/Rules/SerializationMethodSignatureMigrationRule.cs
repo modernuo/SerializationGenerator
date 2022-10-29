@@ -96,8 +96,7 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
             {
                 source.AppendLine($"{indent}if (reader.ReadBool())");
                 source.AppendLine($"{indent}{{");
-                var newIndent = $"{indent}    ";
-                GenerateDeserialize(source, newIndent, propertyName, propertyType, parentReference);
+                GenerateDeserialize(source, $"{indent}    ", propertyName, propertyType, parentReference);
                 source.AppendLine($"{indent}}}");
             }
             else
