@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -48,7 +49,14 @@ public class RawSerializableMigrationRule : MigrationRule
             return false;
         }
 
-        ruleArguments = new[] { requiresParent ? "DeserializationRequiresParent" : "" };
+        var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
+        ruleArguments = new string[canBeNull ? 2 : 1];
+        ruleArguments[0] = requiresParent ? "DeserializationRequiresParent" : "";
+        if (canBeNull)
+        {
+            ruleArguments[1] = "@CanBeNull";
+        }
+
         return namedTypeSymbol.IsSerializableRecursive(compilation);
     }
 
@@ -70,11 +78,47 @@ public class RawSerializableMigrationRule : MigrationRule
 
         var propertyType = property.Type;
         var propertyName = property.FieldName ?? property.Name;
+        var canBeNull = false;
 
-        var argument = property.RuleArguments?.Length >= 1 &&
-                       property.RuleArguments[0] == "DeserializationRequiresParent" ? parentReference ?? "" : "";
+        if (property.RuleArguments != null)
+        {
+            if (property.RuleArguments.Length == 0 || property.RuleArguments[0] != "DeserializationRequiresParent")
+            {
+                parentReference = "";
+            }
 
-        source.AppendLine($"{indent}{propertyName} = new {propertyType}({argument});");
+            if (property.RuleArguments.Length >= 1 && property.RuleArguments[property.RuleArguments.Length - 1] == "@CanBeNull")
+            {
+                canBeNull = true;
+            }
+        }
+
+        if (canBeNull)
+        {
+            source.AppendLine($"{indent}if (reader.ReadBool())");
+            source.AppendLine($"{indent}{{");
+            GenerateDeserialize(source, $"{indent}    ", propertyName, propertyType, parentReference);
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{indent}    {propertyName} = default;");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            GenerateDeserialize(source, indent, propertyName, propertyType, parentReference);
+        }
+    }
+
+    private static void GenerateDeserialize(
+        StringBuilder source,
+        string indent,
+        string propertyName,
+        string propertyType,
+        string parentReference
+    )
+    {
+        source.AppendLine($"{indent}{propertyName} = new {propertyType}({parentReference});");
         source.AppendLine($"{indent}{propertyName}.Deserialize(reader);");
     }
 
@@ -87,6 +131,25 @@ public class RawSerializableMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        source.AppendLine($"{indent}{property.FieldName ?? property.Name}.Serialize(writer);");
+        var propertyName = property.FieldName ?? property.Name;
+        bool canBeNull = property.RuleArguments?.Length >= 1 && property.RuleArguments[property.RuleArguments.Length - 1] == "@CanBeNull";
+
+        if (canBeNull)
+        {
+            var newIndent = $"{indent}    ";
+            source.AppendLine($"{indent}if ({propertyName} != default)");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(true);");
+            source.AppendLine($"{newIndent}{propertyName}.Serialize(writer);");
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(false);");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            source.AppendLine($"{indent}{propertyName}.Serialize(writer);");
+        }
     }
 }

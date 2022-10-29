@@ -51,21 +51,29 @@ public class ListMigrationRule : MigrationRule
             null
         );
 
-        var extraOptions = "";
-        if (attributes.Any(a => a.IsTidy(compilation)))
-        {
-            extraOptions += "@Tidy";
-        }
+        var isTidy = attributes.Any(a => a.IsTidy(compilation));
+        var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
 
         var length = serializableListType.RuleArguments?.Length ?? 0;
-        ruleArguments = new string[length + 3];
-        ruleArguments[0] = extraOptions;
-        ruleArguments[1] = listTypeSymbol.ToDisplayString();
-        ruleArguments[2] = serializableListType.Rule;
+        ruleArguments = new string[(isTidy ? 1 : 0) + (canBeNull ? 1 : 0) + 2 + length];
+
+        var index = 0;
+
+        if (isTidy)
+        {
+            ruleArguments[index++] = "@Tidy";
+        }
+
+        if (canBeNull)
+        {
+            ruleArguments[index++] = "@CanBeNull";
+        }
+        ruleArguments[index++] = listTypeSymbol.ToDisplayString();
+        ruleArguments[index++] = serializableListType.Rule;
 
         if (length > 0)
         {
-            Array.Copy(serializableListType.RuleArguments!, 0, ruleArguments, 3, length);
+            Array.Copy(serializableListType.RuleArguments!, 0, ruleArguments, index, length);
         }
 
         return true;
@@ -88,29 +96,81 @@ public class ListMigrationRule : MigrationRule
         }
 
         var ruleArguments = property.RuleArguments;
-        var hasExtraOptions = ruleArguments![0] == "" || ruleArguments[0].StartsWith("@", StringComparison.Ordinal);
-        var argumentsOffset = hasExtraOptions ? 1 : 0;
+        var index = property.RuleArguments![0] is "@Tidy" or "" ? 1 : 0; // Skip the blank argument option
+        var canBeNull = property.RuleArguments[index] == "@CanBeNull";
 
-        var listElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments[argumentsOffset + 1]];
+        if (canBeNull)
+        {
+            index++;
+        }
 
-        var listElementRuleArguments = new string[ruleArguments.Length - 2 - argumentsOffset];
-        Array.Copy(ruleArguments, 2 + argumentsOffset, listElementRuleArguments, 0, ruleArguments.Length - 2 - argumentsOffset);
+        var listElementType = ruleArguments![index++];
+        var listElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments[index++]];
+        var listElementRuleArguments = new string[ruleArguments.Length - index];
+        Array.Copy(ruleArguments, index, listElementRuleArguments, 0, ruleArguments.Length - index);
 
         var propertyName = property.FieldName ?? property.Name;
+
+        if (canBeNull)
+        {
+            source.AppendLine($"{indent}if (reader.ReadBool())");
+            source.AppendLine($"{indent}{{");
+            GenerateDeserialize(
+                source,
+                compilation,
+                $"{indent}    ",
+                propertyName,
+                parentReference,
+                listElementType,
+                listElementRule,
+                listElementRuleArguments
+            );
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{indent}    {propertyName} = default;");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            GenerateDeserialize(
+                source,
+                compilation,
+                indent,
+                propertyName,
+                parentReference,
+                listElementType,
+                listElementRule,
+                listElementRuleArguments
+            );
+        }
+    }
+
+    private static void GenerateDeserialize(
+        StringBuilder source,
+        Compilation compilation,
+        string indent,
+        string propertyName,
+        string parentReference,
+        string listElementType,
+        ISerializableMigrationRule listElementRule,
+        string[] listElementRuleArguments
+    )
+    {
         var propertyIndex = $"{propertyName}Index";
         var propertyEntry = $"{propertyName}Entry";
         var propertyCount = $"{propertyName}Count";
 
-        source.AppendLine($"{indent}{ruleArguments[argumentsOffset]} {propertyEntry};");
+        source.AppendLine($"{indent}{listElementType} {propertyEntry};");
         source.AppendLine($"{indent}var {propertyCount} = reader.ReadEncodedInt();");
-        source.AppendLine($"{indent}{propertyName} = new System.Collections.Generic.List<{ruleArguments[argumentsOffset]}>({propertyCount});");
+        source.AppendLine($"{indent}{propertyName} = new System.Collections.Generic.List<{listElementType}>({propertyCount});");
         source.AppendLine($"{indent}for (var {propertyIndex} = 0; {propertyIndex} < {propertyCount}; {propertyIndex}++)");
         source.AppendLine($"{indent}{{");
 
         var serializableListElement = new SerializableProperty
         {
             Name = propertyEntry,
-            Type = ruleArguments[argumentsOffset],
+            Type = listElementType,
             Rule = listElementRule.RuleName,
             RuleArguments = listElementRuleArguments
         };
@@ -137,15 +197,67 @@ public class ListMigrationRule : MigrationRule
         }
 
         var ruleArguments = property.RuleArguments;
-        var hasExtraOptions = ruleArguments![0] == "" || ruleArguments[0].StartsWith("@", StringComparison.Ordinal);
-        var shouldTidy = hasExtraOptions && ruleArguments[0].Contains("@Tidy");
-        var argumentsOffset = hasExtraOptions ? 1 : 0;
+        var shouldTidy = property.RuleArguments![0] == "@Tidy";
+        var index = shouldTidy || property.RuleArguments![0] == "" ? 1 : 0; // Skip the empty argyment
+        var canBeNull = property.RuleArguments[index] == "@CanBeNull";
 
-        var listElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments[1 + argumentsOffset]];
-        var listElementRuleArguments = new string[ruleArguments.Length - 2 - argumentsOffset];
-        Array.Copy(ruleArguments, 2 + argumentsOffset, listElementRuleArguments, 0, ruleArguments.Length - 2 - argumentsOffset);
+        if (canBeNull)
+        {
+            index++;
+        }
+
+        var listElementType = ruleArguments![index++];
+        var listElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments[index++]];
+        var listElementRuleArguments = new string[ruleArguments.Length - index];
+        Array.Copy(ruleArguments, index, listElementRuleArguments, 0, ruleArguments.Length - index);
 
         var propertyName = property.FieldName ?? property.Name;
+
+        if (canBeNull)
+        {
+            var newIndent = $"{indent}    ";
+            source.AppendLine($"{indent}if ({propertyName} != default)");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(true);");
+            GenerateSerialize(
+                source,
+                newIndent,
+                propertyName,
+                shouldTidy,
+                listElementType,
+                listElementRule,
+                listElementRuleArguments
+            );
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(false);");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            GenerateSerialize(
+                source,
+                indent,
+                propertyName,
+                shouldTidy,
+                listElementType,
+                listElementRule,
+                listElementRuleArguments
+            );
+        }
+    }
+
+    private static void GenerateSerialize(
+        StringBuilder source,
+        string indent,
+        string propertyName,
+        bool shouldTidy,
+        string listElementType,
+        ISerializableMigrationRule listElementRule,
+        string[] listElementRuleArguments
+    )
+    {
         var propertyEntry = $"{propertyName}Entry";
         var propertyCount = $"{propertyName}Count";
 
@@ -163,7 +275,7 @@ public class ListMigrationRule : MigrationRule
         var serializableListElement = new SerializableProperty
         {
             Name = propertyEntry,
-            Type = ruleArguments[argumentsOffset],
+            Type = listElementType,
             Rule = listElementRule.RuleName,
             RuleArguments = listElementRuleArguments
         };
