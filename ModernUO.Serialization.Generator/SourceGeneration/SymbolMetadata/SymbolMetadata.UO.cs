@@ -31,6 +31,7 @@ public static partial class SymbolMetadata
     public const string DELTA_DATE_TIME_ATTRIBUTE = "ModernUO.Serialization.DeltaDateTimeAttribute";
     public const string INTERN_STRING_ATTRIBUTE = "ModernUO.Serialization.InternStringAttribute";
     public const string ENCODED_INT_ATTRIBUTE = "ModernUO.Serialization.EncodedIntAttribute";
+    public const string CAN_BE_NULL_ATTRIBUTE = "ModernUO.Serialization.CanBeNullAttribute";
     public const string TIDY_ATTRIBUTE = "ModernUO.Serialization.TidyAttribute";
     public const string TIMER_DRIFT_ATTRIBUTE = "ModernUO.Serialization.TimerDriftAttribute";
     public const string DESERIALIZE_TIMER_FIELD_ATTRIBUTE = "ModernUO.Serialization.DeserializeTimerFieldAttribute";
@@ -51,6 +52,9 @@ public static partial class SymbolMetadata
     public const string SERIAL_STRUCT = "Server.Serial";
     // ModernUO modified BitArray
     public const string SERVER_BITARRAY_CLASS = "Server.Collections.BitArray";
+
+    public static bool IsCanBeNull(this AttributeData attr, Compilation compilation) =>
+        attr?.IsAttribute(compilation.GetTypeByMetadataName(CAN_BE_NULL_ATTRIBUTE)) == true;
 
     public static bool IsTimerDrift(this AttributeData attr, Compilation compilation) =>
         attr?.IsAttribute(compilation.GetTypeByMetadataName(TIMER_DRIFT_ATTRIBUTE)) == true;

@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -45,7 +46,13 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
             return false;
         }
 
-        ruleArguments = new[] { requiresParent ? "DeserializationRequiresParent" : "" };
+        var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
+        ruleArguments = new string[canBeNull ? 2 : 1];
+        ruleArguments[0] = requiresParent ? "DeserializationRequiresParent" : "";
+        if (canBeNull)
+        {
+            ruleArguments[1] = "@CanBeNull";
+        }
         return true;
     }
 
@@ -65,10 +72,50 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        var argument = property.RuleArguments?.Length >= 1 &&
-                       property.RuleArguments[0] == "DeserializationRequiresParent" ? $", {parentReference ?? "this"}" : "";
+        var propertyType = property.Type;
+        var propertyName = property.FieldName ?? property.Name;
+        var canBeNull = false;
 
-        source.AppendLine($"{indent}{property.FieldName ?? property.Name} = new {property.Type}(reader{argument});");
+        if (property.RuleArguments != null)
+        {
+            if (property.RuleArguments.Length != 0 && property.RuleArguments[0] == "DeserializationRequiresParent")
+            {
+                parentReference = $", {parentReference ?? "this"}";
+            }
+            else
+            {
+                parentReference = "";
+            }
+
+            if (property.RuleArguments.Length >= 1 && property.RuleArguments[property.RuleArguments.Length - 1] == "@CanBeNull")
+            {
+                canBeNull = true;
+            }
+
+            if (canBeNull)
+            {
+                source.AppendLine($"{indent}if (reader.ReadBool())");
+                source.AppendLine($"{indent}{{");
+                var newIndent = $"{indent}    ";
+                GenerateDeserialize(source, newIndent, propertyName, propertyType, parentReference);
+                source.AppendLine($"{indent}}}");
+            }
+            else
+            {
+                GenerateDeserialize(source, indent, propertyName, propertyType, parentReference);
+            }
+        }
+    }
+
+    private static void GenerateDeserialize(
+        StringBuilder source,
+        string indent,
+        string propertyName,
+        string propertyType,
+        string parentReference
+    )
+    {
+        source.AppendLine($"{indent}{propertyName} = new {propertyType}(reader{parentReference});");
     }
 
     public override void GenerateSerializationMethod(StringBuilder source, string indent, SerializableProperty property)
@@ -80,6 +127,25 @@ public class SerializationMethodSignatureMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        source.AppendLine($"{indent}{property.FieldName ?? property.Name}.Serialize(writer);");
+        var propertyName = property.FieldName ?? property.Name;
+        bool canBeNull = property.RuleArguments?.Length >= 1 && property.RuleArguments[property.RuleArguments.Length - 1] == "@CanBeNull";
+
+        if (canBeNull)
+        {
+            var newIndent = $"{indent}    ";
+            source.AppendLine($"{indent}if ({propertyName} != default)");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(true);");
+            source.AppendLine($"{newIndent}{propertyName}.Serialize(writer);");
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(false);");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            source.AppendLine($"{indent}{propertyName}.Serialize(writer);");
+        }
     }
 }
