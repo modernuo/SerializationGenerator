@@ -121,7 +121,7 @@ public class DictionaryMigrationRule : MigrationRule
         }
 
         var ruleArguments = property.RuleArguments;
-        var index = property.RuleArguments![0] == "@Tidy" ? 1 : 0;
+        var index = property.RuleArguments![0] is "@Tidy" or "" ? 1 : 0; // Skip the blank argument option
         var canBeNull = property.RuleArguments[index] == "@CanBeNull";
 
         if (canBeNull)
@@ -261,7 +261,7 @@ public class DictionaryMigrationRule : MigrationRule
 
         var ruleArguments = property.RuleArguments;
         var shouldTidy = property.RuleArguments![0] == "@Tidy";
-        var index = shouldTidy ? 1 : 0;
+        var index = shouldTidy || property.RuleArguments![0] == "" ? 1 : 0; // Skip the empty argyment
         var canBeNull = property.RuleArguments[index] == "@CanBeNull";
 
         if (canBeNull)
@@ -295,7 +295,7 @@ public class DictionaryMigrationRule : MigrationRule
             var newIndent = $"{indent}    ";
             source.AppendLine($"{indent}if ({propertyName} != default)");
             source.AppendLine($"{indent}{{");
-            source.AppendLine($"{newIndent}writer.Write(false);");
+            source.AppendLine($"{newIndent}writer.Write(true);");
             GenerateSerialize(
                 source,
                 newIndent,
@@ -341,7 +341,8 @@ public class DictionaryMigrationRule : MigrationRule
         ISerializableMigrationRule keyElementRule,
         string[] keyRuleArguments,
         ISerializableMigrationRule valueElementRule,
-        string[] valueRuleArguments)
+        string[] valueRuleArguments
+    )
     {
         var propertyKeyEntry = $"{propertyName}Key";
         var propertyValueEntry = $"{propertyName}Value";

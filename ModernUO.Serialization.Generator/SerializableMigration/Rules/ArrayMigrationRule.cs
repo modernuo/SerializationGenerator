@@ -85,12 +85,12 @@ public class ArrayMigrationRule : MigrationRule
         }
         var ruleArguments = property.RuleArguments;
         var canBeNull = ruleArguments![0] == "@CanBeNull";
-        var offset = canBeNull ? 1 : 0;
+        var index = canBeNull ? 1 : 0;
 
-        var arrayElementType = ruleArguments[offset];
-        var arrayElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments![offset + 1]];
-        var arrayElementRuleArguments = new string[ruleArguments.Length - 2 - offset];
-        Array.Copy(ruleArguments, 2, arrayElementRuleArguments, 0, ruleArguments.Length - 2 - offset);
+        var arrayElementType = ruleArguments[index++];
+        var arrayElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments![index++]];
+        var arrayElementRuleArguments = new string[ruleArguments.Length - index];
+        Array.Copy(ruleArguments, index, arrayElementRuleArguments, 0, ruleArguments.Length - index);
 
         var propertyName = property.FieldName ?? property.Name;
 
@@ -186,7 +186,7 @@ public class ArrayMigrationRule : MigrationRule
             var newIndent = $"{indent}    ";
             source.AppendLine($"{indent}if ({propertyName} != default)");
             source.AppendLine($"{indent}{{");
-            source.AppendLine($"{newIndent}writer.Write(false);");
+            source.AppendLine($"{newIndent}writer.Write(true);");
             GenerateSerialize(
                 source,
                 newIndent,
