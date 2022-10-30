@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -32,22 +33,25 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
         out string[] ruleArguments
     )
     {
-        ruleArguments = symbol switch
+        var type = symbol switch
         {
-            _ when symbol.IsTextDefinition(compilation) => new[] { "TextDefinition" },
-            _ when symbol.IsPoison(compilation)         => new[] { "Poison" },
-            _ when symbol.IsPoint2D(compilation)        => new[] { "Point2D" },
-            _ when symbol.IsPoint3D(compilation)        => new[] { "Point3D" },
-            _ when symbol.IsRectangle2D(compilation)    => new[] { "Rect2D" },
-            _ when symbol.IsRectangle3D(compilation)    => new[] { "Rect3D" },
-            _ when symbol.IsRace(compilation)           => new[] { "Race" },
-            _ when symbol.IsMap(compilation)            => new[] { "Map" },
-            _ when symbol.IsBitArray(compilation)       => new[] { "BitArray" },
-            _ when symbol.IsSerial(compilation)         => new[] { "Serial" },
+            _ when symbol.IsTextDefinition(compilation) => "TextDefinition",
+            _ when symbol.IsPoison(compilation)         => "Poison",
+            _ when symbol.IsPoint2D(compilation)        => "Point2D",
+            _ when symbol.IsPoint3D(compilation)        => "Point3D",
+            _ when symbol.IsRectangle2D(compilation)    => "Rect2D",
+            _ when symbol.IsRectangle3D(compilation)    => "Rect3D",
+            _ when symbol.IsRace(compilation)           => "Race",
+            _ when symbol.IsMap(compilation)            => "Map",
+            _ when symbol.IsBitArray(compilation)       => "BitArray",
+            _ when symbol.IsSerial(compilation)         => "Serial",
             _                                           => null
         };
 
-        return ruleArguments != null;
+        var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
+        ruleArguments = canBeNull ? new[] { "@CanBeNull", type } : new[] { type };
+
+        return true;
     }
 
     public override void GenerateDeserializationMethod(
@@ -66,8 +70,38 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
+        var ruleArguments = property.RuleArguments;
+        var canBeNull = ruleArguments!.Length > 0 && ruleArguments[0] == "@CanBeNull";
+        var index = canBeNull ? 1 : 0;
+
+        var type = ruleArguments[index];
         var propertyName = property.FieldName ?? property.Name;
-        source.AppendLine($"{indent}{propertyName} = reader.Read{property.RuleArguments?[0] ?? ""}();");
+
+        if (canBeNull)
+        {
+            source.AppendLine($"{indent}if (reader.ReadBool())");
+            source.AppendLine($"{indent}{{");
+            GenerateDeserialize(source, $"{indent}    ", propertyName, type);
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{indent}    {propertyName} = default;");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            GenerateDeserialize(source, indent, propertyName, type);
+        }
+    }
+
+    private static void GenerateDeserialize(
+        StringBuilder source,
+        string indent,
+        string propertyName,
+        string? type
+    )
+    {
+        source.AppendLine($"{indent}{propertyName} = reader.Read{type ?? ""}();");
     }
 
     public override void GenerateSerializationMethod(StringBuilder source, string indent, SerializableProperty property)
@@ -79,6 +113,27 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
             throw new ArgumentException($"Invalid rule applied to property {ruleName}. Expecting {expectedRule}, but received {ruleName}.");
         }
 
-        source.AppendLine($"{indent}writer.Write({property.FieldName ?? property.Name});");
+        var ruleArguments = property.RuleArguments;
+        var canBeNull = ruleArguments!.Length > 0 && ruleArguments[0] == "@CanBeNull";
+
+        var propertyName = property.FieldName ?? property.Name;
+
+        if (canBeNull)
+        {
+            var newIndent = $"{indent}    ";
+            source.AppendLine($"{indent}if ({propertyName} != default)");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(true);");
+            source.AppendLine($"{newIndent}writer.Write({propertyName});");
+            source.AppendLine($"{indent}}}");
+            source.AppendLine($"{indent}else");
+            source.AppendLine($"{indent}{{");
+            source.AppendLine($"{newIndent}writer.Write(false);");
+            source.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            source.AppendLine($"{indent}writer.Write({propertyName});");
+        }
     }
 }
