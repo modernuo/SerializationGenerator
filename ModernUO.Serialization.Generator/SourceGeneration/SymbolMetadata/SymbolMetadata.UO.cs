@@ -41,6 +41,7 @@ public static partial class SymbolMetadata
     public const string SERIALIZABLE_INTERFACE = "Server.ISerializable";
     public const string GENERIC_WRITER_INTERFACE = "Server.IGenericWriter";
     public const string GENERIC_READER_INTERFACE = "Server.IGenericReader";
+    public const string TEXTDEFINITION_CLASS = "Server.TextDefinition";
     public const string POISON_CLASS = "Server.Poison";
     public const string POINT2D_STRUCT = "Server.Point2D";
     public const string POINT3D_STRUCT = "Server.Point3D";
@@ -202,6 +203,9 @@ public static partial class SymbolMetadata
                      m.DeclaredAccessibility == Accessibility.Public
             );
     }
+
+    public static bool IsTextDefinition(this ISymbol symbol, Compilation compilation) =>
+        symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(TEXTDEFINITION_CLASS));
 
     public static bool IsPoison(this ISymbol symbol, Compilation compilation) =>
         symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(POISON_CLASS));
