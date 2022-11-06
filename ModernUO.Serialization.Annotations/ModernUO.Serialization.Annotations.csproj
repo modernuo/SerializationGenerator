@@ -3,10 +3,11 @@
     <PropertyGroup>
         <Authors>Kamron Batman</Authors>
         <PackageId>ModernUO.Serialization.Annotations</PackageId>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+        <Platforms>x64;arm64</Platforms>
         <LangVersion>preview</LangVersion>
-        <AssemblyVersion>2.5.0</AssemblyVersion>
-        <PackageVersion>2.5.0</PackageVersion>
+        <AssemblyVersion>2.5.3</AssemblyVersion>
+        <PackageVersion>2.5.3</PackageVersion>
         <AssemblyName>ModernUO.Serialization.Annotations</AssemblyName>
         <RootNamespace>ModernUO.Serialization</RootNamespace>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,6 +15,7 @@
         <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/modernuo/SerializationGenerator</PackageProjectUrl>
+        <Description>Annotations for ModernUO Serialization</Description>
     </PropertyGroup>
 
 </Project>
