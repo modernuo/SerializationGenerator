@@ -33,7 +33,7 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         out string[] ruleArguments
     )
     {
-        if (symbol.IsIpAddress(compilation) || symbol.IsTimeSpan(compilation))
+        if (symbol.IsIpAddress(compilation) || symbol.IsTimeSpan(compilation) || symbol.IsGuid(compilation))
         {
             ruleArguments = Array.Empty<string>();
             return true;
@@ -96,9 +96,7 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         var propertyName = property.FieldName ?? property.Name;
         var argument = property.RuleArguments?.Length >= 1 ? property.RuleArguments[0] : null;
 
-        const string ipAddress = SymbolMetadata.IPADDRESS_CLASS;
-        const string timeSpan = SymbolMetadata.TIMESPAN_STRUCT;
-        const string date = "System.DateTime";
+        const string date = SymbolMetadata.DATETIME_STRUCT;
 
         var readMethod = property.Type switch
         {
@@ -118,8 +116,9 @@ public class PrimitiveTypeMigrationRule : MigrationRule
             "decimal"                           => "ReadDecimal",
             date when argument == "DeltaTime"   => "ReadDeltaTime",
             date                                => "ReadDateTime",
-            ipAddress                           => "ReadIPAddress",
-            timeSpan                            => "ReadTimeSpan"
+            SymbolMetadata.IPADDRESS_CLASS      => "ReadIPAddress",
+            SymbolMetadata.TIMESPAN_STRUCT      => "ReadTimeSpan",
+            SymbolMetadata.GUID_STRUCT          => "ReadGuid"
         };
 
         var readArgument = readMethod == "ReadString" && argument == "InternString" ? "true" : "";
@@ -139,11 +138,13 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         var propertyName = property.FieldName ?? property.Name;
         var argument = property.RuleArguments?.Length >= 1 ? property.RuleArguments[0] : null;
 
+        const string date = SymbolMetadata.DATETIME_STRUCT;
+
         var writeMethod = property.Type switch
         {
-            "System.DateTime" when argument == "DeltaTime" => "WriteDeltaTime",
-            "int" when argument == "EncodedInt"            => "WriteEncodedInt",
-            _                                              => "Write"
+            date when argument == "DeltaTime"   => "WriteDeltaTime",
+            "int" when argument == "EncodedInt" => "WriteEncodedInt",
+            _                                   => "Write"
         };
 
         source.AppendLine($"{indent}writer.{writeMethod}({propertyName});");
