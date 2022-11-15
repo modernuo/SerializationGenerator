@@ -25,6 +25,14 @@ public static partial class SymbolMetadata
     public const string IPADDRESS_CLASS = "System.Net.IPAddress";
     public const string KEYVALUEPAIR_STRUCT = "System.Collections.Generic.KeyValuePair";
     public const string TIMESPAN_STRUCT = "System.TimeSpan";
+    public const string DATETIME_STRUCT = "System.DateTime";
+    public const string GUID_STRUCT = "System.Guid";
+
+    public static bool IsGuid(this ISymbol symbol, Compilation compilation) =>
+        symbol.Equals(
+            compilation.GetTypeByMetadataName(GUID_STRUCT),
+            SymbolEqualityComparer.Default
+        );
 
     public static bool IsTimeSpan(this ISymbol symbol, Compilation compilation) =>
         symbol.Equals(
