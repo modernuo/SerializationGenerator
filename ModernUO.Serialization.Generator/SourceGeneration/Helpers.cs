@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -109,4 +110,9 @@ public static class Helpers
 
         return Diagnostic.Create(descriptor, location, msgParams);
     }
+
+    public static void AggressiveInline(this StringBuilder source, string indent) =>
+        source.AppendLine(
+            $"{indent}[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]"
+        );
 }
