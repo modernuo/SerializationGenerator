@@ -54,9 +54,6 @@ public static partial class SerializableEntityGeneration
             migrations
         ) = classRecord;
 
-        var serializableFieldAttrAttribute =
-            compilation.GetTypeByMetadataName(SymbolMetadata.SERIALIZABLE_FIELD_ATTR_ATTRIBUTE);
-
         // If we have a parent that is or derives from ISerializable, then we are in override
         var isOverride = classSymbol.BaseType.HasSerializableInterface(compilation);
         var isSerializable = classSymbol.HasSerializableInterface(compilation);
@@ -242,27 +239,25 @@ public static partial class SerializableEntityGeneration
             {
                 token.ThrowIfCancellationRequested();
 
-                if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, serializableFieldAttrAttribute))
-                {
-                    continue;
-                }
-
                 if (attr.AttributeClass == null)
                 {
                     continue;
                 }
 
-                var ctorArgs = attr.ConstructorArguments;
-                var attrTypeArg = ctorArgs[0];
-
-                if (attrTypeArg.Kind == TypedConstantKind.Primitive && attrTypeArg.Value is string attrStr)
+                if (!attr.IsSerializedPropertyAttr(compilation, out var serializedPropertyAttrType))
                 {
-                    source.AppendLine($"{indent}{attrStr}");
+                    continue;
+                }
+
+                var attrType = serializedPropertyAttrType.ToDisplayString();
+
+                if (attr.ConstructorArguments.Length == 0)
+                {
+                    source.AppendLine($"{indent}[{attrType}]");
                 }
                 else
                 {
-                    var attrType = (ITypeSymbol)attrTypeArg.Value;
-                    source.GenerateAttribute(indent, attrType?.Name, ctorArgs[1].Values);
+                    source.GenerateAttribute(indent, attrType, attr.ConstructorArguments);
                 }
             }
 
@@ -427,18 +422,26 @@ public static partial class SerializableEntityGeneration
         source.AppendLine();
 
         // Deserialize Method
-        source.GenerateDeserializeMethod(
-            compilation,
-            classSymbol,
-            indent,
-            isOverride,
-            version,
-            encodedVersion,
-            migrationsBuilder.ToImmutable(),
-            serializableFields,
-            hasMarkDirtyMethod || dirtyTrackingEntity != null ? "this" : null,
-            serializableFieldSaveFlags
-        );
+        try
+        {
+            source.GenerateDeserializeMethod(
+                compilation,
+                classSymbol,
+                indent,
+                isOverride,
+                version,
+                encodedVersion,
+                migrationsBuilder.ToImmutable(),
+                serializableFields,
+                hasMarkDirtyMethod || dirtyTrackingEntity != null ? "this" : null,
+                serializableFieldSaveFlags
+            );
+        }
+        catch (DeserializeTimerFieldRequiredException e)
+        {
+            var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3008, e.PropertyName);
+            return (null, new[] { diag });
+        }
 
         // Serialize SaveFlag enum class
         if (serializableFieldSaveFlags.Count > 0)

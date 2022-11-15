@@ -27,7 +27,6 @@ public static partial class SymbolMetadata
     public const string DIRTY_TRACKING_ENTITY_ATTRIBUTE = "ModernUO.Serialization.DirtyTrackingEntityAttribute";
     public const string SERIALIZABLE_FIELD_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttribute";
     public const string SERIALIZABLE_PROPERTY_ATTRIBUTE = "ModernUO.Serialization.SerializablePropertyAttribute";
-    public const string SERIALIZABLE_FIELD_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttrAttribute";
     public const string DELTA_DATE_TIME_ATTRIBUTE = "ModernUO.Serialization.DeltaDateTimeAttribute";
     public const string INTERN_STRING_ATTRIBUTE = "ModernUO.Serialization.InternStringAttribute";
     public const string ENCODED_INT_ATTRIBUTE = "ModernUO.Serialization.EncodedIntAttribute";
@@ -37,6 +36,7 @@ public static partial class SymbolMetadata
     public const string DESERIALIZE_TIMER_FIELD_ATTRIBUTE = "ModernUO.Serialization.DeserializeTimerFieldAttribute";
     public const string SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldSaveFlagAttribute";
     public const string SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldDefaultAttribute";
+    public const string SERIALIZED_PROPERTY_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializedPropertyAttrAttribute`1";
 
     public const string SERIALIZABLE_INTERFACE = "Server.ISerializable";
     public const string GENERIC_WRITER_INTERFACE = "Server.IGenericWriter";
@@ -53,6 +53,33 @@ public static partial class SymbolMetadata
     public const string SERIAL_STRUCT = "Server.Serial";
     // ModernUO modified BitArray
     public const string SERVER_BITARRAY_CLASS = "Server.Collections.BitArray";
+
+    public static bool IsSerializedPropertyAttr(this AttributeData attr, Compilation compilation, out ITypeSymbol? genericType)
+    {
+        var attrClass = attr?.AttributeClass;
+        if (attrClass?.BaseType == null || attrClass.BaseType.IsUnboundGenericType || !attrClass.BaseType.IsGenericType)
+        {
+            genericType = null;
+            return false;
+        }
+
+        var serializedPropertyAttrType = compilation.GetTypeByMetadataName(SERIALIZED_PROPERTY_ATTR_ATTRIBUTE);
+        if (!attrClass.BaseType.ConstructedFrom.Equals(serializedPropertyAttrType, SymbolEqualityComparer.Default))
+        {
+            genericType = null;
+            return false;
+        }
+
+        var types = attrClass.BaseType.TypeArguments;
+        if (types.Length != 1)
+        {
+            genericType = null;
+            return false;
+        }
+
+        genericType = types[0];
+        return true;
+    }
 
     public static bool IsCanBeNull(this AttributeData attr, Compilation compilation) =>
         attr?.IsAttribute(compilation.GetTypeByMetadataName(CAN_BE_NULL_ATTRIBUTE)) == true;

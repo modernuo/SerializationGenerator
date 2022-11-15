@@ -93,9 +93,4 @@ public static partial class SourceGeneration
 
         source.AppendLine("]");
     }
-
-    public static void AggressiveInline(this StringBuilder source, string indent) =>
-        source.AppendLine(
-            $"{indent}[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]"
-        );
 }

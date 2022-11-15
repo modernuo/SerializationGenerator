@@ -131,7 +131,7 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
                             }
                         ) != null;
                 }
-            ) ?? throw new Exception("Serializing a timer requires a method with the DeserializeTimerField attribute to handle creating the timer itself.");
+            ) ?? throw new DeserializeTimerFieldRequiredException(property.Name);
 
         source.AppendLine($"{indent}{deserializeTimerMethod.Name}({property.Name}Delay);");
     }

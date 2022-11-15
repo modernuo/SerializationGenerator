@@ -85,6 +85,15 @@ public static class DiagnosticDescriptors
         true
     );
 
+    public static readonly DiagnosticDescriptor SG3008 = new(
+        "SG3008",
+        "Missing DeserializeTimerField attribute",
+        "Missing DeserializeTimerField attribute for '{0}'.",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
     public static DiagnosticDescriptor GeneratorCrashedDiagnostic(Exception e) =>
         new(
             "SG0001",

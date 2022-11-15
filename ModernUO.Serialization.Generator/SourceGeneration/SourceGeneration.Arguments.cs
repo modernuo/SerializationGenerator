@@ -13,6 +13,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
@@ -90,6 +91,10 @@ public static partial class SourceGeneration
                     if (arg.Value is string str)
                     {
                         source.AppendFormat("\"{0}\"", str);
+                    }
+                    else if (arg.Value is bool bValue)
+                    {
+                        source.Append(bValue ? "true" : "false");
                     }
                     else
                     {
