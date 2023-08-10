@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2022 - ModernUO Development Team                       *
+ * Copyright 2019-2023 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: SerializableEntityGeneration.Class.cs                           *
  *                                                                       *
@@ -404,7 +404,8 @@ public static partial class SerializableEntityGeneration
                 ImmutableArray<(ITypeSymbol, string)>.Empty
             );
 
-            source.AppendLine($"{indent}    {dirtyTrackingEntity.Name}.MarkDirty();");
+            var dirtyTrackingEntityNull = dirtyTrackingEntity.GetAttributes().Any(a => a.IsCanBeNull(compilation));
+            source.AppendLine($"{indent}    {dirtyTrackingEntity.Name}{(dirtyTrackingEntityNull ? "?" : "")}.MarkDirty();");
 
             source.GenerateMethodEnd(indent);
             source.AppendLine();
