@@ -4,13 +4,13 @@
         <PackageId>ModernUO.Serialization.Generator</PackageId>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyVersion>2.6.1</AssemblyVersion>
-        <PackageVersion>2.6.1</PackageVersion>
+        <AssemblyVersion>2.6.2</AssemblyVersion>
+        <PackageVersion>2.6.2</PackageVersion>
         <AssemblyName>ModernUO.Serialization.Generator</AssemblyName>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <RootNamespace>ModernUO.Serialization.Generator</RootNamespace>
-        <Copyright>Copyright 2022</Copyright>
+        <Copyright>Copyright 2023</Copyright>
         <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/modernuo/SerializationGenerator</PackageProjectUrl>
