@@ -160,7 +160,7 @@ public static partial class SymbolMetadata
                     return parentSymbol.Equals(argType, SymbolEqualityComparer.Default) || parentSymbol.ContainsInterface(argType);
                 }
 
-                if (parentSymbol?.CanBeConstructedFrom(m.Parameters[0].Type) != true)
+                if (parentSymbol.CanBeConstructedFrom(m.Parameters[0].Type) != true)
                 {
                     return false;
                 }
