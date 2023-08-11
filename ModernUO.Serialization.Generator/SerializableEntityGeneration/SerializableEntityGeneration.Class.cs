@@ -450,7 +450,7 @@ public static partial class SerializableEntityGeneration
             source.AppendLine();
             source.GenerateEnumStart(
                 "SaveFlag",
-                $"{indent}    ",
+                indent,
                 true,
                 Accessibility.Private
             );

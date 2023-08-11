@@ -2,7 +2,7 @@
  * ModernUO                                                              *
  * Copyright 2019-2023 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: EntityJsonGenerator.cs                                          *
+ * File: EntitySerializationGenerator.cs                                 *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -26,15 +26,13 @@ using Microsoft.CodeAnalysis.Text;
 namespace ModernUO.Serialization.Generator;
 
 [Generator]
-public class EntitySerializationGenerator : IIncrementalGenerator
+public class EntitySerializationGenerator(string? migrationPath = null) : IIncrementalGenerator
 {
-    private string _migrationPath;
+    private string _migrationPath = migrationPath;
 
     public EntitySerializationGenerator() : this(null)
     {
     }
-
-    public EntitySerializationGenerator(string? migrationPath = null) => _migrationPath = migrationPath;
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
