@@ -177,7 +177,7 @@ public static partial class SymbolMetadata
             }
         );
 
-        requiresParent = genericCtor?.Parameters.Length == 1;
+        requiresParent = genericCtor?.Parameters.Length > 0;
         return genericCtor != null;
     }
 
