@@ -139,7 +139,7 @@ public static partial class SymbolMetadata
         var genericCtor = symbol.Constructors.FirstOrDefault(
             m =>
             {
-                if (m.IsStatic || m.MethodKind != MethodKind.Constructor || m.Parameters.Length > 1)
+                if (m.IsStatic || m.MethodKind != MethodKind.Constructor)
                 {
                     return false;
                 }
@@ -160,7 +160,20 @@ public static partial class SymbolMetadata
                     return parentSymbol.Equals(argType, SymbolEqualityComparer.Default) || parentSymbol.ContainsInterface(argType);
                 }
 
-                return parentSymbol?.CanBeConstructedFrom(m.Parameters[0].Type) == true;
+                if (parentSymbol.CanBeConstructedFrom(m.Parameters[0].Type) != true)
+                {
+                    return false;
+                }
+
+                for (var i = 1; i < m.Parameters.Length; i++)
+                {
+                    if (!m.Parameters[i].IsOptional)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
         );
 

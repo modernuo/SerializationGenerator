@@ -4,7 +4,6 @@
         <Authors>Kamron Batman</Authors>
         <PackageId>ModernUO.Serialization.Annotations</PackageId>
         <TargetFramework>net7.0</TargetFramework>
-        <Platforms>x64;arm64</Platforms>
         <LangVersion>preview</LangVersion>
         <AssemblyVersion>2.6.0</AssemblyVersion>
         <PackageVersion>2.6.0</PackageVersion>
