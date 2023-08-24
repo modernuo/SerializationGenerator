@@ -98,10 +98,9 @@ public static partial class SerializableEntityGeneration
                 return (null, new[] { diag });
             }
 
-            // No default, so we remove the save flag too.
+            // No save flag, so we ignore the default value
             if (!serializableFieldSaveFlags.TryGetValue(order, out var serializableFieldSaveFlagMethods))
             {
-                serializableFieldSaveFlags.Remove(order);
                 continue;
             }
 
@@ -455,14 +454,14 @@ public static partial class SerializableEntityGeneration
                 Accessibility.Private
             );
 
-            source.GenerateEnumValue($"{indent}        ", true, "None", -1);
+            source.GenerateEnumValue($"{indent}    ", true, "None", -1);
             int index = 0;
             foreach (var (order, _) in serializableFieldSaveFlags)
             {
-                source.GenerateEnumValue($"{indent}        ", true, serializableFields[order].Name, index++);
+                source.GenerateEnumValue($"{indent}    ", true, serializableFields[order].Name, index++);
             }
 
-            source.GenerateEnumEnd($"{indent}    ");
+            source.GenerateEnumEnd(indent);
         }
 
         source.RecursiveGenerateClassEnd(classSymbol, ref indent);

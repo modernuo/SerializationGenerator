@@ -27,6 +27,7 @@ public static partial class SymbolMetadata
     public const string TIMESPAN_STRUCT = "System.TimeSpan";
     public const string DATETIME_STRUCT = "System.DateTime";
     public const string GUID_STRUCT = "System.Guid";
+    public const string TYPE_CLASS = "System.Type";
 
     public static bool IsGuid(this ISymbol symbol, Compilation compilation) =>
         symbol.Equals(
@@ -73,4 +74,10 @@ public static partial class SymbolMetadata
     public static bool IsPrimitiveFromTypeDisplayString(string type) =>
         type is "bool" or "sbyte" or "short" or "int" or "long" or "byte" or "ushort"
             or "uint" or "ulong" or "float" or "double" or "string" or "decimal";
+
+    public static bool IsType(this ISymbol symbol, Compilation compilation) =>
+        (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
+            compilation.GetTypeByMetadataName(TYPE_CLASS),
+            SymbolEqualityComparer.Default
+        ) == true;
 }

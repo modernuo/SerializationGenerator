@@ -33,7 +33,7 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         out string[] ruleArguments
     )
     {
-        if (symbol.IsIpAddress(compilation) || symbol.IsTimeSpan(compilation) || symbol.IsGuid(compilation))
+        if (symbol.IsIpAddress(compilation) || symbol.IsTimeSpan(compilation) || symbol.IsGuid(compilation) || symbol.IsType(compilation))
         {
             ruleArguments = Array.Empty<string>();
             return true;
@@ -118,7 +118,8 @@ public class PrimitiveTypeMigrationRule : MigrationRule
             date                                => "ReadDateTime",
             SymbolMetadata.IPADDRESS_CLASS      => "ReadIPAddress",
             SymbolMetadata.TIMESPAN_STRUCT      => "ReadTimeSpan",
-            SymbolMetadata.GUID_STRUCT          => "ReadGuid"
+            SymbolMetadata.GUID_STRUCT          => "ReadGuid",
+            SymbolMetadata.TYPE_CLASS           => "ReadType"
         };
 
         var readArgument = readMethod == "ReadString" && argument == "InternString" ? "true" : "";
@@ -139,9 +140,11 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         var argument = property.RuleArguments?.Length >= 1 ? property.RuleArguments[0] : null;
 
         const string date = SymbolMetadata.DATETIME_STRUCT;
+        const string type = SymbolMetadata.TYPE_CLASS;
 
         var writeMethod = property.Type switch
         {
+            type                                => "WriteType",
             date when argument == "DeltaTime"   => "WriteDeltaTime",
             "int" when argument == "EncodedInt" => "WriteEncodedInt",
             _                                   => "Write"
