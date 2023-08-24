@@ -140,11 +140,9 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         var argument = property.RuleArguments?.Length >= 1 ? property.RuleArguments[0] : null;
 
         const string date = SymbolMetadata.DATETIME_STRUCT;
-        const string type = SymbolMetadata.TYPE_CLASS;
 
         var writeMethod = property.Type switch
         {
-            type                                => "WriteType",
             date when argument == "DeltaTime"   => "WriteDeltaTime",
             "int" when argument == "EncodedInt" => "WriteEncodedInt",
             _                                   => "Write"
