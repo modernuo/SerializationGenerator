@@ -2,12 +2,12 @@
     <PropertyGroup>
         <Authors>Kamron Batman</Authors>
         <PackageId>ModernUOSchemaGenerator</PackageId>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <Platforms>x64;arm64</Platforms>
         <LangVersion>preview</LangVersion>
         <OutputType>Exe</OutputType>
-        <AssemblyVersion>2.7.2</AssemblyVersion>
-        <PackageVersion>2.7.2</PackageVersion>
+        <AssemblyVersion>2.8.0</AssemblyVersion>
+        <PackageVersion>2.8.0</PackageVersion>
         <PackAsTool>true</PackAsTool>
         <AssemblyName>ModernUOSchemaGenerator</AssemblyName>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
