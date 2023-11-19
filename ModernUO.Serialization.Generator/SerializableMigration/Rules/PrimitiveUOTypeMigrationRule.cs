@@ -43,7 +43,6 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
             _ when symbol.IsRectangle3D(compilation)    => "Rect3D",
             _ when symbol.IsRace(compilation)           => "Race",
             _ when symbol.IsMap(compilation)            => "Map",
-            _ when symbol.IsBitArray(compilation)       => "BitArray",
             _ when symbol.IsSerial(compilation)         => "Serial",
             _                                           => null
         };
