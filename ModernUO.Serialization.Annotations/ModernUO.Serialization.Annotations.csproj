@@ -3,10 +3,10 @@
     <PropertyGroup>
         <Authors>Kamron Batman</Authors>
         <PackageId>ModernUO.Serialization.Annotations</PackageId>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>netstandard2.1</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyVersion>2.8.0</AssemblyVersion>
-        <PackageVersion>2.8.0</PackageVersion>
+        <AssemblyVersion>2.9.0</AssemblyVersion>
+        <PackageVersion>2.9.0</PackageVersion>
         <AssemblyName>ModernUO.Serialization.Annotations</AssemblyName>
         <RootNamespace>ModernUO.Serialization</RootNamespace>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
