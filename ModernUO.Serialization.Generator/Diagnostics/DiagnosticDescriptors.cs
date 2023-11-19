@@ -25,7 +25,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3001 = new(
         "SG3001",
         "Classes marked with the SerializationGenerator attribute must be partial",
-        "'{0}' must be a partial class to use the SerializationGenerator attribute.",
+        "'{0}' must be a partial class to use the SerializationGenerator attribute",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -34,7 +34,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3002 = new(
         "SG3002",
         "Classes marked with the SerializationGenerator attribute must properly import the attribute",
-        "'{0}' is not properly importing the SerializationGenerator attribute.",
+        "'{0}' is not properly importing the SerializationGenerator attribute",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -43,7 +43,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3003 = new(
         "SG3003",
         "Duplicate attribute found",
-        "Duplicate {0} attribute found for property '{1}'.",
+        "Duplicate {0} attribute found for property '{1}'",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -51,8 +51,8 @@ public static class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor SG3004 = new(
         "SG3004",
-        "SerializableProperty attribute argument 'useField' is invalid.",
-        "The field '{0}' for SerializableProperty attribute '{1}' cannot be found.",
+        "SerializableProperty attribute argument 'useField' is invalid",
+        "The field '{0}' for SerializableProperty attribute '{1}' cannot be found",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -61,7 +61,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3005 = new(
         "SG3005",
         "Order of serializable fields is invalid",
-        "Expected field '{0}' with order `{1}` but found `{2}'.",
+        "Expected field '{0}' with order `{1}` but found `{2}'",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -70,7 +70,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3006 = new(
         "SG3006",
         "Serializable field order argument must be positive",
-        "{0} for '{1}' must be positive.",
+        "{0} for '{1}' must be positive",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -79,7 +79,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3007 = new(
         "SG3007",
         "No migration rule found",
-        "No migration rule found for field '{0}' of type '{1}'. If this is a bug, please notify the author.",
+        "No migration rule found for field '{0}' of type '{1}'. If this is a bug, please notify the author",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -88,7 +88,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3008 = new(
         "SG3008",
         "Missing DeserializeTimerField attribute",
-        "Missing DeserializeTimerField attribute for '{0}'.",
+        "Missing DeserializeTimerField attribute for '{0}'",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -97,7 +97,7 @@ public static class DiagnosticDescriptors
     public static DiagnosticDescriptor GeneratorCrashedDiagnostic(Exception e) =>
         new(
             "SG0001",
-            "Source generator crashed due to an internal error.",
+            "Source generator crashed due to an internal error",
             @"Serialization Generator threw an exception of type '{0}' while generating {1} with message '{2}'",
             "ModernUO.Serialization.Generator",
             DiagnosticSeverity.Error,
