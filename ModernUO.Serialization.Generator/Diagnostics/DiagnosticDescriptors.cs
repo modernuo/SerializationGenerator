@@ -79,7 +79,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SG3007 = new(
         "SG3007",
         "No migration rule found",
-        "No migration rule found for field '{0}' of type '{1}'. If this is a bug, please notify the author",
+        "No migration rule found for field '{0}' of type '{1}'",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -98,7 +98,7 @@ public static class DiagnosticDescriptors
         new(
             "SG0001",
             "Source generator crashed due to an internal error",
-            @"Serialization Generator threw an exception of type '{0}' while generating {1} with message '{2}'",
+            "Serialization Generator threw an exception of type '{0}' while generating {1} with message '{2}'",
             "ModernUO.Serialization.Generator",
             DiagnosticSeverity.Error,
             true,
