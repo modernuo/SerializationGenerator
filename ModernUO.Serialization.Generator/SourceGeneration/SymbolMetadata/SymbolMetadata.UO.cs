@@ -51,8 +51,9 @@ public static partial class SymbolMetadata
     public const string MAP_CLASS = "Server.Map";
     public const string TIMER_CLASS = "Server.Timer";
     public const string SERIAL_STRUCT = "Server.Serial";
+
     // ModernUO modified BitArray
-    public const string SERVER_BITARRAY_CLASS = "Server.Collections.BitArray";
+    public const string BITARRAY_CLASS = "System.Collections.BitArray";
 
     public static bool IsSerializedPropertyAttr(this AttributeData attr, Compilation compilation, out ITypeSymbol? genericType)
     {
@@ -285,7 +286,7 @@ public static partial class SymbolMetadata
 
     public static bool IsBitArray(this ISymbol symbol, Compilation compilation) =>
         symbol.Equals(
-            compilation.GetTypeByMetadataName(SERVER_BITARRAY_CLASS),
+            compilation.GetTypeByMetadataName(BITARRAY_CLASS),
             SymbolEqualityComparer.Default
         );
 

@@ -33,7 +33,8 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         out string[] ruleArguments
     )
     {
-        if (symbol.IsIpAddress(compilation) || symbol.IsTimeSpan(compilation) || symbol.IsGuid(compilation) || symbol.IsType(compilation))
+        if (symbol.IsIpAddress(compilation) || symbol.IsTimeSpan(compilation) || symbol.IsGuid(compilation)
+            || symbol.IsType(compilation) || symbol.IsBitArray(compilation))
         {
             ruleArguments = Array.Empty<string>();
             return true;
@@ -119,7 +120,8 @@ public class PrimitiveTypeMigrationRule : MigrationRule
             SymbolMetadata.IPADDRESS_CLASS      => "ReadIPAddress",
             SymbolMetadata.TIMESPAN_STRUCT      => "ReadTimeSpan",
             SymbolMetadata.GUID_STRUCT          => "ReadGuid",
-            SymbolMetadata.TYPE_CLASS           => "ReadType"
+            SymbolMetadata.TYPE_CLASS           => "ReadType",
+            SymbolMetadata.BITARRAY_CLASS       => "ReadBitArray",
         };
 
         var readArgument = readMethod == "ReadString" && argument == "InternString" ? "true" : "";
