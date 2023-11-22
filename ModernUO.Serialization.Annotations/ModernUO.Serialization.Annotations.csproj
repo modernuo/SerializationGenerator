@@ -1,12 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <Authors>Kamron Batman</Authors>
         <PackageId>ModernUO.Serialization.Annotations</PackageId>
-        <TargetFramework>netstandard2.1</TargetFramework>
+        <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyVersion>2.9.0</AssemblyVersion>
-        <PackageVersion>2.9.0</PackageVersion>
+        <AssemblyVersion>2.9.1</AssemblyVersion>
+        <PackageVersion>2.9.1</PackageVersion>
         <AssemblyName>ModernUO.Serialization.Annotations</AssemblyName>
         <RootNamespace>ModernUO.Serialization</RootNamespace>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -16,5 +15,4 @@
         <PackageProjectUrl>https://github.com/modernuo/SerializationGenerator</PackageProjectUrl>
         <Description>Annotations for ModernUO Serialization</Description>
     </PropertyGroup>
-
 </Project>
