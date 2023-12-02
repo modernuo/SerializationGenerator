@@ -53,7 +53,7 @@ public static partial class SerializableEntityGeneration
         }
 
         // Version
-        source.AppendLine($"{bodyIndent}writer.{(encodedVersion ? "WriteEncodedInt" : "Write")}(_version);");
+        source.AppendLine($"{bodyIndent}writer.{(encodedVersion ? "WriteEncodedInt" : "Write")}(SerializationVersion);");
 
         // Let's collect the flags
         if (serializableFieldSaveFlagMethodsDictionary.Count > 0)

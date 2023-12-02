@@ -143,7 +143,7 @@ public static partial class SerializableEntityGeneration
             Accessibility.Private,
             InstanceModifier.Const,
             "int",
-            "_version",
+            "SerializationVersion",
             version.ToString()
         );
         source.AppendLine();

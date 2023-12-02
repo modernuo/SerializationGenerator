@@ -109,7 +109,7 @@ public static partial class SerializableEntityGeneration
             if (nextVersion < version)
             {
                 source.AppendLine();
-                source.AppendLine($"{bodyIndent}if (version < _version)");
+                source.AppendLine($"{bodyIndent}if (version < SerializationVersion)");
                 source.AppendLine($"{bodyIndent}{{");
                 source.AppendLine($"{bodyIndent}    Deserialize(reader, version);");
                 if (markDirtyProperty != null)
