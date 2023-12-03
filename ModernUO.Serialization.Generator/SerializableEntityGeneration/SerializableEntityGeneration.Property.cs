@@ -29,7 +29,7 @@ public static partial class SerializableEntityGeneration
         Accessibility getter,
         Accessibility? setter,
         bool isVirtual,
-        string? markDirtyProperty
+        string? markDirtyMethod
     )
     {
         var fieldName = fieldSymbol.Name;
@@ -64,9 +64,9 @@ public static partial class SerializableEntityGeneration
             source.AppendLine($"{innerIndent}if (value != {fieldName})");
             source.AppendLine($"{innerIndent}{{");
             source.AppendLine($"{innerIndent}    {fieldName} = value;");
-            if (markDirtyProperty != null)
+            if (markDirtyMethod != null)
             {
-                source.AppendLine($"{innerIndent}    {markDirtyProperty}.MarkDirty();");
+                source.AppendLine($"{innerIndent}    {markDirtyMethod};");
             }
 
             if (invalidatePropertiesAttribute != null)
