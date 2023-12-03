@@ -63,7 +63,7 @@ public static class Helpers
         }
 
         return namedTypeSymbol.Equals(classSymbol, SymbolEqualityComparer.Default) ||
-               namedTypeSymbol.BaseType?.IsPoison(compilation) == true;
+               namedTypeSymbol.BaseType?.IsTypeRecurse(compilation, classSymbol) == true;
     }
 
     public static bool CanBeConstructedFrom(this ITypeSymbol? symbol, ISymbol classSymbol) =>

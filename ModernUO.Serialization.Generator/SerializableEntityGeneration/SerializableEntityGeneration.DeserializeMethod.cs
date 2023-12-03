@@ -33,7 +33,8 @@ public static partial class SerializableEntityGeneration
         bool encodedVersion,
         ImmutableArray<SerializableMetadata> migrations,
         ImmutableArray<SerializableProperty> fields,
-        string? markDirtyProperty,
+        string? markDirtyMethod,
+        string? parentReference,
         SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary
     )
     {
@@ -97,9 +98,9 @@ public static partial class SerializableEntityGeneration
                 source.AppendLine($"{bodyIndent}if (version == {migrationVersion})");
                 source.AppendLine($"{bodyIndent}{{");
                 source.AppendLine($"{bodyIndent}    MigrateFrom(new V{migrationVersion}Content(reader, this));");
-                if (markDirtyProperty != null)
+                if (markDirtyMethod != null)
                 {
-                    source.AppendLine($"{bodyIndent}    {markDirtyProperty}.MarkDirty();");
+                    source.AppendLine($"{bodyIndent}    {markDirtyMethod};");
                 }
                 source.GenerateAfterDeserialization($"{bodyIndent}    ", afterDeserialization);
                 source.AppendLine($"{bodyIndent}    return;");
@@ -112,9 +113,9 @@ public static partial class SerializableEntityGeneration
                 source.AppendLine($"{bodyIndent}if (version < SerializationVersion)");
                 source.AppendLine($"{bodyIndent}{{");
                 source.AppendLine($"{bodyIndent}    Deserialize(reader, version);");
-                if (markDirtyProperty != null)
+                if (markDirtyMethod != null)
                 {
-                    source.AppendLine($"{bodyIndent}    {markDirtyProperty}.MarkDirty();");
+                    source.AppendLine($"{bodyIndent}    {markDirtyMethod};");
                 }
                 source.GenerateAfterDeserialization($"{bodyIndent}    ", afterDeserialization);
                 source.AppendLine($"{bodyIndent}    return;");
@@ -152,7 +153,7 @@ public static partial class SerializableEntityGeneration
                         innerIndent,
                         compilation,
                         field,
-                        markDirtyProperty
+                        parentReference
                     );
                     (rule as IPostDeserializeMethod)?.PostDeserializeMethod(
                         source,
@@ -181,7 +182,7 @@ public static partial class SerializableEntityGeneration
                     bodyIndent,
                     compilation,
                     field,
-                    markDirtyProperty
+                    parentReference
                 );
                 (rule as IPostDeserializeMethod)?.PostDeserializeMethod(
                     source,

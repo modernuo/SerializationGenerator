@@ -148,7 +148,59 @@ public static partial class SerializableEntityGeneration
         );
         source.AppendLine();
 
-        var hasMarkDirtyMethod = isSerializable || classSymbol.HasMarkDirtyMethod();
+        var parentTypeHasEntityTracking = false;
+        if (!isSerializable && dirtyTrackingEntity == null)
+        {
+            dirtyTrackingEntity = classSymbol.BaseType?.HasDirtyTrackingEntity(compilation);
+            if (dirtyTrackingEntity != null)
+            {
+                parentTypeHasEntityTracking = true;
+            }
+        }
+
+        var dirtyTrackingEntityNull = dirtyTrackingEntity?.GetAttributes().Any(a => a.IsCanBeNull(compilation)) ?? false;
+        string markDirtyMethod;
+
+
+        if (dirtyTrackingEntity != null)
+        {
+            if (!parentTypeHasEntityTracking)
+            {
+                source.GenerateMethodStart(
+                    indent,
+                    "MarkDirty",
+                    Accessibility.Public,
+                    false,
+                    "void",
+                    ImmutableArray<(ITypeSymbol, string)>.Empty
+                );
+
+                var dirtyTrackingType = (dirtyTrackingEntity as IFieldSymbol)?.Type ??
+                                        (dirtyTrackingEntity as IPropertySymbol)?.Type;
+
+                var dirtyTrackingDirtyMethod =
+                    dirtyTrackingType?.GetMarkDirtyMethod(
+                        dirtyTrackingEntity: dirtyTrackingEntity.Name,
+                        isSerializable: dirtyTrackingType?.HasSerializableInterface(compilation) ?? false,
+                        dirtyCanBeNull: dirtyTrackingEntityNull
+                    );
+
+                source.AppendLine($"{indent}    {dirtyTrackingDirtyMethod};");
+
+                source.GenerateMethodEnd(indent);
+                source.AppendLine();
+            }
+
+            markDirtyMethod = "MarkDirty()";
+        }
+        else if (isSerializable)
+        {
+            markDirtyMethod = classSymbol.GetMarkDirtyMethod();
+        }
+        else
+        {
+            markDirtyMethod = null;
+        }
 
         var serializableFieldSet = new SortedSet<SerializableProperty>(new SerializablePropertyComparer());
 
@@ -283,9 +335,23 @@ public static partial class SerializableEntityGeneration
                     getterAccessor,
                     setterAccessor,
                     virtualProperty,
-                    hasMarkDirtyMethod || dirtyTrackingEntity != null ? "this" : null
+                    markDirtyMethod
                 );
                 source.AppendLine();
+
+                var propertyAccessor = setterAccessor > getterAccessor ? setterAccessor : getterAccessor;
+                var generatedDataStructureMethods = source.GenerateDataStructureMethods(
+                    compilation,
+                    indent,
+                    fieldSymbol,
+                    propertyAccessor.ToFriendlyString(),
+                    markDirtyMethod
+                );
+
+                if (generatedDataStructureMethods)
+                {
+                    source.AppendLine();
+                }
 
                 serializableFieldSaveFlags.TryGetValue(order, out var serializableFieldSaveFlagMethods);
 
@@ -392,29 +458,13 @@ public static partial class SerializableEntityGeneration
             );
         }
 
-        if (!isSerializable && dirtyTrackingEntity != null)
-        {
-            source.GenerateMethodStart(
-                indent,
-                "MarkDirty",
-                Accessibility.Public,
-                false,
-                "void",
-                ImmutableArray<(ITypeSymbol, string)>.Empty
-            );
-
-            var dirtyTrackingEntityNull = dirtyTrackingEntity.GetAttributes().Any(a => a.IsCanBeNull(compilation));
-            source.AppendLine($"{indent}    {dirtyTrackingEntity.Name}{(dirtyTrackingEntityNull ? "?" : "")}.MarkDirty();");
-
-            source.GenerateMethodEnd(indent);
-            source.AppendLine();
-        }
+        var serializeOverride = isOverride || classSymbol.BaseType.IsSerializableRecursive(compilation);
 
         // Serialize Method
         source.GenerateSerializeMethod(
             compilation,
             indent,
-            isOverride,
+            serializeOverride,
             encodedVersion,
             serializableFields,
             serializableFieldSaveFlags
@@ -428,12 +478,13 @@ public static partial class SerializableEntityGeneration
                 compilation,
                 classSymbol,
                 indent,
-                isOverride,
+                serializeOverride,
                 version,
                 encodedVersion,
                 migrationsBuilder.ToImmutable(),
                 serializableFields,
-                hasMarkDirtyMethod || dirtyTrackingEntity != null ? "this" : null,
+                markDirtyMethod,
+                dirtyTrackingEntity?.Name ?? "this",
                 serializableFieldSaveFlags
             );
         }

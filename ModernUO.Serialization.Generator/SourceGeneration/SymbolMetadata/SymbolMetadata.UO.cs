@@ -202,16 +202,30 @@ public static partial class SymbolMetadata
         return genericCtor != null;
     }
 
-    // Note: Does not detect extension methods
-    public static bool HasMarkDirtyMethod(this ITypeSymbol symbol)
+    public static string? GetMarkDirtyMethod(
+        this ITypeSymbol symbol, bool isSerializable = true, string? dirtyTrackingEntity = null, bool dirtyCanBeNull = false
+    )
     {
-        return symbol.GetAllMethods("MarkDirty")
-            .Any(
+        var markDirtyMethod = symbol.GetAllMethods("MarkDirty")
+            .FirstOrDefault(
                 m => !m.IsStatic &&
                      m.ReturnsVoid &&
                      m.Parameters.Length == 0 &&
                      m.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
             );
+
+        if (markDirtyMethod != null)
+        {
+            var dirtyTrackingEntityName =
+                dirtyTrackingEntity != null ? $"{dirtyTrackingEntity}{(dirtyCanBeNull ? "?" : "")}." : "";
+            return $"{dirtyTrackingEntityName}{markDirtyMethod.ToDisplayString()}()";
+        }
+
+        return isSerializable switch
+        {
+            true => $"Server.ISerializableExtensions.MarkDirty({dirtyTrackingEntity ?? "this"})",
+            _    => null
+        };
     }
 
     public static bool HasPublicSerializeMethod(this ITypeSymbol symbol, Compilation compilation)
@@ -244,6 +258,10 @@ public static partial class SymbolMetadata
                      m.DeclaredAccessibility == Accessibility.Public
             );
     }
+
+    public static ISymbol? HasDirtyTrackingEntity(this ITypeSymbol symbol, Compilation compilation) =>
+        symbol.GetMembers().FirstOrDefault(member => member.TryGetDirtyTrackingEntityField(compilation)) ??
+        symbol.BaseType?.HasDirtyTrackingEntity(compilation);
 
     public static bool IsTextDefinition(this ISymbol symbol, Compilation compilation) =>
         symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(TEXTDEFINITION_CLASS));
@@ -306,20 +324,9 @@ public static partial class SymbolMetadata
     public static bool HasSerializableInterface(this INamedTypeSymbol classSymbol, Compilation compilation) =>
         classSymbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
 
-    public static bool IsSerializableRecursive(this INamedTypeSymbol classSymbol, Compilation compilation)
-    {
-        while (classSymbol != null)
-        {
-            if (classSymbol.TryGetSerializable(compilation, out _))
-            {
-                return true;
-            }
-
-            classSymbol = classSymbol.BaseType;
-        }
-
-        return false;
-    }
+    public static bool IsSerializableRecursive(this INamedTypeSymbol classSymbol, Compilation compilation) =>
+        classSymbol.TryGetSerializable(compilation, out _) ||
+        (classSymbol.BaseType?.IsSerializableRecursive(compilation) ?? false);
 
     public static bool TryGetSerializable(
         this INamedTypeSymbol classSymbol, Compilation compilation, out AttributeData? attributeData
