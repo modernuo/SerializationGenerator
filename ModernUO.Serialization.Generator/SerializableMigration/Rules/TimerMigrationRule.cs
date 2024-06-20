@@ -40,8 +40,8 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
         }
 
         ruleArguments = attributes.Any(a => a.IsTimerDrift(compilation))
-            ? new[] { "@TimerDrift" }
-            : new[] { "" };
+            ? ["@TimerDrift"]
+            : [""];
 
         return true;
     }

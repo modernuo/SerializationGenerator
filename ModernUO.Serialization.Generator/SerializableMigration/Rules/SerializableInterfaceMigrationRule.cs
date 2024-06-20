@@ -34,7 +34,7 @@ public class SerializableInterfaceMigrationRule : MigrationRule
     {
         if (symbol is ITypeSymbol typeSymbol && typeSymbol.HasSerializableInterface(compilation))
         {
-            ruleArguments = Array.Empty<string>();
+            ruleArguments = [];
             return true;
         }
 

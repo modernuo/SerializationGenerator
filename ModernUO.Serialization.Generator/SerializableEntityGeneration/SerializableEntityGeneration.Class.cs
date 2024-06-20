@@ -71,14 +71,14 @@ public static partial class SerializableEntityGeneration
             if (order < 0)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, symbol.Name);
-                return (null, new[] { diag });
+                return (null, [diag]);
             }
 
             // Duplicate found, failure.
             if (serializableFieldSaveFlags.TryGetValue(order, out _))
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, order);
-                return (null, new[] { diag });
+                return (null, [diag]);
             }
 
             serializableFieldSaveFlags[order] = new SerializableFieldSaveFlagMethods
@@ -95,7 +95,7 @@ public static partial class SerializableEntityGeneration
             if (order < 0)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, symbol.Name);
-                return (null, new[] { diag });
+                return (null, [diag]);
             }
 
             // No save flag, so we ignore the default value
@@ -108,7 +108,7 @@ public static partial class SerializableEntityGeneration
             if (serializableFieldSaveFlagMethods.GetFieldDefaultValue != null)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, order);
-                return (null, new[] { diag });
+                return (null, [diag]);
             }
 
             serializableFieldSaveFlags[order] = serializableFieldSaveFlagMethods with
@@ -213,7 +213,7 @@ public static partial class SerializableEntityGeneration
             if (order < 0)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, symbol.Name);
-                return (null, new[] { diag });
+                return (null, [diag]);
             }
 
             var useField = (string)attrCtorArgs[1].Value!;
@@ -243,7 +243,7 @@ public static partial class SerializableEntityGeneration
                             .FirstOrDefault(member => member is IFieldSymbol) is not IFieldSymbol fieldMember)
                     {
                         var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3004, fieldName, order);
-                        return (null, new[] { diag });
+                        return (null, [diag]);
                     }
 
                     fieldType = fieldMember.Type;
@@ -269,13 +269,13 @@ public static partial class SerializableEntityGeneration
                     if (!serializableFieldSet.Add(serializableProperty))
                     {
                         var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, order);
-                        return (null, new[] { diag });
+                        return (null, [diag]);
                     }
                 }
                 catch (NoRuleFoundException e)
                 {
                     var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
-                    return (null, new[] { diag });
+                    return (null, [diag]);
                 }
             }
         }
@@ -319,7 +319,7 @@ public static partial class SerializableEntityGeneration
             if (order < 0)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, symbol.Name);
-                return (null, new[] { diag });
+                return (null, [diag]);
             }
 
             var getterAccessor = Helpers.GetAccessibility(attrCtorArgs[1].Value?.ToString());
@@ -373,13 +373,13 @@ public static partial class SerializableEntityGeneration
                     if (!serializableFieldSet.Add(serializableProperty))
                     {
                         var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, order);
-                        return (null, new[] { diag });
+                        return (null, [diag]);
                     }
                 }
                 catch (NoRuleFoundException e)
                 {
                     var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
-                    return (null, new[] { diag });
+                    return (null, [diag]);
                 }
             }
         }
@@ -394,7 +394,7 @@ public static partial class SerializableEntityGeneration
             if (order != i)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3005, serializableFields[i].Name, i, order);
-                return (null, new[] { diag });
+                return (null, [diag]);
             }
         }
 
@@ -434,30 +434,6 @@ public static partial class SerializableEntityGeneration
             migrationsBuilder.Add(migration);
         }
 
-        if (!isOverride && isSerializable)
-        {
-            // long ISerializable.SavePosition { get; set; } = -1;
-            source.GenerateAutoProperty(
-                Accessibility.NotApplicable,
-                "long",
-                "ISerializable.SavePosition",
-                Accessibility.NotApplicable,
-                Accessibility.NotApplicable,
-                indent,
-                defaultValue: "-1"
-            );
-
-            // BufferWriter ISerializable.SaveBuffer { get; set; }
-            source.GenerateAutoProperty(
-                Accessibility.NotApplicable,
-                "BufferWriter",
-                "ISerializable.SaveBuffer",
-                Accessibility.NotApplicable,
-                Accessibility.NotApplicable,
-                indent
-            );
-        }
-
         var serializeOverride = isOverride || classSymbol.BaseType.IsSerializableRecursive(compilation);
 
         // Serialize Method
@@ -491,7 +467,7 @@ public static partial class SerializableEntityGeneration
         catch (DeserializeTimerFieldRequiredException e)
         {
             var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3008, e.PropertyName);
-            return (null, new[] { diag });
+            return (null, [diag]);
         }
 
         // Serialize SaveFlag enum class
@@ -531,7 +507,7 @@ public static partial class SerializableEntityGeneration
             WriteMigration(migrationPath, newMigration, jsonSerializerOptions, token);
         }
 
-        return (source.ToString(), Array.Empty<Diagnostic>());
+        return (source.ToString(), []);
     }
 
     private static Regex _newLineRegex;
