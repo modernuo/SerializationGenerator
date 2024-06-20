@@ -54,7 +54,7 @@ public class PrimitiveUOTypeMigrationRule : MigrationRule
         }
 
         var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
-        ruleArguments = canBeNull ? new[] { "@CanBeNull", type } : new[] { type };
+        ruleArguments = canBeNull ? ["@CanBeNull", type] : [type];
         return true;
     }
 

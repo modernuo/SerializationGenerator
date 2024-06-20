@@ -38,7 +38,7 @@ public class EnumMigrationRule : MigrationRule
             return false;
         }
 
-        ruleArguments = Array.Empty<string>();
+        ruleArguments = [];
         return true;
     }
 

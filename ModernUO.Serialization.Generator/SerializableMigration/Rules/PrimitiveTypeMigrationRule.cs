@@ -36,7 +36,7 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         if (symbol.IsIpAddress(compilation) || symbol.IsTimeSpan(compilation) || symbol.IsGuid(compilation)
             || symbol.IsType(compilation) || symbol.IsBitArray(compilation))
         {
-            ruleArguments = Array.Empty<string>();
+            ruleArguments = [];
             return true;
         }
 
@@ -67,12 +67,12 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         ruleArguments = typeSymbol.SpecialType switch
         {
             SpecialType.System_Int32 when attributes.Any(a => a.IsEncodedInt(compilation)) =>
-                new[] { "EncodedInt" },
+                ["EncodedInt"],
             SpecialType.System_DateTime when attributes.Any(a => a.IsDeltaDateTime(compilation)) =>
-                new[] { "DeltaTime" },
+                ["DeltaTime"],
             SpecialType.System_String when attributes.Any(a => a.IsInternString(compilation)) =>
-                new[] { "InternString" },
-            _ => new[] { "" }
+                ["InternString"],
+            _ => [""]
         };
 
         return true;

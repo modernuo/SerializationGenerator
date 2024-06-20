@@ -94,7 +94,7 @@ public class EntitySerializationGenerator(string? migrationPath = null) : IIncre
                 .Name;
 
             var diagnostic = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3001, className);
-            return (null, new[] { diagnostic });
+            return (null, [diagnostic]);
         }
 
         var node = (ClassDeclarationSyntax)ctx.Node.Parent!.Parent!;
@@ -110,7 +110,7 @@ public class EntitySerializationGenerator(string? migrationPath = null) : IIncre
 
             var diagnostic = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3002, className);
 
-            return (null, new[] { diagnostic });
+            return (null, [diagnostic]);
         }
 
         var fields = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
@@ -183,7 +183,7 @@ public class EntitySerializationGenerator(string? migrationPath = null) : IIncre
             ImmutableDictionary<int, AdditionalText>.Empty
         );
 
-        return (record, Array.Empty<Diagnostic>());
+        return (record, []);
     }
 
     private static (SerializableClassRecord, Diagnostic[]) TransformToClassMigrationPairs(
