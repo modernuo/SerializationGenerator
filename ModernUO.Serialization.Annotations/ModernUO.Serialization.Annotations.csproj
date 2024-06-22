@@ -9,7 +9,7 @@
         <AssemblyName>ModernUO.Serialization.Annotations</AssemblyName>
         <RootNamespace>ModernUO.Serialization</RootNamespace>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Copyright>Copyright 2023</Copyright>
+        <Copyright>Copyright 2024</Copyright>
         <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/modernuo/SerializationGenerator</PackageProjectUrl>

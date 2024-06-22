@@ -106,7 +106,7 @@ public static class DiagnosticDescriptors
             customTags: WellKnownDiagnosticTags.AnalyzerException
         );
 
-    private static readonly string _separator = $"{Environment.NewLine}-----{Environment.NewLine}";
+    private static readonly string _separator = $"\n-----\n";
 
     public static string CreateDiagnosticDescription(this Exception exception)
     {

@@ -26,13 +26,9 @@ using Microsoft.CodeAnalysis.Text;
 namespace ModernUO.Serialization.Generator;
 
 [Generator]
-public class EntitySerializationGenerator(string? migrationPath = null) : IIncrementalGenerator
+public class EntitySerializationGenerator(bool generateMigrations = false) : IIncrementalGenerator
 {
-    private string _migrationPath = migrationPath;
-
-    public EntitySerializationGenerator() : this(null)
-    {
-    }
+    public Dictionary<string, SerializableMetadata> Migrations { get; } = [];
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -268,10 +264,10 @@ public class EntitySerializationGenerator(string? migrationPath = null) : IIncre
 
             try
             {
-                var (classSource, diags) = compilation.GenerateSerializationPartialClass(
+                var (classSource, migration, diags) = compilation.GenerateSerializationPartialClass(
                     classRecord,
                     jsonOptions,
-                    _migrationPath,
+                    generateMigrations,
                     context.CancellationToken
                 );
 
@@ -281,6 +277,11 @@ public class EntitySerializationGenerator(string? migrationPath = null) : IIncre
                         $"{classRecord.ClassSymbol.ToDisplayString()}.Serialization.g.cs",
                         SourceText.From(classSource, Encoding.UTF8)
                     );
+
+                    if (migration != null)
+                    {
+                        Migrations[migration.Type] = migration;
+                    }
                 }
                 else
                 {

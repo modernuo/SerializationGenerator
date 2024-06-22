@@ -17,7 +17,6 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -30,13 +29,13 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SerializableEntityGeneration
 {
-    public static string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+    public static readonly string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
-    public static (string?, Diagnostic[]) GenerateSerializationPartialClass(
+    public static (string?, SerializableMetadata, Diagnostic[]) GenerateSerializationPartialClass(
         this Compilation compilation,
         SerializableClassRecord classRecord,
         JsonSerializerOptions? jsonSerializerOptions,
-        string? migrationPath,
+        bool generateMetadata,
         CancellationToken token
     )
     {
@@ -71,14 +70,14 @@ public static partial class SerializableEntityGeneration
             if (order < 0)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, symbol.Name);
-                return (null, [diag]);
+                return (null, null, [diag]);
             }
 
             // Duplicate found, failure.
             if (serializableFieldSaveFlags.TryGetValue(order, out _))
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, order);
-                return (null, [diag]);
+                return (null, null, [diag]);
             }
 
             serializableFieldSaveFlags[order] = new SerializableFieldSaveFlagMethods
@@ -95,7 +94,7 @@ public static partial class SerializableEntityGeneration
             if (order < 0)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, symbol.Name);
-                return (null, [diag]);
+                return (null, null, [diag]);
             }
 
             // No save flag, so we ignore the default value
@@ -108,7 +107,7 @@ public static partial class SerializableEntityGeneration
             if (serializableFieldSaveFlagMethods.GetFieldDefaultValue != null)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, order);
-                return (null, [diag]);
+                return (null, null, [diag]);
             }
 
             serializableFieldSaveFlags[order] = serializableFieldSaveFlagMethods with
@@ -213,7 +212,7 @@ public static partial class SerializableEntityGeneration
             if (order < 0)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, symbol.Name);
-                return (null, [diag]);
+                return (null, null, [diag]);
             }
 
             var useField = (string)attrCtorArgs[1].Value!;
@@ -243,7 +242,7 @@ public static partial class SerializableEntityGeneration
                             .FirstOrDefault(member => member is IFieldSymbol) is not IFieldSymbol fieldMember)
                     {
                         var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3004, fieldName, order);
-                        return (null, [diag]);
+                        return (null, null, [diag]);
                     }
 
                     fieldType = fieldMember.Type;
@@ -269,13 +268,13 @@ public static partial class SerializableEntityGeneration
                     if (!serializableFieldSet.Add(serializableProperty))
                     {
                         var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, order);
-                        return (null, [diag]);
+                        return (null, null, [diag]);
                     }
                 }
                 catch (NoRuleFoundException e)
                 {
                     var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
-                    return (null, [diag]);
+                    return (null, null, [diag]);
                 }
             }
         }
@@ -319,7 +318,7 @@ public static partial class SerializableEntityGeneration
             if (order < 0)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, symbol.Name);
-                return (null, [diag]);
+                return (null, null, [diag]);
             }
 
             var getterAccessor = Helpers.GetAccessibility(attrCtorArgs[1].Value?.ToString());
@@ -373,13 +372,13 @@ public static partial class SerializableEntityGeneration
                     if (!serializableFieldSet.Add(serializableProperty))
                     {
                         var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, order);
-                        return (null, [diag]);
+                        return (null, null, [diag]);
                     }
                 }
                 catch (NoRuleFoundException e)
                 {
                     var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
-                    return (null, [diag]);
+                    return (null, null, [diag]);
                 }
             }
         }
@@ -394,7 +393,7 @@ public static partial class SerializableEntityGeneration
             if (order != i)
             {
                 var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3005, serializableFields[i].Name, i, order);
-                return (null, [diag]);
+                return (null, null, [diag]);
             }
         }
 
@@ -467,7 +466,7 @@ public static partial class SerializableEntityGeneration
         catch (DeserializeTimerFieldRequiredException e)
         {
             var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3008, e.PropertyName);
-            return (null, [diag]);
+            return (null, null, [diag]);
         }
 
         // Serialize SaveFlag enum class
@@ -494,41 +493,15 @@ public static partial class SerializableEntityGeneration
         source.RecursiveGenerateClassEnd(classSymbol, ref indent);
         source.GenerateNamespaceEnd();
 
-        if (migrationPath != null)
+        // Write the migration file
+        var newMigration = generateMetadata ? new SerializableMetadata
         {
-            // Write the migration file
-            var newMigration = new SerializableMetadata
-            {
-                Version = version,
-                Type = classSymbol.ToDisplayString(),
-                Properties = serializableFields.Length > 0 ? serializableFields : null
-            };
+            Version = version,
+            Type = classSymbol.ToDisplayString(),
+            Properties = serializableFields.Length > 0 ? serializableFields : null
+        } : null;
 
-            WriteMigration(migrationPath, newMigration, jsonSerializerOptions, token);
-        }
-
-        return (source.ToString(), []);
-    }
-
-    private static Regex _newLineRegex;
-
-    private static void WriteMigration(
-        string migrationPath,
-        SerializableMetadata metadata,
-        JsonSerializerOptions options,
-        CancellationToken token
-    )
-    {
-        token.ThrowIfCancellationRequested();
-        Directory.CreateDirectory(migrationPath);
-        var filePath = Path.Combine(migrationPath, $"{metadata.Type}.v{metadata.Version}.json");
-        var fileContents = JsonSerializer.Serialize(metadata, options);
-        if (Environment.NewLine != "\n")
-        {
-            _newLineRegex ??= new Regex(@"\r\n|\n\r|\n|\r");
-            fileContents = _newLineRegex.Replace(fileContents, "\n");
-        }
-        File.WriteAllText(filePath, fileContents);
+        return (source.ToString(), newMigration, null);
     }
 
     private static void RecursiveGenerateClassStart(

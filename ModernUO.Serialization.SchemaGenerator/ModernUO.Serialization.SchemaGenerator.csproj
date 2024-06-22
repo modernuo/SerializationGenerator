@@ -6,13 +6,13 @@
         <Platforms>x64;arm64</Platforms>
         <LangVersion>preview</LangVersion>
         <OutputType>Exe</OutputType>
-        <AssemblyVersion>2.11.0</AssemblyVersion>
-        <PackageVersion>2.11.0</PackageVersion>
+        <AssemblyVersion>2.11.1</AssemblyVersion>
+        <PackageVersion>2.11.1</PackageVersion>
         <PackAsTool>true</PackAsTool>
         <AssemblyName>ModernUOSchemaGenerator</AssemblyName>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <RootNamespace>ModernUO.Serialization.SchemaGenerator</RootNamespace>
-        <Copyright>Copyright 2023</Copyright>
+        <Copyright>Copyright 2024</Copyright>
         <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/modernuo/SerializationGenerator</PackageProjectUrl>
@@ -21,9 +21,9 @@
 
     <ItemGroup>
         <PackageReference Include="Humanizer.Core" Version="2.14.1" />
-        <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.10.0" />
+        <PackageReference Include="Microsoft.Build.Locator" Version="1.6.10" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.8.0" />
         <ProjectReference Include="..\ModernUO.Serialization.Generator\ModernUO.Serialization.Generator.csproj" />
     </ItemGroup>
 </Project>

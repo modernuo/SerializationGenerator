@@ -17,12 +17,15 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
 using Microsoft.CodeAnalysis.CSharp;
 using ModernUO.Serialization.Generator;
 
 namespace ModernUO.Serialization.SchemaGenerator;
 
-public static class Application
+public static partial class Application
 {
     public static void Main(string[] args)
     {
@@ -32,6 +35,8 @@ public static class Application
         }
 
         var solutionPath = args[0];
+
+        Console.WriteLine($"Running Migrations for {solutionPath}");
 
         var stopwatch = new Stopwatch();
         stopwatch.Start();
@@ -47,11 +52,20 @@ public static class Application
                     var migrationPath = Path.Join(projectPath, "Migrations");
                     Directory.CreateDirectory(migrationPath);
 
+                    var generator = new EntitySerializationGenerator(true);
+
                     CSharpGeneratorDriver
-                        .Create(new EntitySerializationGenerator(migrationPath))
+                        .Create(generator)
                         .RunGenerators(compilation);
 
-                    Console.WriteLine("Completed migrations for {0}", project.Name);
+                    var options = SerializableMigrationSchema.GetJsonSerializerOptions();
+
+                    foreach ( var migration in generator.Migrations.Values)
+                    {
+                        WriteMigration(migrationPath, migration, options, default);
+                    }
+
+                    Console.WriteLine($"Completed migrations for {project.Name}");
                 }
             );
 
@@ -59,4 +73,25 @@ public static class Application
 
         Console.WriteLine("Completed in {0:N2} seconds", stopwatch.Elapsed.TotalSeconds);
     }
+
+    private static void WriteMigration(
+        string migrationPath,
+        SerializableMetadata metadata,
+        JsonSerializerOptions options,
+        CancellationToken token
+    )
+    {
+        token.ThrowIfCancellationRequested();
+        Directory.CreateDirectory(migrationPath);
+        var filePath = Path.Combine(migrationPath, $"{metadata.Type}.v{metadata.Version}.json");
+        var fileContents = JsonSerializer.Serialize(metadata, options);
+        if (Environment.NewLine != "\n")
+        {
+            fileContents = NewLineRegex().Replace(fileContents, "\n");
+        }
+        File.WriteAllText(filePath, fileContents);
+    }
+
+    [GeneratedRegex(@"\r\n|\n\r|\n|\r")]
+    private static partial Regex NewLineRegex();
 }
