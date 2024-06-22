@@ -28,6 +28,11 @@ namespace ModernUO.Serialization.Generator;
 [Generator]
 public class EntitySerializationGenerator(bool generateMigrations = false) : IIncrementalGenerator
 {
+
+    public EntitySerializationGenerator() : this(false)
+    {
+    }
+
     public Dictionary<string, SerializableMetadata> Migrations { get; } = [];
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
