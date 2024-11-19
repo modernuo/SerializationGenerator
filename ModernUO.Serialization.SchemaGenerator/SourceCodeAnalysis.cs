@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2024 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: SourceCodeAnalysis.cs                                           *
  *                                                                       *
@@ -14,8 +14,10 @@
  *************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
@@ -24,7 +26,7 @@ namespace ModernUO.Serialization.SchemaGenerator;
 
 public static class SourceCodeAnalysis
 {
-    public static ParallelQuery<Project> GetProjects(string solutionPath)
+    public static async Task<IEnumerable<Project>> GetProjectsAsync(string solutionPath)
     {
         if (!File.Exists(solutionPath) || !solutionPath.EndsWith(".sln", StringComparison.Ordinal))
         {
@@ -34,13 +36,12 @@ public static class SourceCodeAnalysis
         MSBuildLocator.RegisterDefaults();
 
         using var workspace = MSBuildWorkspace.Create();
-        workspace.WorkspaceFailed += (sender, args) => Console.WriteLine(args.Diagnostic.Message);
+        workspace.WorkspaceFailed += (_, args) => Console.WriteLine(args.Diagnostic.Message);
 
-        return workspace
-            .OpenSolutionAsync(solutionPath)
-            .Result
+        var solution = await workspace.OpenSolutionAsync(solutionPath);
+
+        return solution
             .Projects
-            .AsParallel()
             .Where(project => !project.Name.EndsWith(".Tests", StringComparison.Ordinal) && project.Name != "Benchmarks")
             .Select(
                 project =>
@@ -54,7 +55,6 @@ public static class SourceCodeAnalysis
                     }
 
                     return project;
-                }
-            );
+                });
     }
 }

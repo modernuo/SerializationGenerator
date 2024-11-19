@@ -41,31 +41,33 @@ public static partial class Application
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
-        var projects = SourceCodeAnalysis.GetProjects(solutionPath);
-
-        foreach (var project in projects)
-        {
-            var compilation = await project.GetCompilationAsync();
-            var projectFile = new FileInfo(project.FilePath!);
-            var projectPath = projectFile.Directory?.FullName;
-            var migrationPath = Path.Join(projectPath, "Migrations");
-            Directory.CreateDirectory(migrationPath);
-
-            var generator = new EntitySerializationGenerator(true);
-
-            CSharpGeneratorDriver
-                .Create(generator)
-                .RunGenerators(compilation);
-
-            var options = SerializableMigrationSchema.GetJsonSerializerOptions();
-
-            foreach (var migration in generator.Migrations.Values)
+        await Parallel.ForEachAsync(
+            await SourceCodeAnalysis.GetProjectsAsync(solutionPath),
+            async (project, cancellationToken) =>
             {
-                WriteMigration(migrationPath, migration, options, default);
-            }
+                var compilation = await project.GetCompilationAsync(cancellationToken);
+                var projectFile = new FileInfo(project.FilePath!);
+                var projectPath = projectFile.Directory?.FullName;
+                var migrationPath = Path.Join(projectPath, "Migrations");
+                Directory.CreateDirectory(migrationPath);
 
-            Console.WriteLine($"Completed migrations for {project.Name}");
-        }
+                var generator = new EntitySerializationGenerator(true);
+
+                CSharpGeneratorDriver
+                    .Create(generator)
+                    .RunGenerators(compilation, cancellationToken);
+
+                var options = SerializableMigrationSchema.GetJsonSerializerOptions();
+
+                foreach (var migration in generator.Migrations.Values)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    WriteMigration(migrationPath, migration, options, default);
+                }
+
+                Console.WriteLine($"Completed migrations for {project.Name}");
+            }
+        );
 
         stopwatch.Stop();
 
