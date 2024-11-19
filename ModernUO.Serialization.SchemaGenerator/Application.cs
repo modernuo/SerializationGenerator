@@ -16,10 +16,10 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
 using ModernUO.Serialization.Generator;
 
@@ -27,7 +27,7 @@ namespace ModernUO.Serialization.SchemaGenerator;
 
 public static partial class Application
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         if (args.Length < 1)
         {
@@ -41,33 +41,31 @@ public static partial class Application
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
-        SourceCodeAnalysis
-            .GetProjects(solutionPath)
-            .ForAll(
-                project =>
-                {
-                    var compilation = project.GetCompilationAsync().Result;
-                    var projectFile = new FileInfo(project.FilePath);
-                    var projectPath = projectFile.Directory?.FullName;
-                    var migrationPath = Path.Join(projectPath, "Migrations");
-                    Directory.CreateDirectory(migrationPath);
+        var projects = SourceCodeAnalysis.GetProjects(solutionPath);
 
-                    var generator = new EntitySerializationGenerator(true);
+        foreach (var project in projects)
+        {
+            var compilation = await project.GetCompilationAsync();
+            var projectFile = new FileInfo(project.FilePath!);
+            var projectPath = projectFile.Directory?.FullName;
+            var migrationPath = Path.Join(projectPath, "Migrations");
+            Directory.CreateDirectory(migrationPath);
 
-                    CSharpGeneratorDriver
-                        .Create(generator)
-                        .RunGenerators(compilation);
+            var generator = new EntitySerializationGenerator(true);
 
-                    var options = SerializableMigrationSchema.GetJsonSerializerOptions();
+            CSharpGeneratorDriver
+                .Create(generator)
+                .RunGenerators(compilation);
 
-                    foreach ( var migration in generator.Migrations.Values)
-                    {
-                        WriteMigration(migrationPath, migration, options, default);
-                    }
+            var options = SerializableMigrationSchema.GetJsonSerializerOptions();
 
-                    Console.WriteLine($"Completed migrations for {project.Name}");
-                }
-            );
+            foreach (var migration in generator.Migrations.Values)
+            {
+                WriteMigration(migrationPath, migration, options, default);
+            }
+
+            Console.WriteLine($"Completed migrations for {project.Name}");
+        }
 
         stopwatch.Stop();
 

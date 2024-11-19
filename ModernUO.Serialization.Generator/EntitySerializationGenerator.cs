@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -37,6 +38,8 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        var currentCulture = CultureInfo.DefaultThreadCurrentCulture;
+
         // Gather all classes with [ModernUO.Serialization.SerializationGenerator] attribute
         var serializableClasses = context
             .SyntaxProvider
@@ -62,6 +65,7 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
         // Generate source code
         context.RegisterSourceOutput(classesWithMigrations, ExecuteIncremental);
+        CultureInfo.DefaultThreadCurrentCulture = currentCulture;
     }
 
     public static bool IsSerializationGeneratorSyntaxNode(SyntaxNode node, CancellationToken token)
@@ -195,6 +199,11 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
         token.ThrowIfCancellationRequested();
 
         var (recordPair, additionalTexts) = pair;
+        if (!recordPair.HasValue)
+        {
+            return (null, []);
+        }
+
         var (classRecord, diags) = recordPair.Value;
 
         if (classRecord != null)

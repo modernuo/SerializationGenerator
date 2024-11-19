@@ -35,7 +35,7 @@ public static partial class SourceGeneration
             propertyName = propertyName.Substring(1);
         }
 
-        return propertyName.Dehumanize();
+        return Utility.RunAsEnglish(propertyName.Dehumanize);
     }
 
     public static void GeneratePropertyStart(

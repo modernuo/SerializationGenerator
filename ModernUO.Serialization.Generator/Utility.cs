@@ -13,7 +13,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace ModernUO.Serialization.Generator;
 
@@ -23,5 +25,24 @@ public static class Utility
     {
         key = tuple.Key;
         value = tuple.Value;
+    }
+
+    public static T RunAsEnglish<T>(Func<T> action)
+    {
+        var originalCulture = CultureInfo.DefaultThreadCurrentCulture;
+
+        try
+        {
+            // Temporarily set culture to English
+            CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en-US");
+
+            // Execute the action
+            return action();
+        }
+        finally
+        {
+            // Restore the original culture
+            CultureInfo.DefaultThreadCurrentCulture = originalCulture;
+        }
     }
 }

@@ -21,7 +21,12 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SourceGeneration
 {
-    public static string GetFieldName(this string propertyName) => $"_{propertyName.Humanize().Camelize()}";
+    public static string GetFieldName(this string propertyName)
+    {
+        var humanized = Utility.RunAsEnglish(propertyName.Humanize);
+        var camelized = Utility.RunAsEnglish(humanized.Camelize);
+        return $"_{camelized}";
+    }
 
     public static void GenerateField(
         this StringBuilder source,
