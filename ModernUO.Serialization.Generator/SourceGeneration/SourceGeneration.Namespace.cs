@@ -21,8 +21,10 @@ public static partial class SourceGeneration
 {
     public static void GenerateNamespaceStart(this StringBuilder source, string namespaceName)
     {
-        source.AppendLine($@"namespace {namespaceName}
-{{");
+        source.AppendLine($$"""
+                            namespace {{namespaceName}}
+                            {
+                            """);
     }
 
     public static void GenerateNamespaceEnd(this StringBuilder source)

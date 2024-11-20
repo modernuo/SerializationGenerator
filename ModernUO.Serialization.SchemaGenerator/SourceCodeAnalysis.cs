@@ -38,7 +38,7 @@ public static class SourceCodeAnalysis
         using var workspace = MSBuildWorkspace.Create();
         workspace.WorkspaceFailed += (_, args) => Console.WriteLine(args.Diagnostic.Message);
 
-        var solution = await workspace.OpenSolutionAsync(solutionPath);
+        var solution = await workspace.OpenSolutionAsync(solutionPath, progress: new Progress());
 
         return solution
             .Projects
@@ -56,5 +56,13 @@ public static class SourceCodeAnalysis
 
                     return project;
                 });
+    }
+
+    private class Progress : IProgress<ProjectLoadProgress>
+    {
+        public void Report(ProjectLoadProgress value)
+        {
+            Console.WriteLine($"{value.Operation} completed for {value.FilePath} ({value.TargetFramework}) in {value.ElapsedTime.TotalMilliseconds}ms");
+        }
     }
 }
