@@ -33,7 +33,6 @@ public static class SourceCodeAnalysis
             throw new FileNotFoundException($"Could not open a valid solution at location {solutionPath}");
         }
 
-        MSBuildLocator.RegisterDefaults();
 
         using var workspace = MSBuildWorkspace.Create();
         workspace.WorkspaceFailed += (_, args) => Console.WriteLine(args.Diagnostic.Message);
