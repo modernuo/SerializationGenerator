@@ -1,6 +1,6 @@
 ﻿/*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2024 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: Application.cs                                                  *
  *                                                                       *
@@ -17,16 +17,18 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.IO;
 using ModernUO.Serialization.Generator;
 
 namespace ModernUO.Serialization.SchemaGenerator;
 
-public static partial class Application
+public static class Application
 {
+    private static readonly RecyclableMemoryStreamManager MemoryStreamManager = new();
+
     public static async Task Main(string[] args)
     {
         if (args.Length < 1)
@@ -59,11 +61,11 @@ public static partial class Application
 
                 var options = SerializableMigrationSchema.GetJsonSerializerOptions();
 
-                foreach (var migration in generator.Migrations.Values)
+                await Parallel.ForEachAsync(generator.Migrations.Values, cancellationToken, async (migration, ct) =>
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    WriteMigration(migrationPath, migration, options, default);
-                }
+                    ct.ThrowIfCancellationRequested();
+                    await WriteMigration(migrationPath, migration, options, ct);
+                });
 
                 Console.WriteLine($"Completed migrations for {project.Name}");
             }
@@ -74,7 +76,7 @@ public static partial class Application
         Console.WriteLine("Completed in {0:N2} seconds", stopwatch.Elapsed.TotalSeconds);
     }
 
-    private static void WriteMigration(
+    private static async Task WriteMigration(
         string migrationPath,
         SerializableMetadata metadata,
         JsonSerializerOptions options,
@@ -82,16 +84,21 @@ public static partial class Application
     )
     {
         token.ThrowIfCancellationRequested();
-        Directory.CreateDirectory(migrationPath);
         var filePath = Path.Combine(migrationPath, $"{metadata.Type}.v{metadata.Version}.json");
-        var fileContents = JsonSerializer.Serialize(metadata, options);
-        if (Environment.NewLine != "\n")
-        {
-            fileContents = NewLineRegex().Replace(fileContents, "\n");
-        }
-        File.WriteAllText(filePath, fileContents);
-    }
 
-    [GeneratedRegex(@"\r\n|\n\r|\n|\r")]
-    private static partial Regex NewLineRegex();
+        await using var memoryStream = MemoryStreamManager.GetStream();
+        await JsonSerializer.SerializeAsync(memoryStream, metadata, options, token);
+
+        token.ThrowIfCancellationRequested();
+        var serializedBytes = memoryStream.GetBuffer().AsSpan(0, (int)memoryStream.Length);
+
+        if (File.Exists(filePath) && new FileInfo(filePath).Length == serializedBytes.Length &&
+            FileHelper.FileContentEquals(filePath, serializedBytes, token))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(migrationPath);
+        File.WriteAllBytes(filePath, serializedBytes);
+    }
 }

@@ -33,15 +33,17 @@ public static class SourceCodeAnalysis
             throw new FileNotFoundException($"Could not open a valid solution at location {solutionPath}");
         }
 
+        // Remove after upgrading MSBuild to 4.13.0+
+        MSBuildLocator.RegisterDefaults();
 
         using var workspace = MSBuildWorkspace.Create();
         workspace.WorkspaceFailed += (_, args) => Console.WriteLine(args.Diagnostic.Message);
 
-        var solution = await workspace.OpenSolutionAsync(solutionPath, progress: new Progress());
-
-        return solution
+        return (await workspace.OpenSolutionAsync(solutionPath))
             .Projects
-            .Where(project => !project.Name.EndsWith(".Tests", StringComparison.Ordinal) && project.Name != "Benchmarks")
+            .Where(project => !project.Name.EndsWith(".Tests", StringComparison.Ordinal) && project.AnalyzerReferences.Any(
+                reference => reference.Display != "ModernUO.Serialization.Generator")
+            )
             .Select(
                 project =>
                 {
@@ -55,13 +57,5 @@ public static class SourceCodeAnalysis
 
                     return project;
                 });
-    }
-
-    private class Progress : IProgress<ProjectLoadProgress>
-    {
-        public void Report(ProjectLoadProgress value)
-        {
-            Console.WriteLine($"{value.Operation} completed for {value.FilePath} ({value.TargetFramework}) in {value.ElapsedTime.TotalMilliseconds}ms");
-        }
     }
 }
