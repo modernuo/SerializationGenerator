@@ -4,8 +4,8 @@
         <PackageId>ModernUO.Serialization.Generator</PackageId>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyVersion>2.12.9</AssemblyVersion>
-        <PackageVersion>2.12.9</PackageVersion>
+        <AssemblyVersion>2.12.10</AssemblyVersion>
+        <PackageVersion>2.12.10</PackageVersion>
         <AssemblyName>ModernUO.Serialization.Generator</AssemblyName>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>false</IncludeBuildOutput>
