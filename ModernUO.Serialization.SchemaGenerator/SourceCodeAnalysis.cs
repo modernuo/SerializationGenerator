@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2024 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: SourceCodeAnalysis.cs                                           *
  *                                                                       *
@@ -14,8 +14,10 @@
  *************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
@@ -24,24 +26,24 @@ namespace ModernUO.Serialization.SchemaGenerator;
 
 public static class SourceCodeAnalysis
 {
-    public static ParallelQuery<Project> GetProjects(string solutionPath)
+    public static async Task<IEnumerable<Project>> GetProjectsAsync(string solutionPath)
     {
         if (!File.Exists(solutionPath) || !solutionPath.EndsWith(".sln", StringComparison.Ordinal))
         {
             throw new FileNotFoundException($"Could not open a valid solution at location {solutionPath}");
         }
 
+        // Remove after upgrading MSBuild to 4.13.0+
         MSBuildLocator.RegisterDefaults();
 
         using var workspace = MSBuildWorkspace.Create();
-        workspace.WorkspaceFailed += (sender, args) => Console.WriteLine(args.Diagnostic.Message);
+        workspace.WorkspaceFailed += (_, args) => Console.WriteLine(args.Diagnostic.Message);
 
-        return workspace
-            .OpenSolutionAsync(solutionPath)
-            .Result
+        return (await workspace.OpenSolutionAsync(solutionPath))
             .Projects
-            .AsParallel()
-            .Where(project => !project.Name.EndsWith(".Tests", StringComparison.Ordinal) && project.Name != "Benchmarks")
+            .Where(project => !project.Name.EndsWith(".Tests", StringComparison.Ordinal) && project.AnalyzerReferences.Any(
+                reference => reference.Display == "ModernUO.Serialization.Generator")
+            )
             .Select(
                 project =>
                 {
@@ -54,7 +56,6 @@ public static class SourceCodeAnalysis
                     }
 
                     return project;
-                }
-            );
+                });
     }
 }

@@ -29,7 +29,8 @@ public static class SerializableMigrationSchema
             WriteIndented = true,
             AllowTrailingCommas = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            ReadCommentHandling = JsonCommentHandling.Skip
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            NewLine = "\n" // Force all json files to \n line endings
         };
 
     // <ClassName>.v*.json
