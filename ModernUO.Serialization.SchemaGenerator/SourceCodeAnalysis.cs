@@ -42,7 +42,7 @@ public static class SourceCodeAnalysis
         return (await workspace.OpenSolutionAsync(solutionPath))
             .Projects
             .Where(project => !project.Name.EndsWith(".Tests", StringComparison.Ordinal) && project.AnalyzerReferences.Any(
-                reference => reference.Display != "ModernUO.Serialization.Generator")
+                reference => reference.Display == "ModernUO.Serialization.Generator")
             )
             .Select(
                 project =>
