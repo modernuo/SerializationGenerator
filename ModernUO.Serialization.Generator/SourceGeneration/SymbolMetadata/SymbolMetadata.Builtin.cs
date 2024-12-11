@@ -26,6 +26,7 @@ public static partial class SymbolMetadata
     public const string LIST_CLASS = "System.Collections.Generic.List`1";
     public const string LIST_INTERFACE = "System.Collections.Generic.IList`1";
     public const string HASHSET_CLASS = "System.Collections.Generic.HashSet`1";
+    public const string SORTEDSET_CLASS = "System.Collections.Generic.SortedSet`1";
     public const string IPADDRESS_CLASS = "System.Net.IPAddress";
     public const string KEYVALUEPAIR_STRUCT = "System.Collections.Generic.KeyValuePair";
     public const string TIMESPAN_STRUCT = "System.TimeSpan";
@@ -69,6 +70,12 @@ public static partial class SymbolMetadata
     public static bool IsHashSet(this ISymbol symbol, Compilation compilation) =>
         (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
             compilation.GetTypeByMetadataName(HASHSET_CLASS),
+            SymbolEqualityComparer.Default
+        ) == true;
+
+    public static bool IsSortedSet(this ISymbol symbol, Compilation compilation) =>
+        (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
+            compilation.GetTypeByMetadataName(SORTEDSET_CLASS),
             SymbolEqualityComparer.Default
         ) == true;
 

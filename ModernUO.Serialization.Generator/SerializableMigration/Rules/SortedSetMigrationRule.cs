@@ -1,8 +1,8 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2024 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: HashSetMigrationRule.cs                                         *
+ * File: SortedSetMigrationRule.cs                                       *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -21,9 +21,9 @@ using Microsoft.CodeAnalysis;
 
 namespace ModernUO.Serialization.Generator;
 
-public class HashSetMigrationRule : MigrationRule
+public class SortedSetMigrationRule : MigrationRule
 {
-    public override string RuleName => nameof(HashSetMigrationRule);
+    public override string RuleName => nameof(SortedSetMigrationRule);
 
     public override bool GenerateRuleState(
         Compilation compilation,
@@ -33,7 +33,7 @@ public class HashSetMigrationRule : MigrationRule
         out string[] ruleArguments
     )
     {
-        if (symbol is not INamedTypeSymbol namedTypeSymbol || !symbol.IsHashSet(compilation))
+        if (symbol is not INamedTypeSymbol namedTypeSymbol || !symbol.IsSortedSet(compilation))
         {
             ruleArguments = null;
             return false;
@@ -164,7 +164,7 @@ public class HashSetMigrationRule : MigrationRule
 
         source.AppendLine($"{indent}{setElementType} {propertyEntry};");
         source.AppendLine($"{indent}var {propertyCount} = reader.ReadEncodedInt();");
-        source.AppendLine($"{indent}{propertyName} = new System.Collections.Generic.HashSet<{setElementType}>({propertyCount});");
+        source.AppendLine($"{indent}{propertyName} = new System.Collections.Generic.SortedSet<{setElementType}>({propertyCount});");
         source.AppendLine($"{indent}for (var {propertyIndex} = 0; {propertyIndex} < {propertyCount}; {propertyIndex}++)");
         source.AppendLine($"{indent}{{");
 
