@@ -208,10 +208,7 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
         if (classRecord != null)
         {
-            var namespaceName = classRecord.ClassSymbol.ContainingNamespace.ToDisplayString();
-            var className = $"{namespaceName}.{classRecord.ClassSymbol.Name}";
-
-            if (additionalTexts.TryGetValue(className, out var migs))
+            if (additionalTexts.TryGetValue(classRecord.ClassSymbol.ToDisplayString(), out var migs))
             {
                 classRecord = classRecord with
                 {
