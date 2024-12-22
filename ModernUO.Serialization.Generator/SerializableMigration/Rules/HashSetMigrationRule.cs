@@ -183,7 +183,13 @@ public class HashSetMigrationRule : MigrationRule
             serializableSetElement,
             parentReference
         );
-        source.AppendLine($"{indent}    {propertyName}.Add({propertyEntry});");
+
+        source.AppendLine($"{indent}    if (typeof({setElementType}).IsValueType || {propertyEntry} != null)");
+        source.AppendLine($"{indent}    {{");
+        source.AppendLine($"{indent}        {propertyName}.Add({propertyEntry});");
+        source.AppendLine($"{indent}    }}");
+
+
 
         source.AppendLine($"{indent}}}");
     }
