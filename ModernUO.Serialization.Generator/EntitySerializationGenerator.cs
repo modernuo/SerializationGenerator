@@ -309,7 +309,8 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
                     descriptor,
                     e.GetType(),
                     classRecord.ClassSymbol.Name,
-                    e.Message
+                    e.Message,
+                    e.StackTrace
                 );
 
                 context.ReportDiagnostic(diagnostic);
