@@ -164,6 +164,7 @@ public class ArrayMigrationRule : MigrationRule
             parentReference
         );
 
+        source.AppendLine($"{indent}    {propertyName}![{propertyIndex}] = {propertyEntry};");
         source.AppendLine($"{indent}}}");
     }
 
