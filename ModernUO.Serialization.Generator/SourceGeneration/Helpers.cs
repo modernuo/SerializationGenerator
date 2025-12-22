@@ -13,11 +13,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -100,7 +98,7 @@ public static class Helpers
                 (t, token) =>
                 {
                     token.ThrowIfCancellationRequested();
-                    return (T)Convert.ChangeType(t, typeof(T));
+                    return t!;
                 }
             );
 

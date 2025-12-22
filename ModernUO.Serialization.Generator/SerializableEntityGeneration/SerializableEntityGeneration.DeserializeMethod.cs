@@ -35,7 +35,10 @@ public static partial class SerializableEntityGeneration
         ImmutableArray<SerializableProperty> fields,
         string? markDirtyMethod,
         string? parentReference,
-        SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary
+        SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary,
+        Dictionary<int, (int EnumIndex, int BitIndex)> saveFlagMapping,
+        bool saveFlagUseUlong,
+        int saveFlagEnumCount
     )
     {
         var genericReaderInterface = compilation.GetTypeByMetadataName(SymbolMetadata.GENERIC_READER_INTERFACE);
@@ -123,31 +126,47 @@ public static partial class SerializableEntityGeneration
             }
         }
 
-        if (serializableFieldSaveFlagMethodsDictionary.Count > 0)
+        if (saveFlagMapping.Count > 0)
         {
             source.AppendLine();
-            source.AppendLine($"{bodyIndent}var saveFlags = reader.ReadEnum<SaveFlag>();");
+            // Read all save flag enums
+            for (var i = 0; i < saveFlagEnumCount; i++)
+            {
+                var enumName = i == 0 ? "SaveFlag" : $"SaveFlag{i + 1}";
+                var varName = i == 0 ? "saveFlags" : $"saveFlags{i + 1}";
+                source.AppendLine($"{bodyIndent}var {varName} = reader.ReadEnum<{enumName}>();");
+            }
         }
 
         for (var i = 0; i < fields.Length; i++)
         {
             var field = fields[i];
+
+            // Skip readonly fields - they cannot be assigned outside the constructor
+            if (field.IsReadOnly)
+            {
+                continue;
+            }
+
             var rule = SerializableMigrationRulesEngine.Rules[field.Rule];
 
             if (serializableFieldSaveFlagMethodsDictionary.TryGetValue(
                     field.Order,
                     out var serializableFieldSaveFlagMethods
-                ))
+                ) && saveFlagMapping.TryGetValue(field.Order, out var mapping))
             {
+                var enumName = mapping.EnumIndex == 0 ? "SaveFlag" : $"SaveFlag{mapping.EnumIndex + 1}";
+                var varName = mapping.EnumIndex == 0 ? "saveFlags" : $"saveFlags{mapping.EnumIndex + 1}";
+
                 source.AppendLine();
                 // Special case
                 if (field.Type == "bool")
                 {
-                    source.AppendLine($"{bodyIndent}{field.FieldName} = (saveFlags & SaveFlag.{field.Name}) != 0;");
+                    source.AppendLine($"{bodyIndent}{field.FieldName} = ({varName} & {enumName}.{field.Name}) != 0;");
                 }
                 else
                 {
-                    source.AppendLine($"{bodyIndent}if ((saveFlags & SaveFlag.{field.Name}) != 0)\n{bodyIndent}{{");
+                    source.AppendLine($"{bodyIndent}if (({varName} & {enumName}.{field.Name}) != 0)\n{bodyIndent}{{");
                     rule.GenerateDeserializationMethod(
                         source,
                         innerIndent,

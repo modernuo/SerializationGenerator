@@ -182,7 +182,11 @@ public class ListMigrationRule : MigrationRule
             serializableListElement,
             parentReference
         );
-        source.AppendLine($"{indent}    {propertyName}.Add({propertyEntry});");
+
+        source.AppendLine($"{indent}    if (typeof({listElementType}).IsValueType || {propertyEntry} != null)");
+        source.AppendLine($"{indent}    {{");
+        source.AppendLine($"{indent}        {propertyName}.Add({propertyEntry});");
+        source.AppendLine($"{indent}    }}");
 
         source.AppendLine($"{indent}}}");
     }
@@ -198,7 +202,7 @@ public class ListMigrationRule : MigrationRule
 
         var ruleArguments = property.RuleArguments;
         var shouldTidy = property.RuleArguments![0] == "@Tidy";
-        var index = shouldTidy || property.RuleArguments![0] == "" ? 1 : 0; // Skip the empty argyment
+        var index = shouldTidy || property.RuleArguments![0] == "" ? 1 : 0; // Skip the empty argument
         var canBeNull = property.RuleArguments[index] == "@CanBeNull";
 
         if (canBeNull)

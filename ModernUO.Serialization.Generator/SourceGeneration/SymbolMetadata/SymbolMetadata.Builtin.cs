@@ -28,7 +28,7 @@ public static partial class SymbolMetadata
     public const string HASHSET_CLASS = "System.Collections.Generic.HashSet`1";
     public const string SORTEDSET_CLASS = "System.Collections.Generic.SortedSet`1";
     public const string IPADDRESS_CLASS = "System.Net.IPAddress";
-    public const string KEYVALUEPAIR_STRUCT = "System.Collections.Generic.KeyValuePair";
+    public const string KEYVALUEPAIR_STRUCT = "System.Collections.Generic.KeyValuePair`2";
     public const string TIMESPAN_STRUCT = "System.TimeSpan";
     public const string DATETIME_STRUCT = "System.DateTime";
     public const string GUID_STRUCT = "System.Guid";

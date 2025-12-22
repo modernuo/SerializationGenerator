@@ -29,7 +29,10 @@ public static partial class SerializableEntityGeneration
         bool isOverride,
         bool encodedVersion,
         ImmutableArray<SerializableProperty> fields,
-        SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary
+        SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary,
+        Dictionary<int, (int EnumIndex, int BitIndex)> saveFlagMapping,
+        bool saveFlagUseUlong,
+        int saveFlagEnumCount
     )
     {
         var genericWriterInterface = compilation.GetTypeByMetadataName(SymbolMetadata.GENERIC_WRITER_INTERFACE);
@@ -56,26 +59,52 @@ public static partial class SerializableEntityGeneration
         source.AppendLine($"{bodyIndent}writer.{(encodedVersion ? "WriteEncodedInt" : "Write")}(SerializationVersion);");
 
         // Let's collect the flags
-        if (serializableFieldSaveFlagMethodsDictionary.Count > 0)
+        if (saveFlagMapping.Count > 0)
         {
-            source.AppendLine($"\n{bodyIndent}var saveFlags = SaveFlag.None;");
+            // Initialize all save flag variables
+            for (var i = 0; i < saveFlagEnumCount; i++)
+            {
+                var enumName = i == 0 ? "SaveFlag" : $"SaveFlag{i + 1}";
+                var varName = i == 0 ? "saveFlags" : $"saveFlags{i + 1}";
+                source.AppendLine($"\n{bodyIndent}var {varName} = {enumName}.None;");
+            }
 
             foreach (var (order, saveFlagMethods) in serializableFieldSaveFlagMethodsDictionary)
             {
+                // Skip readonly fields
+                if (!saveFlagMapping.TryGetValue(order, out var mapping))
+                {
+                    continue;
+                }
+
                 source.AppendLine($"{bodyIndent}if ({saveFlagMethods.DetermineFieldShouldSerialize!.Name}())\n{bodyIndent}{{");
 
                 var propertyName = fields[order].Name;
-                source.AppendLine($"{innerIndent}saveFlags |= SaveFlag.{propertyName};");
+                var enumName = mapping.EnumIndex == 0 ? "SaveFlag" : $"SaveFlag{mapping.EnumIndex + 1}";
+                var varName = mapping.EnumIndex == 0 ? "saveFlags" : $"saveFlags{mapping.EnumIndex + 1}";
+                source.AppendLine($"{innerIndent}{varName} |= {enumName}.{propertyName};");
 
                 source.AppendLine($"{bodyIndent}}}");
             }
 
-            source.AppendLine($"{bodyIndent}writer.WriteEnum(saveFlags);");
+            // Write all save flags
+            for (var i = 0; i < saveFlagEnumCount; i++)
+            {
+                var varName = i == 0 ? "saveFlags" : $"saveFlags{i + 1}";
+                source.AppendLine($"{bodyIndent}writer.WriteEnum({varName});");
+            }
         }
 
         for (var i = 0; i < fields.Length; i++)
         {
             var field = fields[i];
+
+            // Skip readonly fields - they cannot be deserialized so we don't serialize them
+            if (field.IsReadOnly)
+            {
+                continue;
+            }
+
             if (serializableFieldSaveFlagMethodsDictionary.ContainsKey(field.Order))
             {
                 // Special case

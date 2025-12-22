@@ -13,6 +13,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
+using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -21,17 +22,18 @@ namespace ModernUO.Serialization.Generator;
 
 public static class SerializableMigrationSchema
 {
-    private static JsonSerializerOptions defaultSerializerOptions;
-
-    public static JsonSerializerOptions GetJsonSerializerOptions() =>
-        defaultSerializerOptions ??= new JsonSerializerOptions
+    private static readonly Lazy<JsonSerializerOptions> _defaultSerializerOptions = new(
+        () => new JsonSerializerOptions
         {
             WriteIndented = true,
             AllowTrailingCommas = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             ReadCommentHandling = JsonCommentHandling.Skip,
             NewLine = "\n" // Force all json files to \n line endings
-        };
+        }
+    );
+
+    public static JsonSerializerOptions GetJsonSerializerOptions() => _defaultSerializerOptions.Value;
 
     // <ClassName>.v*.json
     public static readonly Regex MigrationFileRegex = new(@"^(\S+)\.[vV](\d+)\.json$", RegexOptions.Compiled);

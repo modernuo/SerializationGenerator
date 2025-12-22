@@ -21,7 +21,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 
@@ -329,25 +328,33 @@ public static partial class SerializableEntityGeneration
 
             if (symbol is IFieldSymbol fieldSymbol)
             {
+                // Readonly fields cannot have setters - force to null
+                var effectiveSetterAccessor = fieldSymbol.IsReadOnly ? (Accessibility?)null : setterAccessor;
+
                 source.GenerateSerializableProperty(
                     compilation,
                     indent,
                     fieldSymbol,
                     getterAccessor,
-                    setterAccessor,
+                    effectiveSetterAccessor,
                     virtualProperty,
                     markDirtyMethod
                 );
                 source.AppendLine();
 
-                var propertyAccessor = setterAccessor > getterAccessor ? setterAccessor : getterAccessor;
-                var generatedDataStructureMethods = source.GenerateDataStructureMethods(
-                    compilation,
-                    indent,
-                    fieldSymbol,
-                    propertyAccessor.ToFriendlyString(),
-                    markDirtyMethod
-                );
+                // Skip data structure methods for readonly fields (they cannot be modified)
+                var generatedDataStructureMethods = false;
+                if (!fieldSymbol.IsReadOnly)
+                {
+                    var propertyAccessor = setterAccessor > getterAccessor ? setterAccessor : getterAccessor;
+                    generatedDataStructureMethods = source.GenerateDataStructureMethods(
+                        compilation,
+                        indent,
+                        fieldSymbol,
+                        propertyAccessor.ToFriendlyString(),
+                        markDirtyMethod
+                    );
+                }
 
                 if (generatedDataStructureMethods)
                 {
@@ -367,7 +374,8 @@ public static partial class SerializableEntityGeneration
                         classSymbol,
                         serializableFieldSaveFlagMethods
                     ) with {
-                        FieldName = fieldSymbol.Name
+                        FieldName = fieldSymbol.Name,
+                        IsReadOnly = fieldSymbol.IsReadOnly
                     };
 
                     // We can't continue if we have duplicates.
@@ -424,10 +432,17 @@ public static partial class SerializableEntityGeneration
             }
 
             var chrArray = ArrayPool<char>.Shared.Rent(migrationSource.Length);
-            migrationSource.CopyTo(0, chrArray, 0, migrationSource.Length);
-            ReadOnlySpan<char> buffer = chrArray.AsSpan(0, migrationSource.Length);
-            SerializableMetadata migration = JsonSerializer.Deserialize<SerializableMetadata>(buffer, jsonSerializerOptions);
-            ArrayPool<char>.Shared.Return(chrArray);
+            SerializableMetadata migration;
+            try
+            {
+                migrationSource.CopyTo(0, chrArray, 0, migrationSource.Length);
+                ReadOnlySpan<char> buffer = chrArray.AsSpan(0, migrationSource.Length);
+                migration = JsonSerializer.Deserialize<SerializableMetadata>(buffer, jsonSerializerOptions);
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(chrArray);
+            }
 
             source.GenerateMigrationContentStruct(compilation, indent, migration, classSymbol);
             source.AppendLine();
@@ -437,6 +452,41 @@ public static partial class SerializableEntityGeneration
 
         var serializeOverride = isOverride || classSymbol.BaseType.IsSerializableRecursive(compilation);
 
+        // Compute SaveFlag configuration
+        // Maps field order to (enumIndex, bitIndex) for fields with save flags
+        var saveFlagMapping = new Dictionary<int, (int EnumIndex, int BitIndex)>();
+        var saveFlagCount = 0;
+        foreach (var (order, _) in serializableFieldSaveFlags)
+        {
+            if (!serializableFields[order].IsReadOnly)
+            {
+                saveFlagCount++;
+            }
+        }
+
+        var saveFlagUseUlong = saveFlagCount > 32;
+        var saveFlagEnumCount = saveFlagCount <= 64 ? 1 : (saveFlagCount + 63) / 64;
+        var bitsPerEnum = saveFlagUseUlong ? 64 : 32;
+
+        var currentBitIndex = 0;
+        var currentEnumIndex = 0;
+        foreach (var (order, _) in serializableFieldSaveFlags)
+        {
+            if (serializableFields[order].IsReadOnly)
+            {
+                continue;
+            }
+
+            if (currentBitIndex >= bitsPerEnum)
+            {
+                currentBitIndex = 0;
+                currentEnumIndex++;
+            }
+
+            saveFlagMapping[order] = (currentEnumIndex, currentBitIndex);
+            currentBitIndex++;
+        }
+
         // Serialize Method
         source.GenerateSerializeMethod(
             compilation,
@@ -444,7 +494,10 @@ public static partial class SerializableEntityGeneration
             serializeOverride,
             encodedVersion,
             serializableFields,
-            serializableFieldSaveFlags
+            serializableFieldSaveFlags,
+            saveFlagMapping,
+            saveFlagUseUlong,
+            saveFlagEnumCount
         );
         source.AppendLine();
 
@@ -462,7 +515,10 @@ public static partial class SerializableEntityGeneration
                 serializableFields,
                 markDirtyMethod,
                 dirtyTrackingEntity?.Name ?? "this",
-                serializableFieldSaveFlags
+                serializableFieldSaveFlags,
+                saveFlagMapping,
+                saveFlagUseUlong,
+                saveFlagEnumCount
             );
         }
         catch (DeserializeTimerFieldRequiredException e)
@@ -471,36 +527,83 @@ public static partial class SerializableEntityGeneration
             return (null, null, [diag]);
         }
 
-        // Serialize SaveFlag enum class
-        if (serializableFieldSaveFlags.Count > 0)
+        // Serialize SaveFlag enum class(es)
+        if (saveFlagCount > 0)
         {
-            source.AppendLine();
-            source.GenerateEnumStart(
-                "SaveFlag",
-                indent,
-                true,
-                Accessibility.Private
-            );
+            // Reset for enum generation
+            currentBitIndex = 0;
+            currentEnumIndex = 0;
+            var isFirstEnum = true;
 
-            source.GenerateEnumValue($"{indent}    ", true, "None", -1);
-            int index = 0;
             foreach (var (order, _) in serializableFieldSaveFlags)
             {
-                source.GenerateEnumValue($"{indent}    ", true, serializableFields[order].Name, index++);
+                // Skip readonly fields
+                if (serializableFields[order].IsReadOnly)
+                {
+                    continue;
+                }
+
+                // Start a new enum if needed
+                if (currentBitIndex == 0 || currentBitIndex >= bitsPerEnum)
+                {
+                    if (!isFirstEnum)
+                    {
+                        source.GenerateEnumEnd(indent);
+                    }
+
+                    source.AppendLine();
+                    var enumName = currentEnumIndex == 0 ? "SaveFlag" : $"SaveFlag{currentEnumIndex + 1}";
+                    source.GenerateEnumStart(
+                        enumName,
+                        indent,
+                        true,
+                        Accessibility.Private,
+                        saveFlagUseUlong ? "ulong" : null
+                    );
+
+                    if (saveFlagUseUlong)
+                    {
+                        source.GenerateEnumValueLong($"{indent}    ", true, "None", -1);
+                    }
+                    else
+                    {
+                        source.GenerateEnumValue($"{indent}    ", true, "None", -1);
+                    }
+
+                    if (currentBitIndex >= bitsPerEnum)
+                    {
+                        currentBitIndex = 0;
+                        currentEnumIndex++;
+                    }
+                    isFirstEnum = false;
+                }
+
+                if (saveFlagUseUlong)
+                {
+                    source.GenerateEnumValueLong($"{indent}    ", true, serializableFields[order].Name, currentBitIndex++);
+                }
+                else
+                {
+                    source.GenerateEnumValue($"{indent}    ", true, serializableFields[order].Name, currentBitIndex++);
+                }
             }
 
-            source.GenerateEnumEnd(indent);
+            if (!isFirstEnum)
+            {
+                source.GenerateEnumEnd(indent);
+            }
         }
 
         source.RecursiveGenerateClassEnd(classSymbol, ref indent);
         source.GenerateNamespaceEnd();
 
-        // Write the migration file
+        // Write the migration file (exclude readonly fields since they aren't serialized)
+        var serializableFieldsForMigration = serializableFields.Where(f => !f.IsReadOnly).ToImmutableArray();
         var newMigration = generateMetadata ? new SerializableMetadata
         {
             Version = version,
             Type = classSymbol.ToDisplayString(),
-            Properties = serializableFields.Length > 0 ? serializableFields : null
+            Properties = serializableFieldsForMigration.Length > 0 ? serializableFieldsForMigration : null
         } : null;
 
         return (source.ToString(), newMigration, null);

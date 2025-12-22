@@ -245,7 +245,11 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
                 builder[className] = classMigrationSet = new Dictionary<int, AdditionalText>();
             }
 
-            classMigrationSet[version] = additionalText;
+            // Only use the first migration file for each version to prevent silent overwrites
+            if (!classMigrationSet.ContainsKey(version))
+            {
+                classMigrationSet[version] = additionalText;
+            }
         }
 
         return builder.ToImmutable();

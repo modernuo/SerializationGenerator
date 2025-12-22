@@ -164,9 +164,7 @@ public class SortedSetMigrationRule : MigrationRule
 
         source.AppendLine($"{indent}{setElementType} {propertyEntry};");
         source.AppendLine($"{indent}var {propertyCount} = reader.ReadEncodedInt();");
-
-        // Assume the sorted set is initialized in the constructor of the entity
-        // TODO: Add IComparer/IEnumerable support
+        source.AppendLine($"{indent}{propertyName} = new System.Collections.Generic.SortedSet<{setElementType}>();");
         source.AppendLine($"{indent}for (var {propertyIndex} = 0; {propertyIndex} < {propertyCount}; {propertyIndex}++)");
         source.AppendLine($"{indent}{{");
 
@@ -185,7 +183,11 @@ public class SortedSetMigrationRule : MigrationRule
             serializableSetElement,
             parentReference
         );
-        source.AppendLine($"{indent}    {propertyName}.Add({propertyEntry});");
+
+        source.AppendLine($"{indent}    if (typeof({setElementType}).IsValueType || {propertyEntry} != null)");
+        source.AppendLine($"{indent}    {{");
+        source.AppendLine($"{indent}        {propertyName}.Add({propertyEntry});");
+        source.AppendLine($"{indent}    }}");
 
         source.AppendLine($"{indent}}}");
     }
