@@ -28,10 +28,8 @@ jobs:
 
     - name: Build and Pack
       run: |
-        dotnet build  -c Release
+        dotnet build -c Release
 
     - name: Publish to NuGet.org
       run: |
-        dotnet nuget push **/*.nupkg \
-          --source https://api.nuget.org/v3/index.json
-          --api-key ${{ secrets.NUGET_API_KEY }}
+        dotnet nuget push "**/*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key "${{ secrets.NUGET_API_KEY }}" --skip-duplicate
