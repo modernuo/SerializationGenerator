@@ -41,7 +41,7 @@ public static partial class SerializableEntityGeneration
         token.ThrowIfCancellationRequested();
 
         var (
-            classNode,
+            typeNode,
             classSymbol,
             serializableAttr,
             fields,
@@ -51,6 +51,9 @@ public static partial class SerializableEntityGeneration
             dirtyTrackingEntity,
             migrations
         ) = classRecord;
+
+        var typeKeyword = typeNode.GetTypeKeyword();
+        var isValueType = classRecord.IsValueType;
 
         // If we have a parent that is or derives from ISerializable, then we are in override
         var isOverride = classSymbol.BaseType.HasSerializableInterface(compilation);
@@ -68,14 +71,14 @@ public static partial class SerializableEntityGeneration
 
             if (order < 0)
             {
-                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, symbol.Name);
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, symbol.Name);
                 return (null, null, [diag]);
             }
 
             // Duplicate found, failure.
             if (serializableFieldSaveFlags.TryGetValue(order, out _))
             {
-                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, order);
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, order);
                 return (null, null, [diag]);
             }
 
@@ -92,7 +95,7 @@ public static partial class SerializableEntityGeneration
 
             if (order < 0)
             {
-                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, symbol.Name);
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, symbol.Name);
                 return (null, null, [diag]);
             }
 
@@ -105,7 +108,7 @@ public static partial class SerializableEntityGeneration
             // Duplicate found, failure.
             if (serializableFieldSaveFlagMethods.GetFieldDefaultValue != null)
             {
-                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, order);
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, order);
                 return (null, null, [diag]);
             }
 
@@ -136,7 +139,7 @@ public static partial class SerializableEntityGeneration
 
         var indent = "    ";
 
-        source.RecursiveGenerateClassStart(classSymbol, ImmutableArray<ITypeSymbol>.Empty, ref indent);
+        source.RecursiveGenerateClassStart(classSymbol, ImmutableArray<ITypeSymbol>.Empty, ref indent, typeKeyword);
 
         source.GenerateField(
             indent,
@@ -212,7 +215,7 @@ public static partial class SerializableEntityGeneration
 
             if (order < 0)
             {
-                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, symbol.Name);
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, symbol.Name);
                 return (null, null, [diag]);
             }
 
@@ -242,7 +245,7 @@ public static partial class SerializableEntityGeneration
                     if (classSymbol.GetMembers(fieldName)
                             .FirstOrDefault(member => member is IFieldSymbol) is not IFieldSymbol fieldMember)
                     {
-                        var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3004, fieldName, order);
+                        var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3004, fieldName, order);
                         return (null, null, [diag]);
                     }
 
@@ -268,13 +271,13 @@ public static partial class SerializableEntityGeneration
                     // We can't continue if we have duplicates.
                     if (!serializableFieldSet.Add(serializableProperty))
                     {
-                        var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, order);
+                        var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_PROPERTY_ATTRIBUTE, order);
                         return (null, null, [diag]);
                     }
                 }
                 catch (NoRuleFoundException e)
                 {
-                    var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
+                    var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
                     return (null, null, [diag]);
                 }
             }
@@ -318,7 +321,7 @@ public static partial class SerializableEntityGeneration
 
             if (order < 0)
             {
-                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, symbol.Name);
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, symbol.Name);
                 return (null, null, [diag]);
             }
 
@@ -381,13 +384,13 @@ public static partial class SerializableEntityGeneration
                     // We can't continue if we have duplicates.
                     if (!serializableFieldSet.Add(serializableProperty))
                     {
-                        var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, order);
+                        var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_ATTRIBUTE, order);
                         return (null, null, [diag]);
                     }
                 }
                 catch (NoRuleFoundException e)
                 {
-                    var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
+                    var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3007, e.PropertyName, e.PropertyType);
                     return (null, null, [diag]);
                 }
             }
@@ -402,12 +405,13 @@ public static partial class SerializableEntityGeneration
             var order = serializableFields[i].Order;
             if (order != i)
             {
-                var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3005, serializableFields[i].Name, i, order);
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3005, serializableFields[i].Name, i, order);
                 return (null, null, [diag]);
             }
         }
 
-        if (isSerializable && !classSymbol.HasSerialCtor(compilation))
+        // Skip serial constructor for value types - they use static factory or instance Deserialize
+        if (!isValueType && isSerializable && !classSymbol.HasSerialCtor(compilation))
         {
             // Serial constructor
             source.GenerateSerialCtor(compilation, className, indent, isOverride);
@@ -523,7 +527,7 @@ public static partial class SerializableEntityGeneration
         }
         catch (DeserializeTimerFieldRequiredException e)
         {
-            var diag = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3008, e.PropertyName);
+            var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3008, e.PropertyName);
             return (null, null, [diag]);
         }
 
@@ -598,57 +602,63 @@ public static partial class SerializableEntityGeneration
         source.GenerateNamespaceEnd();
 
         // Write the migration file (exclude readonly fields since they aren't serialized)
+        // Use arity notation for generic types to match file naming convention
         var serializableFieldsForMigration = serializableFields.Where(f => !f.IsReadOnly).ToImmutableArray();
         var newMigration = generateMetadata ? new SerializableMetadata
         {
             Version = version,
-            Type = classSymbol.ToDisplayString(),
+            Type = classSymbol.GetGenericArityName(),
             Properties = serializableFieldsForMigration.Length > 0 ? serializableFieldsForMigration : null
         } : null;
 
         return (source.ToString(), newMigration, null);
     }
 
-    private static void RecursiveGenerateClassStart(
-        this StringBuilder source,
-        INamedTypeSymbol classSymbol,
-        ImmutableArray<ITypeSymbol> interfaces,
-        ref string indent
-    )
+    extension(StringBuilder source)
     {
-        var containingSymbolList = new List<INamedTypeSymbol>();
-
-        do
+        private void RecursiveGenerateClassStart(
+            INamedTypeSymbol classSymbol,
+            ImmutableArray<ITypeSymbol> interfaces,
+            ref string indent,
+            string typeKeyword = "class"
+        )
         {
-            containingSymbolList.Add(classSymbol);
-            classSymbol = classSymbol.ContainingSymbol as INamedTypeSymbol;
-        } while (classSymbol != null);
+            var containingSymbolList = new List<INamedTypeSymbol>();
 
-        containingSymbolList.Reverse();
-
-        for (var i = 0; i < containingSymbolList.Count; i++)
-        {
-            var symbol = containingSymbolList[i];
-            var last = i == containingSymbolList.Count - 1;
-
-            if (last)
+            do
             {
-                source.AppendLine($"{indent}[System.CodeDom.Compiler.GeneratedCode(\"ModernUO.Serialization.Generator\", \"{Version}\")]");
+                containingSymbolList.Add(classSymbol);
+                classSymbol = classSymbol.ContainingSymbol as INamedTypeSymbol;
+            } while (classSymbol != null);
+
+            containingSymbolList.Reverse();
+
+            for (var i = 0; i < containingSymbolList.Count; i++)
+            {
+                var symbol = containingSymbolList[i];
+                var last = i == containingSymbolList.Count - 1;
+
+                if (last)
+                {
+                    source.AppendLine($"{indent}[System.CodeDom.Compiler.GeneratedCode(\"ModernUO.Serialization.Generator\", \"{Version}\")]");
+                }
+
+                // Only the outermost type uses the specified type keyword
+                var currentTypeKeyword = last ? typeKeyword : "class";
+                source.GenerateClassStart(symbol, indent, last ? interfaces : ImmutableArray<ITypeSymbol>.Empty, true, currentTypeKeyword);
+                indent += "    ";
             }
-
-            source.GenerateClassStart(symbol, indent, last ? interfaces : ImmutableArray<ITypeSymbol>.Empty);
-            indent += "    ";
         }
-    }
 
-    private static void RecursiveGenerateClassEnd(this StringBuilder source, INamedTypeSymbol classSymbol, ref string indent)
-    {
-        do
+        private void RecursiveGenerateClassEnd(INamedTypeSymbol classSymbol, ref string indent)
         {
-            indent = indent.Substring(0, indent.Length - 4);
-            source.GenerateClassEnd(indent);
+            do
+            {
+                indent = indent.Substring(0, indent.Length - 4);
+                source.GenerateClassEnd(indent);
 
-            classSymbol = classSymbol.ContainingSymbol as INamedTypeSymbol;
-        } while (classSymbol != null);
+                classSymbol = classSymbol.ContainingSymbol as INamedTypeSymbol;
+            } while (classSymbol != null);
+        }
     }
 }

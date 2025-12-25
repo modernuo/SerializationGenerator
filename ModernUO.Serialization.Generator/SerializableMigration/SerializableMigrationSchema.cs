@@ -35,8 +35,8 @@ public static class SerializableMigrationSchema
 
     public static JsonSerializerOptions GetJsonSerializerOptions() => _defaultSerializerOptions.Value;
 
-    // <ClassName>.v*.json
-    public static readonly Regex MigrationFileRegex = new(@"^(\S+)\.[vV](\d+)\.json$", RegexOptions.Compiled);
+    // <ClassName>.v*.json - supports generic arity notation like Foo`2.v1.json
+    public static readonly Regex MigrationFileRegex = new(@"^(\S+?(?:`\d+)?)\.[vV](\d+)\.json$", RegexOptions.Compiled);
 
     public static bool MatchMigrationFilename(string fileName, out string className, out int version)
     {

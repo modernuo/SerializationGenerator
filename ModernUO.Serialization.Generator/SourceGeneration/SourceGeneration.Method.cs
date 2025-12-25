@@ -21,41 +21,44 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SourceGeneration
 {
-    public static void GenerateMethodStart(
-        this StringBuilder source, string indent, string methodName, Accessibility accessors, bool isOverride,
-        string returnType, ImmutableArray<(ITypeSymbol, string)> parameters
-    )
+    extension(StringBuilder source)
     {
-        source.Append($"{indent}{accessors.ToFriendlyString()}{(isOverride ? " override" : " virtual")} {returnType} {methodName}(");
-        source.GenerateSignatureArguments(parameters);
-        source.AppendLine($")\n{indent}{{");
-    }
-
-    public static void GenerateMethodEnd(this StringBuilder source, string indent) => source.AppendLine($"{indent}}}");
-
-    public static void GenerateConstructorStart(
-        this StringBuilder source, string indent, string className, Accessibility accessors, ImmutableArray<(ITypeSymbol, string)> parameters,
-        ImmutableArray<string>? baseParameters, bool isOverload = false
-    )
-    {
-        source.Append($"{indent}{accessors.ToFriendlyString()} {className}(");
-        source.GenerateSignatureArguments(parameters);
-        source.Append(')');
-        if ((baseParameters?.Length ?? 0) > 0)
+        public void GenerateMethodStart(
+            string indent, string methodName, Accessibility accessors, bool isOverride,
+            string returnType, ImmutableArray<(ITypeSymbol, string)> parameters
+        )
         {
-            source.AppendFormat(" : {0}(", isOverload ? "this" : "base");
-            var baseParametersValue = baseParameters.Value;
-            for (int i = 0; i < baseParametersValue.Length; i++)
-            {
-                source.Append(baseParametersValue[i]);
-                if (i < baseParametersValue.Length - 1)
-                {
-                    source.Append(',');
-                }
-            }
-            source.Append(')');
+            source.Append($"{indent}{accessors.ToFriendlyString()}{(isOverride ? " override" : " virtual")} {returnType} {methodName}(");
+            source.GenerateSignatureArguments(parameters);
+            source.AppendLine($")\n{indent}{{");
         }
 
-        source.AppendLine($"\n{indent}{{");
+        public void GenerateMethodEnd(string indent) => source.AppendLine($"{indent}}}");
+
+        public void GenerateConstructorStart(
+            string indent, string className, Accessibility accessors, ImmutableArray<(ITypeSymbol, string)> parameters,
+            ImmutableArray<string>? baseParameters, bool isOverload = false
+        )
+        {
+            source.Append($"{indent}{accessors.ToFriendlyString()} {className}(");
+            source.GenerateSignatureArguments(parameters);
+            source.Append(')');
+            if ((baseParameters?.Length ?? 0) > 0)
+            {
+                source.AppendFormat(" : {0}(", isOverload ? "this" : "base");
+                var baseParametersValue = baseParameters.Value;
+                for (int i = 0; i < baseParametersValue.Length; i++)
+                {
+                    source.Append(baseParametersValue[i]);
+                    if (i < baseParametersValue.Length - 1)
+                    {
+                        source.Append(',');
+                    }
+                }
+                source.Append(')');
+            }
+
+            source.AppendLine($"\n{indent}{{");
+        }
     }
 }

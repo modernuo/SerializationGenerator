@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ModernUO.Serialization.Generator;
 
 public record SerializableClassRecord(
-    ClassDeclarationSyntax ClassNode,
+    TypeDeclarationSyntax TypeNode,
     INamedTypeSymbol ClassSymbol,
     AttributeData SerializationAttribute,
     ImmutableArray<(ISymbol, AttributeData)> SerializableFields,
@@ -14,4 +14,7 @@ public record SerializableClassRecord(
     ImmutableArray<(ISymbol, AttributeData)> SerializableFieldDefault,
     ISymbol? DirtyTrackingEntity,
     ImmutableDictionary<int, AdditionalText> Migrations
-);
+)
+{
+    public bool IsValueType => ClassSymbol.IsValueType;
+};

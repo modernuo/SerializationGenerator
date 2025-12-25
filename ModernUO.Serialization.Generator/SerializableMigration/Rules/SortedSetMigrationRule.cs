@@ -53,9 +53,10 @@ public class SortedSetMigrationRule : MigrationRule
 
         var isTidy = attributes.Any(a => a.IsTidy(compilation));
         var canBeNull = attributes.Any(a => a.IsCanBeNull(compilation));
+        var hasComparer = attributes.TryGetSortedSetComparer(compilation, out var comparerExpression);
 
         var length = serializableSetType.RuleArguments?.Length ?? 0;
-        ruleArguments = new string[(isTidy ? 1 : 0) + (canBeNull ? 1 : 0) + 2 + length];
+        ruleArguments = new string[(isTidy ? 1 : 0) + (canBeNull ? 1 : 0) + (hasComparer ? 1 : 0) + 2 + length];
 
         var index = 0;
 
@@ -68,6 +69,12 @@ public class SortedSetMigrationRule : MigrationRule
         {
             ruleArguments[index++] = "@CanBeNull";
         }
+
+        if (hasComparer)
+        {
+            ruleArguments[index++] = $"@Comparer:{comparerExpression}";
+        }
+
         ruleArguments[index++] = setTypeSymbol.ToDisplayString();
         ruleArguments[index++] = serializableSetType.Rule;
 
@@ -104,7 +111,14 @@ public class SortedSetMigrationRule : MigrationRule
             index++;
         }
 
-        var setElementType = ruleArguments![index++];
+        string? comparerExpression = null;
+        if (ruleArguments![index].StartsWith("@Comparer:"))
+        {
+            comparerExpression = ruleArguments[index].Substring("@Comparer:".Length);
+            index++;
+        }
+
+        var setElementType = ruleArguments[index++];
         var setElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments[index++]];
         var setElementRuleArguments = new string[ruleArguments.Length - index];
 
@@ -124,7 +138,8 @@ public class SortedSetMigrationRule : MigrationRule
                 parentReference,
                 setElementType,
                 setElementRule,
-                setElementRuleArguments
+                setElementRuleArguments,
+                comparerExpression
             );
             source.AppendLine($"{indent}}}");
             source.AppendLine($"{indent}else");
@@ -142,7 +157,8 @@ public class SortedSetMigrationRule : MigrationRule
                 parentReference,
                 setElementType,
                 setElementRule,
-                setElementRuleArguments
+                setElementRuleArguments,
+                comparerExpression
             );
         }
     }
@@ -155,7 +171,8 @@ public class SortedSetMigrationRule : MigrationRule
         string parentReference,
         string setElementType,
         ISerializableMigrationRule setElementRule,
-        string[] setElementRuleArguments
+        string[] setElementRuleArguments,
+        string? comparerExpression = null
     )
     {
         var propertyIndex = $"{propertyName}Index";
@@ -164,7 +181,9 @@ public class SortedSetMigrationRule : MigrationRule
 
         source.AppendLine($"{indent}{setElementType} {propertyEntry};");
         source.AppendLine($"{indent}var {propertyCount} = reader.ReadEncodedInt();");
-        source.AppendLine($"{indent}{propertyName} = new System.Collections.Generic.SortedSet<{setElementType}>();");
+
+        var constructorArgs = comparerExpression != null ? comparerExpression : "";
+        source.AppendLine($"{indent}{propertyName} = new System.Collections.Generic.SortedSet<{setElementType}>({constructorArgs});");
         source.AppendLine($"{indent}for (var {propertyIndex} = 0; {propertyIndex} < {propertyCount}; {propertyIndex}++)");
         source.AppendLine($"{indent}{{");
 
@@ -211,7 +230,13 @@ public class SortedSetMigrationRule : MigrationRule
             index++;
         }
 
-        var setElementType = ruleArguments![index++];
+        // Skip @Comparer entry if present (comparer is only used during deserialization)
+        if (ruleArguments![index].StartsWith("@Comparer:"))
+        {
+            index++;
+        }
+
+        var setElementType = ruleArguments[index++];
         var setElementRule = SerializableMigrationRulesEngine.Rules[ruleArguments[index++]];
         var setElementRuleArguments = new string[ruleArguments.Length - index];
         Array.Copy(ruleArguments, index, setElementRuleArguments, 0, ruleArguments.Length - index);

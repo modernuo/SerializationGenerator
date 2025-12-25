@@ -20,40 +20,42 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SourceGeneration
 {
-    public static void GenerateEnumStart(
-        this StringBuilder source,
-        string enumName,
-        string indent,
-        bool useFlags,
-        Accessibility accessor = Accessibility.Public,
-        string? underlyingType = null
-    )
+    extension(StringBuilder source)
     {
-        if (useFlags)
+        public void GenerateEnumStart(
+            string enumName,
+            string indent,
+            bool useFlags,
+            Accessibility accessor = Accessibility.Public,
+            string underlyingType = null
+        )
         {
-            source.AppendLine($"{indent}[System.Flags]");
+            if (useFlags)
+            {
+                source.AppendLine($"{indent}[System.Flags]");
+            }
+
+            var typeSpecifier = underlyingType != null ? $" : {underlyingType}" : "";
+            source.AppendLine($"{indent}{accessor.ToFriendlyString()} enum {enumName}{typeSpecifier}\n{indent}{{");
         }
 
-        var typeSpecifier = underlyingType != null ? $" : {underlyingType}" : "";
-        source.AppendLine($"{indent}{accessor.ToFriendlyString()} enum {enumName}{typeSpecifier}\n{indent}{{");
-    }
+        public void GenerateEnumValue(string indent, bool isFlag, string name, int value)
+        {
+            var number = value < 0 ? 0 : 1 << value;
+            var valueStr = isFlag ? $"0x{number:X8}" : value.ToString();
+            source.AppendLine($"{indent}{name} = {valueStr},");
+        }
 
-    public static void GenerateEnumValue(this StringBuilder source, string indent, bool isFlag, string name, int value)
-    {
-        var number = value < 0 ? 0 : 1 << value;
-        var valueStr = isFlag ? $"0x{number:X8}" : value.ToString();
-        source.AppendLine($"{indent}{name} = {valueStr},");
-    }
+        public void GenerateEnumValueLong(string indent, bool isFlag, string name, int value)
+        {
+            var number = value < 0 ? 0UL : 1UL << value;
+            var valueStr = isFlag ? $"0x{number:X16}" : value.ToString();
+            source.AppendLine($"{indent}{name} = {valueStr},");
+        }
 
-    public static void GenerateEnumValueLong(this StringBuilder source, string indent, bool isFlag, string name, int value)
-    {
-        var number = value < 0 ? 0UL : 1UL << value;
-        var valueStr = isFlag ? $"0x{number:X16}" : value.ToString();
-        source.AppendLine($"{indent}{name} = {valueStr},");
-    }
-
-    public static void GenerateEnumEnd(this StringBuilder source, string indent)
-    {
-        source.AppendLine($"{indent}}}");
+        public void GenerateEnumEnd(string indent)
+        {
+            source.AppendLine($"{indent}}}");
+        }
     }
 }
