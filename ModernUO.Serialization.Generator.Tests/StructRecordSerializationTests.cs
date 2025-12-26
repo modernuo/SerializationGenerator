@@ -100,7 +100,7 @@ public class StructRecordSerializationTests
             }
             """;
 
-        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
+        var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
 
         Assert.Contains(diagnostics, d => d.Id == "SG3009");
     }
@@ -183,7 +183,7 @@ public class StructRecordSerializationTests
             }
             """;
 
-        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
+        var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
 
         Assert.Contains(diagnostics, d => d.Id == "SG3009");
     }

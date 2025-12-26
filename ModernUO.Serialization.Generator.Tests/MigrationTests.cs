@@ -64,7 +64,7 @@ public class MigrationTests
             }
             """;
 
-        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(
+        var (_, generatedSource) = SourceGeneratorTestHelper.RunGenerator(
             source,
             additionalTexts: [("TestNamespace.MigratingItem.v0.json", migrationJson)]
         );
