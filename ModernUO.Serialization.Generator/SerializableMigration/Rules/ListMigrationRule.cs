@@ -182,11 +182,7 @@ public class ListMigrationRule : MigrationRule
             serializableListElement,
             parentReference
         );
-
-        source.AppendLine($"{indent}    if (typeof({listElementType}).IsValueType || {propertyEntry} != null)");
-        source.AppendLine($"{indent}    {{");
-        source.AppendLine($"{indent}        {propertyName}.Add({propertyEntry});");
-        source.AppendLine($"{indent}    }}");
+        source.AppendLine($"{indent}    {propertyName}.Add({propertyEntry});");
 
         source.AppendLine($"{indent}}}");
     }
