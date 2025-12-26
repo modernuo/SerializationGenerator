@@ -471,4 +471,45 @@ public class BasicSerializationTests
         // Version 0 should not need migration switch
         Assert.DoesNotContain("switch (version)", generatedSource);
     }
+
+    [Fact]
+    public void FieldWithNumber_GeneratesPropertyWithoutSpaces()
+    {
+        const string source = """
+            using ModernUO.Serialization;
+            using Server;
+
+            namespace TestNamespace
+            {
+                [SerializationGenerator(0)]
+                public partial class NumberedFieldItem : ISerializable
+                {
+                    [SerializableField(0)]
+                    private string _slayer1;
+
+                    [SerializableField(1)]
+                    private string _slayer2;
+
+                    [SerializableField(2)]
+                    private int _field123;
+
+                    public Serial Serial => default;
+                    public void MarkDirty() { }
+                }
+            }
+            """;
+
+        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
+        Assert.NotNull(generatedSource);
+        // Property names should NOT have spaces (Humanizer 3.x regression)
+        Assert.Contains("public string Slayer1", generatedSource);
+        Assert.Contains("public string Slayer2", generatedSource);
+        Assert.Contains("public int Field123", generatedSource);
+        // Ensure no spaces in property names
+        Assert.DoesNotContain("Slayer 1", generatedSource);
+        Assert.DoesNotContain("Slayer 2", generatedSource);
+        Assert.DoesNotContain("Field 123", generatedSource);
+    }
 }

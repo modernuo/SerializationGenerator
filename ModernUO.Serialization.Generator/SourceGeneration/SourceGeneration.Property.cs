@@ -35,7 +35,11 @@ public static partial class SourceGeneration
             propertyName = propertyName.Substring(1);
         }
 
-        return Utility.RunAsEnglish(propertyName.Dehumanize);
+        // Dehumanize converts "some text" to "SomeText", but in Humanizer 3.x it may insert
+        // spaces before numbers (e.g., "slayer2" becomes "Slayer 2"). Remove any spaces since
+        // C# identifiers cannot contain spaces.
+        // See: https://github.com/Humanizr/Humanizer/issues/1656
+        return Utility.RunAsEnglish(propertyName.Dehumanize).Replace(" ", "");
     }
 
     extension(StringBuilder source)
