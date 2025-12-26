@@ -19,16 +19,19 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SourceGeneration
 {
-    public static void GenerateNamespaceStart(this StringBuilder source, string namespaceName)
+    extension(StringBuilder source)
     {
-        source.AppendLine($$"""
-                            namespace {{namespaceName}}
-                            {
-                            """);
-    }
+        public void GenerateNamespaceStart(string namespaceName)
+        {
+            source.AppendLine($$"""
+                                namespace {{namespaceName}}
+                                {
+                                """);
+        }
 
-    public static void GenerateNamespaceEnd(this StringBuilder source)
-    {
-        source.AppendLine("}");
+        public void GenerateNamespaceEnd()
+        {
+            source.AppendLine("}");
+        }
     }
 }

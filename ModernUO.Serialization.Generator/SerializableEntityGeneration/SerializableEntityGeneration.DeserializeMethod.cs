@@ -23,194 +23,215 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SerializableEntityGeneration
 {
-    public static void GenerateDeserializeMethod(
-        this StringBuilder source,
-        Compilation compilation,
-        INamedTypeSymbol classSymbol,
-        string indent,
-        bool isOverride,
-        int version,
-        bool encodedVersion,
-        ImmutableArray<SerializableMetadata> migrations,
-        ImmutableArray<SerializableProperty> fields,
-        string? markDirtyMethod,
-        string? parentReference,
-        SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary
-    )
+    extension(StringBuilder source)
     {
-        var genericReaderInterface = compilation.GetTypeByMetadataName(SymbolMetadata.GENERIC_READER_INTERFACE);
-
-        source.GenerateMethodStart(
-            indent,
-            "Deserialize",
-            Accessibility.Public,
-            isOverride,
-            "void",
-            ImmutableArray.Create<(ITypeSymbol, string)>((genericReaderInterface, "reader"))
-        );
-
-        var bodyIndent = $"{indent}    ";
-        var innerIndent = $"{bodyIndent}    ";
-
-        if (isOverride)
+        public void GenerateDeserializeMethod(
+            Compilation compilation,
+            INamedTypeSymbol classSymbol,
+            string indent,
+            bool isOverride,
+            int version,
+            bool encodedVersion,
+            ImmutableArray<SerializableMetadata> migrations,
+            ImmutableArray<SerializableProperty> fields,
+            string markDirtyMethod,
+            string parentReference,
+            SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary,
+            Dictionary<int, (int EnumIndex, int BitIndex)> saveFlagMapping,
+            bool saveFlagUseUlong,
+            int saveFlagEnumCount
+        )
         {
-            source.AppendLine($"{bodyIndent}base.Deserialize(reader);");
-            source.AppendLine();
-        }
+            var genericReaderInterface = compilation.GetTypeByMetadataName(SymbolMetadata.GENERIC_READER_INTERFACE);
 
-        var afterDeserialization = classSymbol
-            .GetMembers()
-            .OfType<IMethodSymbol>()
-            .Select(
-                m =>
-                {
-                    if (!m.ReturnsVoid || m.Parameters.Length != 0)
+            source.GenerateMethodStart(
+                indent,
+                "Deserialize",
+                Accessibility.Public,
+                isOverride,
+                "void",
+                ImmutableArray.Create<(ITypeSymbol, string)>((genericReaderInterface, "reader"))
+            );
+
+            var bodyIndent = $"{indent}    ";
+            var innerIndent = $"{bodyIndent}    ";
+
+            if (isOverride)
+            {
+                source.AppendLine($"{bodyIndent}base.Deserialize(reader);");
+                source.AppendLine();
+            }
+
+            var afterDeserialization = classSymbol
+                .GetMembers()
+                .OfType<IMethodSymbol>()
+                .Select(
+                    m =>
                     {
-                        return (m, null);
+                        if (!m.ReturnsVoid || m.Parameters.Length != 0)
+                        {
+                            return (m, null);
+                        }
+
+                        return (m, m.GetAttributes()
+                            .FirstOrDefault(
+                                attr => SymbolEqualityComparer.Default.Equals(
+                                    attr.AttributeClass,
+                                    compilation.GetTypeByMetadataName(SymbolMetadata.AFTER_DESERIALIZATION_ATTRIBUTE)
+                                )
+                            ));
+                    }
+                ).Where(m => m.Item2 != null).ToList();
+
+            // Version
+            source.AppendLine($"{bodyIndent}var version = reader.{(encodedVersion ? "ReadEncodedInt" : "ReadInt")}();");
+
+            if (version > 0)
+            {
+                var nextVersion = 0;
+
+                for (var i = 0; i < migrations.Length; i++)
+                {
+                    var migrationVersion = migrations[i].Version;
+                    if (migrationVersion == nextVersion)
+                    {
+                        nextVersion++;
                     }
 
-                    return (m, m.GetAttributes()
-                        .FirstOrDefault(
-                            attr => SymbolEqualityComparer.Default.Equals(
-                                attr.AttributeClass,
-                                compilation.GetTypeByMetadataName(SymbolMetadata.AFTER_DESERIALIZATION_ATTRIBUTE)
-                            )
-                        ));
+                    source.AppendLine();
+                    source.AppendLine($"{bodyIndent}if (version == {migrationVersion})");
+                    source.AppendLine($"{bodyIndent}{{");
+                    source.AppendLine($"{bodyIndent}    MigrateFrom(new V{migrationVersion}Content(reader, this));");
+                    if (markDirtyMethod != null)
+                    {
+                        source.AppendLine($"{bodyIndent}    {markDirtyMethod};");
+                    }
+                    source.GenerateAfterDeserialization($"{bodyIndent}    ", afterDeserialization);
+                    source.AppendLine($"{bodyIndent}    return;");
+                    source.AppendLine($"{bodyIndent}}}");
                 }
-            ).Where(m => m.Item2 != null).ToList();
 
-        // Version
-        source.AppendLine($"{bodyIndent}var version = reader.{(encodedVersion ? "ReadEncodedInt" : "ReadInt")}();");
-
-        if (version > 0)
-        {
-            var nextVersion = 0;
-
-            for (var i = 0; i < migrations.Length; i++)
-            {
-                var migrationVersion = migrations[i].Version;
-                if (migrationVersion == nextVersion)
+                if (nextVersion < version)
                 {
-                    nextVersion++;
+                    source.AppendLine();
+                    source.AppendLine($"{bodyIndent}if (version < SerializationVersion)");
+                    source.AppendLine($"{bodyIndent}{{");
+                    source.AppendLine($"{bodyIndent}    Deserialize(reader, version);");
+                    if (markDirtyMethod != null)
+                    {
+                        source.AppendLine($"{bodyIndent}    {markDirtyMethod};");
+                    }
+                    source.GenerateAfterDeserialization($"{bodyIndent}    ", afterDeserialization);
+                    source.AppendLine($"{bodyIndent}    return;");
+                    source.AppendLine($"{bodyIndent}}}");
                 }
-
-                source.AppendLine();
-                source.AppendLine($"{bodyIndent}if (version == {migrationVersion})");
-                source.AppendLine($"{bodyIndent}{{");
-                source.AppendLine($"{bodyIndent}    MigrateFrom(new V{migrationVersion}Content(reader, this));");
-                if (markDirtyMethod != null)
-                {
-                    source.AppendLine($"{bodyIndent}    {markDirtyMethod};");
-                }
-                source.GenerateAfterDeserialization($"{bodyIndent}    ", afterDeserialization);
-                source.AppendLine($"{bodyIndent}    return;");
-                source.AppendLine($"{bodyIndent}}}");
             }
 
-            if (nextVersion < version)
+            if (saveFlagMapping.Count > 0)
             {
                 source.AppendLine();
-                source.AppendLine($"{bodyIndent}if (version < SerializationVersion)");
-                source.AppendLine($"{bodyIndent}{{");
-                source.AppendLine($"{bodyIndent}    Deserialize(reader, version);");
-                if (markDirtyMethod != null)
+                // Read all save flag enums
+                for (var i = 0; i < saveFlagEnumCount; i++)
                 {
-                    source.AppendLine($"{bodyIndent}    {markDirtyMethod};");
+                    var enumName = i == 0 ? "SaveFlag" : $"SaveFlag{i + 1}";
+                    var varName = i == 0 ? "saveFlags" : $"saveFlags{i + 1}";
+                    source.AppendLine($"{bodyIndent}var {varName} = reader.ReadEnum<{enumName}>();");
                 }
-                source.GenerateAfterDeserialization($"{bodyIndent}    ", afterDeserialization);
-                source.AppendLine($"{bodyIndent}    return;");
-                source.AppendLine($"{bodyIndent}}}");
             }
-        }
 
-        if (serializableFieldSaveFlagMethodsDictionary.Count > 0)
-        {
-            source.AppendLine();
-            source.AppendLine($"{bodyIndent}var saveFlags = reader.ReadEnum<SaveFlag>();");
-        }
-
-        for (var i = 0; i < fields.Length; i++)
-        {
-            var field = fields[i];
-            var rule = SerializableMigrationRulesEngine.Rules[field.Rule];
-
-            if (serializableFieldSaveFlagMethodsDictionary.TryGetValue(
-                    field.Order,
-                    out var serializableFieldSaveFlagMethods
-                ))
+            for (var i = 0; i < fields.Length; i++)
             {
-                source.AppendLine();
-                // Special case
-                if (field.Type == "bool")
+                var field = fields[i];
+
+                // Skip readonly fields - they cannot be assigned outside the constructor
+                if (field.IsReadOnly)
                 {
-                    source.AppendLine($"{bodyIndent}{field.FieldName} = (saveFlags & SaveFlag.{field.Name}) != 0;");
+                    continue;
+                }
+
+                var rule = SerializableMigrationRulesEngine.Rules[field.Rule];
+
+                if (serializableFieldSaveFlagMethodsDictionary.TryGetValue(
+                        field.Order,
+                        out var serializableFieldSaveFlagMethods
+                    ) && saveFlagMapping.TryGetValue(field.Order, out var mapping))
+                {
+                    var enumName = mapping.EnumIndex == 0 ? "SaveFlag" : $"SaveFlag{mapping.EnumIndex + 1}";
+                    var varName = mapping.EnumIndex == 0 ? "saveFlags" : $"saveFlags{mapping.EnumIndex + 1}";
+
+                    source.AppendLine();
+                    // Special case
+                    if (field.Type == "bool")
+                    {
+                        source.AppendLine($"{bodyIndent}{field.FieldName} = ({varName} & {enumName}.{field.Name}) != 0;");
+                    }
+                    else
+                    {
+                        source.AppendLine($"{bodyIndent}if (({varName} & {enumName}.{field.Name}) != 0)\n{bodyIndent}{{");
+                        rule.GenerateDeserializationMethod(
+                            source,
+                            innerIndent,
+                            compilation,
+                            field,
+                            parentReference
+                        );
+                        (rule as IPostDeserializeMethod)?.PostDeserializeMethod(
+                            source,
+                            innerIndent,
+                            field,
+                            compilation,
+                            classSymbol
+                        );
+
+                        if (serializableFieldSaveFlagMethods.GetFieldDefaultValue != null)
+                        {
+                            source.AppendLine($"{bodyIndent}}}\n{bodyIndent}else\n{bodyIndent}{{");
+                            source.AppendLine(
+                                $"{bodyIndent}    {field.FieldName} = {serializableFieldSaveFlagMethods.GetFieldDefaultValue.Name}();"
+                            );
+                        }
+
+                        source.AppendLine($"{bodyIndent}}}");
+                    }
                 }
                 else
                 {
-                    source.AppendLine($"{bodyIndent}if ((saveFlags & SaveFlag.{field.Name}) != 0)\n{bodyIndent}{{");
+                    source.AppendLine();
                     rule.GenerateDeserializationMethod(
                         source,
-                        innerIndent,
+                        bodyIndent,
                         compilation,
                         field,
                         parentReference
                     );
                     (rule as IPostDeserializeMethod)?.PostDeserializeMethod(
                         source,
-                        innerIndent,
+                        bodyIndent,
                         field,
                         compilation,
                         classSymbol
                     );
-
-                    if (serializableFieldSaveFlagMethods.GetFieldDefaultValue != null)
-                    {
-                        source.AppendLine($"{bodyIndent}}}\n{bodyIndent}else\n{bodyIndent}{{");
-                        source.AppendLine(
-                            $"{bodyIndent}    {field.FieldName} = {serializableFieldSaveFlagMethods.GetFieldDefaultValue.Name}();"
-                        );
-                    }
-
-                    source.AppendLine($"{bodyIndent}}}");
                 }
             }
-            else
-            {
-                source.AppendLine();
-                rule.GenerateDeserializationMethod(
-                    source,
-                    bodyIndent,
-                    compilation,
-                    field,
-                    parentReference
-                );
-                (rule as IPostDeserializeMethod)?.PostDeserializeMethod(
-                    source,
-                    bodyIndent,
-                    field,
-                    compilation,
-                    classSymbol
-                );
-            }
+
+            source.GenerateAfterDeserialization($"{bodyIndent}", afterDeserialization);
+            source.GenerateMethodEnd(indent);
         }
 
-        source.GenerateAfterDeserialization($"{bodyIndent}", afterDeserialization);
-        source.GenerateMethodEnd(indent);
-    }
-
-    private static void GenerateAfterDeserialization(
-        this StringBuilder source, string indent, IList<(IMethodSymbol, AttributeData?)> afterDeserialization
-    )
-    {
-        foreach (var (method, attr) in afterDeserialization)
+        private void GenerateAfterDeserialization(
+            string indent, IList<(IMethodSymbol, AttributeData?)> afterDeserialization
+        )
         {
-            if ((bool)attr.ConstructorArguments[0].Value!)
+            foreach (var (method, attr) in afterDeserialization)
             {
-                source.AppendLine($"{indent}{method.Name}();");
-            }
-            else
-            {
-                source.AppendLine($"{indent}Timer.DelayCall({method.Name});");
+                if ((bool)attr.ConstructorArguments[0].Value!)
+                {
+                    source.AppendLine($"{indent}{method.Name}();");
+                }
+                else
+                {
+                    source.AppendLine($"{indent}Timer.DelayCall({method.Name});");
+                }
             }
         }
     }

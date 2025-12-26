@@ -250,7 +250,7 @@ public class DictionaryMigrationRule : MigrationRule
             parentReference
         );
 
-        source.AppendLine($"{indent}    if (typeof({keyType}).IsValueType || {propertyKeyEntry} != null)");
+        source.AppendLine($"{indent}    if (typeof({keyType}).IsValueType || {propertyKeyEntry} != default)");
         source.AppendLine($"{indent}    {{");
         source.AppendLine($"{indent}        {propertyName}.Add({propertyKeyEntry}, {propertyValueEntry});");
         source.AppendLine($"{indent}    }}");

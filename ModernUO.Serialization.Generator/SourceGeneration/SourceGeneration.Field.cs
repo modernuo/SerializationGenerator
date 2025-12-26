@@ -24,7 +24,10 @@ public static partial class SourceGeneration
     public static string GetFieldName(this string propertyName)
     {
         var humanized = Utility.RunAsEnglish(propertyName.Humanize);
-        var camelized = Utility.RunAsEnglish(humanized.Camelize);
+        // Camelize may not remove spaces introduced by Humanize in Humanizer 3.x
+        // Remove any spaces since C# identifiers cannot contain spaces.
+        // See: https://github.com/Humanizr/Humanizer/issues/1656
+        var camelized = Utility.RunAsEnglish(humanized.Camelize).Replace(" ", "");
         return $"_{camelized}";
     }
 

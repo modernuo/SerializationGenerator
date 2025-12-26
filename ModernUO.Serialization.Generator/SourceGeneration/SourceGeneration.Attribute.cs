@@ -21,76 +21,78 @@ namespace ModernUO.Serialization.Generator;
 
 public static partial class SourceGeneration
 {
-    public static void GenerateAttribute(
-        this StringBuilder source,
-        string indent,
-        string attrClassName,
-        ImmutableArray<TypedConstant> args
-    )
+    extension(StringBuilder source)
     {
-        source.Append($"{indent}[{attrClassName}");
-        var hasArgs = args.Length > 0;
-
-        if (hasArgs)
+        public void GenerateAttribute(
+            string indent,
+            string attrClassName,
+            ImmutableArray<TypedConstant> args
+        )
         {
-            source.Append("(");
-        }
+            source.Append($"{indent}[{attrClassName}");
+            var hasArgs = args.Length > 0;
 
-        for (var i = 0; i < args.Length; i++)
-        {
-            var arg = args[i];
-            source.GenerateTypedConstant(arg);
-            if (i < args.Length - 1)
+            if (hasArgs)
             {
-                source.Append(", ");
+                source.Append("(");
             }
-        }
 
-        if (hasArgs)
-        {
-            source.Append(")");
-        }
-
-        source.AppendLine("]");
-    }
-
-    public static void GenerateAttribute(this StringBuilder source, AttributeData attr)
-    {
-        source.Append($"        [{attr.AttributeClass?.Name}");
-        var ctorArgs = attr.ConstructorArguments;
-        var namedArgs = attr.NamedArguments;
-        var hasArgs = ctorArgs.Length + namedArgs.Length > 0;
-
-        if (hasArgs)
-        {
-            source.Append("(");
-        }
-
-        for (var i = 0; i < ctorArgs.Length; i++)
-        {
-            var arg = ctorArgs[i];
-            source.GenerateTypedConstant(arg);
-            if (i < ctorArgs.Length - 1)
+            for (var i = 0; i < args.Length; i++)
             {
-                source.Append(", ");
+                var arg = args[i];
+                source.GenerateTypedConstant(arg);
+                if (i < args.Length - 1)
+                {
+                    source.Append(", ");
+                }
             }
-        }
 
-        for (var i = 0; i < namedArgs.Length; i++)
-        {
-            var arg = namedArgs[i];
-            source.GenerateNamedArgument(arg);
-            if (i < namedArgs.Length - 1)
+            if (hasArgs)
             {
-                source.Append(", ");
+                source.Append(")");
             }
+
+            source.AppendLine("]");
         }
 
-        if (hasArgs)
+        public void GenerateAttribute(AttributeData attr)
         {
-            source.Append(")");
-        }
+            source.Append($"        [{attr.AttributeClass?.Name}");
+            var ctorArgs = attr.ConstructorArguments;
+            var namedArgs = attr.NamedArguments;
+            var hasArgs = ctorArgs.Length + namedArgs.Length > 0;
 
-        source.AppendLine("]");
+            if (hasArgs)
+            {
+                source.Append("(");
+            }
+
+            for (var i = 0; i < ctorArgs.Length; i++)
+            {
+                var arg = ctorArgs[i];
+                source.GenerateTypedConstant(arg);
+                if (i < ctorArgs.Length - 1)
+                {
+                    source.Append(", ");
+                }
+            }
+
+            for (var i = 0; i < namedArgs.Length; i++)
+            {
+                var arg = namedArgs[i];
+                source.GenerateNamedArgument(arg);
+                if (i < namedArgs.Length - 1)
+                {
+                    source.Append(", ");
+                }
+            }
+
+            if (hasArgs)
+            {
+                source.Append(")");
+            }
+
+            source.AppendLine("]");
+        }
     }
 }

@@ -24,8 +24,8 @@ public static class DiagnosticDescriptors
 {
     public static readonly DiagnosticDescriptor SG3001 = new(
         "SG3001",
-        "Classes marked with the SerializationGenerator attribute must be partial",
-        "'{0}' must be a partial class to use the SerializationGenerator attribute",
+        "Types marked with the SerializationGenerator attribute must be partial",
+        "'{0}' must be a partial type to use the SerializationGenerator attribute",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -33,7 +33,7 @@ public static class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor SG3002 = new(
         "SG3002",
-        "Classes marked with the SerializationGenerator attribute must properly import the attribute",
+        "Types marked with the SerializationGenerator attribute must properly import the attribute",
         "'{0}' is not properly importing the SerializationGenerator attribute",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
@@ -89,6 +89,15 @@ public static class DiagnosticDescriptors
         "SG3008",
         "Missing DeserializeTimerField attribute",
         "Missing DeserializeTimerField attribute for '{0}'",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3009 = new(
+        "SG3009",
+        "Struct/record must have a Deserialize method",
+        "'{0}' must have either a static 'Deserialize(IGenericReader)' factory method or an instance 'void Deserialize(IGenericReader)' method",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true

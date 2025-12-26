@@ -17,7 +17,7 @@ using System;
 
 namespace ModernUO.Serialization;
 
-[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 public sealed class SerializationGeneratorAttribute : Attribute
 {
     public int Version { get; }

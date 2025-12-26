@@ -37,6 +37,7 @@ public static partial class SymbolMetadata
     public const string SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldSaveFlagAttribute";
     public const string SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldDefaultAttribute";
     public const string SERIALIZED_PROPERTY_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializedPropertyAttrAttribute`1";
+    public const string SORTED_SET_COMPARER_ATTRIBUTE = "ModernUO.Serialization.SortedSetComparerAttribute";
 
     public const string SERIALIZABLE_INTERFACE = "Server.ISerializable";
     public const string GENERIC_WRITER_INTERFACE = "Server.IGenericWriter";
@@ -55,329 +56,447 @@ public static partial class SymbolMetadata
     // ModernUO modified BitArray
     public const string BITARRAY_CLASS = "System.Collections.BitArray";
 
-    public static bool IsSerializedPropertyAttr(this AttributeData attr, Compilation compilation, out ITypeSymbol? genericType)
+    extension(AttributeData attr)
     {
-        var attrClass = attr?.AttributeClass;
-        if (attrClass?.BaseType == null || attrClass.BaseType.IsUnboundGenericType || !attrClass.BaseType.IsGenericType)
+        public bool IsSerializedPropertyAttr(Compilation compilation, out ITypeSymbol genericType)
         {
-            genericType = null;
-            return false;
+            var attrClass = attr?.AttributeClass;
+            if (attrClass?.BaseType == null || attrClass.BaseType.IsUnboundGenericType || !attrClass.BaseType.IsGenericType)
+            {
+                genericType = null;
+                return false;
+            }
+
+            var serializedPropertyAttrType = compilation.GetTypeByMetadataName(SERIALIZED_PROPERTY_ATTR_ATTRIBUTE);
+            if (!attrClass.BaseType.ConstructedFrom.Equals(serializedPropertyAttrType, SymbolEqualityComparer.Default))
+            {
+                genericType = null;
+                return false;
+            }
+
+            var types = attrClass.BaseType.TypeArguments;
+            if (types.Length != 1)
+            {
+                genericType = null;
+                return false;
+            }
+
+            genericType = types[0];
+            return true;
         }
 
-        var serializedPropertyAttrType = compilation.GetTypeByMetadataName(SERIALIZED_PROPERTY_ATTR_ATTRIBUTE);
-        if (!attrClass.BaseType.ConstructedFrom.Equals(serializedPropertyAttrType, SymbolEqualityComparer.Default))
-        {
-            genericType = null;
-            return false;
-        }
+        public bool IsCanBeNull(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetTypeByMetadataName(CAN_BE_NULL_ATTRIBUTE)) == true;
 
-        var types = attrClass.BaseType.TypeArguments;
-        if (types.Length != 1)
-        {
-            genericType = null;
-            return false;
-        }
-
-        genericType = types[0];
-        return true;
+        public bool IsTimerDrift(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetTypeByMetadataName(TIMER_DRIFT_ATTRIBUTE)) == true;
     }
-
-    public static bool IsCanBeNull(this AttributeData attr, Compilation compilation) =>
-        attr?.IsAttribute(compilation.GetTypeByMetadataName(CAN_BE_NULL_ATTRIBUTE)) == true;
-
-    public static bool IsTimerDrift(this AttributeData attr, Compilation compilation) =>
-        attr?.IsAttribute(compilation.GetTypeByMetadataName(TIMER_DRIFT_ATTRIBUTE)) == true;
 
     public static bool IsTimer(this ITypeSymbol symbol, Compilation compilation) =>
         symbol.CanBeConstructedFrom(compilation.GetTypeByMetadataName(TIMER_CLASS));
 
-    public static bool IsEncodedInt(this AttributeData attr, Compilation compilation) =>
-        attr?.IsAttribute(compilation.GetTypeByMetadataName(ENCODED_INT_ATTRIBUTE)) == true;
+    extension(AttributeData attr)
+    {
+        public bool IsEncodedInt(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetTypeByMetadataName(ENCODED_INT_ATTRIBUTE)) == true;
 
-    public static bool IsDeltaDateTime(this AttributeData attr, Compilation compilation) =>
-        attr?.IsAttribute(compilation.GetTypeByMetadataName(DELTA_DATE_TIME_ATTRIBUTE)) == true;
+        public bool IsDeltaDateTime(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetTypeByMetadataName(DELTA_DATE_TIME_ATTRIBUTE)) == true;
 
-    public static bool IsInternString(this AttributeData attr, Compilation compilation) =>
-        attr?.IsAttribute(compilation.GetTypeByMetadataName(INTERN_STRING_ATTRIBUTE)) == true;
+        public bool IsInternString(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetTypeByMetadataName(INTERN_STRING_ATTRIBUTE)) == true;
 
-    public static bool IsTidy(this AttributeData attr, Compilation compilation) =>
-        attr?.IsAttribute(compilation.GetTypeByMetadataName(TIDY_ATTRIBUTE)) == true;
+        public bool IsTidy(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetTypeByMetadataName(TIDY_ATTRIBUTE)) == true;
 
-    public static bool IsAttribute(this AttributeData attr, ISymbol symbol) =>
-        attr?.AttributeClass?.Equals(symbol, SymbolEqualityComparer.Default) == true;
+        public bool IsAttribute(ISymbol symbol) =>
+            attr?.AttributeClass?.Equals(symbol, SymbolEqualityComparer.Default) == true;
 
-    public static bool IsEnum(this ITypeSymbol symbol) =>
-        symbol.SpecialType == SpecialType.System_Enum || symbol.TypeKind == TypeKind.Enum;
+        public bool IsSortedSetComparer(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetTypeByMetadataName(SORTED_SET_COMPARER_ATTRIBUTE)) == true;
+    }
 
-    public static bool HasSerializableInterface(
-        this ITypeSymbol symbol,
-        Compilation compilation
-    ) => symbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
+    public static bool TryGetSortedSetComparer(
+        this ImmutableArray<AttributeData> attributes,
+        Compilation compilation,
+        out string? comparerExpression
+    )
+    {
+        var sortedSetComparerAttr = compilation.GetTypeByMetadataName(SORTED_SET_COMPARER_ATTRIBUTE);
+        var attr = attributes.FirstOrDefault(a => a.IsAttribute(sortedSetComparerAttr));
+
+        if (attr == null)
+        {
+            comparerExpression = null;
+            return false;
+        }
+
+        var comparerType = attr.ConstructorArguments[0].Value as ITypeSymbol;
+        if (comparerType == null)
+        {
+            comparerExpression = null;
+            return false;
+        }
+
+        var comparerTypeName = comparerType.ToDisplayString();
+
+        if (attr.ConstructorArguments.Length > 1 && attr.ConstructorArguments[1].Value is string staticMember)
+        {
+            // Static member: e.g., "StringComparer.OrdinalIgnoreCase"
+            comparerExpression = $"{comparerTypeName}.{staticMember}";
+        }
+        else
+        {
+            // Instance comparer: e.g., "new MyComparer()"
+            comparerExpression = $"new {comparerTypeName}()";
+        }
+
+        return true;
+    }
+
+    extension(ITypeSymbol symbol)
+    {
+        public bool IsEnum() =>
+            symbol.SpecialType == SpecialType.System_Enum || symbol.TypeKind == TypeKind.Enum;
+
+        public bool HasSerializableInterface(
+            Compilation compilation
+        ) => symbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
+    }
 
     public static bool Contains(this ImmutableArray<INamedTypeSymbol> symbols, ITypeSymbol? symbol) =>
         symbol is INamedTypeSymbol namedSymbol &&
         symbols.Contains(namedSymbol, SymbolEqualityComparer.Default) || symbols.Contains(symbol?.BaseType);
 
-    public static bool HasSerialCtor(
-        this INamedTypeSymbol symbol,
-        Compilation compilation
-    )
+    extension(INamedTypeSymbol symbol)
     {
-        var serialType = compilation.GetTypeByMetadataName(SERIAL_STRUCT);
-        return symbol.Constructors.FirstOrDefault(
-            member =>
-                member.Parameters.Length == 1
-                && SymbolEqualityComparer.Default.Equals(member.Parameters[0].Type, serialType)
-        ) != null;
-    }
+        public bool HasSerialCtor(
+            Compilation compilation
+        )
+        {
+            var serialType = compilation.GetTypeByMetadataName(SERIAL_STRUCT);
+            return symbol.Constructors.FirstOrDefault(
+                member =>
+                    member.Parameters.Length == 1
+                    && SymbolEqualityComparer.Default.Equals(member.Parameters[0].Type, serialType)
+            ) != null;
+        }
 
-    public static bool TryGetEmptyOrParentCtor(
-        this INamedTypeSymbol symbol,
-        INamedTypeSymbol? parentSymbol,
-        out bool requiresParent
-    )
-    {
-        var genericCtor = symbol.Constructors.FirstOrDefault(
-            m =>
-            {
-                if (m.IsStatic || m.MethodKind != MethodKind.Constructor)
+        public bool TryGetEmptyOrParentCtor(
+            INamedTypeSymbol? parentSymbol,
+            out bool requiresParent
+        )
+        {
+            var genericCtor = symbol.Constructors.FirstOrDefault(
+                m =>
                 {
-                    return false;
-                }
-
-                if (m.Parameters.Length == 0)
-                {
-                    return true;
-                }
-
-                if (parentSymbol == null)
-                {
-                    return false;
-                }
-
-                var argType = m.Parameters[0].Type;
-                if (argType.TypeKind == TypeKind.Interface)
-                {
-                    return parentSymbol.Equals(argType, SymbolEqualityComparer.Default) || parentSymbol.ContainsInterface(argType);
-                }
-
-                if (parentSymbol.CanBeConstructedFrom(m.Parameters[0].Type) != true)
-                {
-                    return false;
-                }
-
-                for (var i = 1; i < m.Parameters.Length; i++)
-                {
-                    if (!m.Parameters[i].IsOptional)
+                    if (m.IsStatic || m.MethodKind != MethodKind.Constructor)
                     {
                         return false;
                     }
+
+                    if (m.Parameters.Length == 0)
+                    {
+                        return true;
+                    }
+
+                    if (parentSymbol == null)
+                    {
+                        return false;
+                    }
+
+                    var argType = m.Parameters[0].Type;
+                    if (argType.TypeKind == TypeKind.Interface)
+                    {
+                        return parentSymbol.Equals(argType, SymbolEqualityComparer.Default) || parentSymbol.ContainsInterface(argType);
+                    }
+
+                    if (parentSymbol.CanBeConstructedFrom(m.Parameters[0].Type) != true)
+                    {
+                        return false;
+                    }
+
+                    for (var i = 1; i < m.Parameters.Length; i++)
+                    {
+                        if (!m.Parameters[i].IsOptional)
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
                 }
-
-                return true;
-            }
-        );
-
-        requiresParent = genericCtor?.Parameters.Length > 0;
-        return genericCtor != null;
-    }
-
-    public static bool HasGenericReaderCtor(
-        this INamedTypeSymbol symbol,
-        Compilation compilation,
-        ISymbol? parentSymbol,
-        out bool requiresParent
-    )
-    {
-        var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
-        var genericCtor = symbol.Constructors.FirstOrDefault(
-            m => !m.IsStatic &&
-                 m.MethodKind == MethodKind.Constructor &&
-                 m.Parameters.Length >= 1 &&
-                 m.Parameters.Length <= 2 &&
-                 SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, genericReaderInterface)
-        );
-
-        requiresParent = genericCtor?.Parameters.Length == 2 && SymbolEqualityComparer.Default.Equals(genericCtor.Parameters[1].Type, parentSymbol);
-        return genericCtor != null;
-    }
-
-    public static string? GetMarkDirtyMethod(
-        this ITypeSymbol symbol, bool isSerializable = true, string? dirtyTrackingEntity = null, bool dirtyCanBeNull = false
-    )
-    {
-        var markDirtyMethod = symbol.GetAllMethods("MarkDirty")
-            .FirstOrDefault(
-                m => !m.IsStatic &&
-                     m.ReturnsVoid &&
-                     m.Parameters.Length == 0 &&
-                     m.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
             );
 
-        if (markDirtyMethod != null)
-        {
-            var dirtyTrackingEntityName =
-                dirtyTrackingEntity != null ? $"{dirtyTrackingEntity}{(dirtyCanBeNull ? "?" : "")}." : "";
-            return $"{dirtyTrackingEntityName}{markDirtyMethod.ToDisplayString()}()";
+            requiresParent = genericCtor?.Parameters.Length > 0;
+            return genericCtor != null;
         }
 
-        return isSerializable switch
+        public bool HasGenericReaderCtor(
+            Compilation compilation,
+            ISymbol? parentSymbol,
+            out bool requiresParent
+        )
         {
-            true => $"Server.ISerializableExtensions.MarkDirty({dirtyTrackingEntity ?? "this"})",
-            _    => null
-        };
-    }
-
-    public static bool HasPublicSerializeMethod(this ITypeSymbol symbol, Compilation compilation)
-    {
-        var genericWriterInterface = compilation.GetTypeByMetadataName(GENERIC_WRITER_INTERFACE);
-
-        return symbol.GetAllMethods("Serialize")
-            .Any(
+            var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
+            var genericCtor = symbol.Constructors.FirstOrDefault(
                 m => !m.IsStatic &&
-                     m.ReturnsVoid &&
-                     m.Parameters.Length == 1 &&
-                     SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, genericWriterInterface) &&
-                     m.DeclaredAccessibility == Accessibility.Public
-            );
-    }
-
-    public static bool HasPublicDeserializeMethod(
-        this ITypeSymbol symbol,
-        Compilation compilation
-    )
-    {
-        var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
-
-        return symbol.GetAllMethods("Deserialize")
-            .Any(
-                m => !m.IsStatic &&
-                     m.ReturnsVoid &&
-                     m.Parameters.Length == 1 &&
-                     SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, genericReaderInterface) &&
-                     m.DeclaredAccessibility == Accessibility.Public
-            );
-    }
-
-    public static ISymbol? HasDirtyTrackingEntity(this ITypeSymbol symbol, Compilation compilation) =>
-        symbol.GetMembers().FirstOrDefault(member => member.TryGetDirtyTrackingEntityField(compilation)) ??
-        symbol.BaseType?.HasDirtyTrackingEntity(compilation);
-
-    public static bool IsTextDefinition(this ISymbol symbol, Compilation compilation) =>
-        symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(TEXTDEFINITION_CLASS));
-
-    public static bool IsPoison(this ISymbol symbol, Compilation compilation) =>
-        symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(POISON_CLASS));
-
-    public static bool IsPoint2D(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(POINT2D_STRUCT),
-            SymbolEqualityComparer.Default
-        );
-
-    public static bool IsPoint3D(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(POINT3D_STRUCT),
-            SymbolEqualityComparer.Default
-        );
-
-    public static bool IsRectangle2D(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(RECTANGLE2D_STRUCT),
-            SymbolEqualityComparer.Default
-        );
-
-    public static bool IsRectangle3D(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(RECTANGLE3D_STRUCT),
-            SymbolEqualityComparer.Default
-        );
-
-    public static bool IsRace(this ISymbol symbol, Compilation compilation) =>
-        symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(RACE_CLASS));
-
-    public static bool IsMap(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(MAP_CLASS),
-            SymbolEqualityComparer.Default
-        );
-
-    public static bool IsBitArray(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(BITARRAY_CLASS),
-            SymbolEqualityComparer.Default
-        );
-
-    public static bool IsSerial(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(SERIAL_STRUCT),
-            SymbolEqualityComparer.Default
-        );
-
-    public static AttributeData? GetAttribute(this ISymbol symbol, ISymbol attrSymbol) =>
-        symbol
-            .GetAttributes()
-            .FirstOrDefault(
-                ad => ad.AttributeClass != null && SymbolEqualityComparer.Default.Equals(ad.AttributeClass, attrSymbol)
+                     m.MethodKind == MethodKind.Constructor &&
+                     m.Parameters.Length >= 1 &&
+                     m.Parameters.Length <= 2 &&
+                     SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, genericReaderInterface)
             );
 
-    public static bool HasSerializableInterface(this INamedTypeSymbol classSymbol, Compilation compilation) =>
-        classSymbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
-
-    public static bool IsSerializableRecursive(this INamedTypeSymbol classSymbol, Compilation compilation) =>
-        classSymbol.TryGetSerializable(compilation, out _) ||
-        (classSymbol.BaseType?.IsSerializableRecursive(compilation) ?? false);
-
-    public static bool TryGetSerializable(
-        this INamedTypeSymbol classSymbol, Compilation compilation, out AttributeData? attributeData
-    )
-    {
-        var serializableEntityAttribute =
-            compilation.GetTypeByMetadataName(SERIALIZABLE_ATTRIBUTE);
-
-        attributeData = classSymbol.GetAttribute(serializableEntityAttribute);
-        return attributeData != null;
+            requiresParent = genericCtor?.Parameters.Length == 2 && SymbolEqualityComparer.Default.Equals(genericCtor.Parameters[1].Type, parentSymbol);
+            return genericCtor != null;
+        }
     }
 
-    public static bool TryGetMemberWithAttribute(
-        this ISymbol symbol, INamedTypeSymbol attributeSymbol, out AttributeData? attributeData
-    )
+    extension(ITypeSymbol symbol)
     {
-        attributeData = symbol.GetAttribute(attributeSymbol);
-        return attributeData != null;
+        public string GetMarkDirtyMethod(
+            bool isSerializable = true, string dirtyTrackingEntity = null, bool dirtyCanBeNull = false
+        )
+        {
+            var markDirtyMethod = symbol.GetAllMethods("MarkDirty")
+                .FirstOrDefault(
+                    m => !m.IsStatic &&
+                         m.ReturnsVoid &&
+                         m.Parameters.Length == 0 &&
+                         m.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
+                );
+
+            if (markDirtyMethod != null)
+            {
+                var dirtyTrackingEntityName =
+                    dirtyTrackingEntity != null ? $"{dirtyTrackingEntity}{(dirtyCanBeNull ? "?" : "")}." : "";
+                return $"{dirtyTrackingEntityName}{markDirtyMethod.ToDisplayString()}()";
+            }
+
+            return isSerializable switch
+            {
+                true => $"Server.ISerializableExtensions.MarkDirty({dirtyTrackingEntity ?? "this"})",
+                _    => null
+            };
+        }
+
+        public bool HasPublicSerializeMethod(Compilation compilation)
+        {
+            var genericWriterInterface = compilation.GetTypeByMetadataName(GENERIC_WRITER_INTERFACE);
+
+            return symbol.GetAllMethods("Serialize")
+                .Any(
+                    m => !m.IsStatic &&
+                         m.ReturnsVoid &&
+                         m.Parameters.Length == 1 &&
+                         SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, genericWriterInterface) &&
+                         m.DeclaredAccessibility == Accessibility.Public
+                );
+        }
+
+        public bool HasPublicDeserializeMethod(
+            Compilation compilation
+        )
+        {
+            var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
+
+            return symbol.GetAllMethods("Deserialize")
+                .Any(
+                    m => !m.IsStatic &&
+                         m.ReturnsVoid &&
+                         m.Parameters.Length == 1 &&
+                         SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, genericReaderInterface) &&
+                         m.DeclaredAccessibility == Accessibility.Public
+                );
+        }
+
+        public ISymbol? HasDirtyTrackingEntity(Compilation compilation) =>
+            symbol.GetMembers().FirstOrDefault(member => member.TryGetDirtyTrackingEntityField(compilation)) ??
+            symbol.BaseType?.HasDirtyTrackingEntity(compilation);
     }
 
-    public static bool TryGetSerializableField(
-        this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
-    ) => fieldSymbol.TryGetMemberWithAttribute(
-        compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE),
-        out attributeData
-    );
+    extension(ISymbol symbol)
+    {
+        public bool IsTextDefinition(Compilation compilation) =>
+            symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(TEXTDEFINITION_CLASS));
 
-    public static bool TryGetSerializableProperty(
-        this ISymbol propertySymbol, Compilation compilation, out AttributeData? attributeData
-    ) => propertySymbol.TryGetMemberWithAttribute(
-        compilation.GetTypeByMetadataName(SERIALIZABLE_PROPERTY_ATTRIBUTE),
-        out attributeData
-    );
+        public bool IsPoison(Compilation compilation) =>
+            symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(POISON_CLASS));
 
-    public static bool TryGetDirtyTrackingEntityField(this ISymbol fieldSymbol, Compilation compilation) =>
-        fieldSymbol.TryGetMemberWithAttribute(
-            compilation.GetTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
-            out _
+        public bool IsPoint2D(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(POINT2D_STRUCT),
+                SymbolEqualityComparer.Default
+            );
+
+        public bool IsPoint3D(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(POINT3D_STRUCT),
+                SymbolEqualityComparer.Default
+            );
+
+        public bool IsRectangle2D(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(RECTANGLE2D_STRUCT),
+                SymbolEqualityComparer.Default
+            );
+
+        public bool IsRectangle3D(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(RECTANGLE3D_STRUCT),
+                SymbolEqualityComparer.Default
+            );
+
+        public bool IsRace(Compilation compilation) =>
+            symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(RACE_CLASS));
+
+        public bool IsMap(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(MAP_CLASS),
+                SymbolEqualityComparer.Default
+            );
+
+        public bool IsBitArray(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(BITARRAY_CLASS),
+                SymbolEqualityComparer.Default
+            );
+
+        public bool IsSerial(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(SERIAL_STRUCT),
+                SymbolEqualityComparer.Default
+            );
+
+        public AttributeData? GetAttribute(ISymbol attrSymbol) =>
+            symbol
+                .GetAttributes()
+                .FirstOrDefault(
+                    ad => ad.AttributeClass != null && SymbolEqualityComparer.Default.Equals(ad.AttributeClass, attrSymbol)
+                );
+    }
+
+    extension(INamedTypeSymbol classSymbol)
+    {
+        public bool HasSerializableInterface(Compilation compilation) =>
+            classSymbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
+
+        public bool IsSerializableRecursive(Compilation compilation) =>
+            classSymbol.TryGetSerializable(compilation, out _) ||
+            (classSymbol.BaseType?.IsSerializableRecursive(compilation) ?? false);
+
+        public bool TryGetSerializable(
+            Compilation compilation, out AttributeData? attributeData
+        )
+        {
+            var serializableEntityAttribute =
+                compilation.GetTypeByMetadataName(SERIALIZABLE_ATTRIBUTE);
+
+            attributeData = classSymbol.GetAttribute(serializableEntityAttribute);
+            return attributeData != null;
+        }
+    }
+
+    extension(ISymbol symbol)
+    {
+        public bool TryGetMemberWithAttribute(
+            INamedTypeSymbol attributeSymbol, out AttributeData attributeData
+        )
+        {
+            attributeData = symbol.GetAttribute(attributeSymbol);
+            return attributeData != null;
+        }
+
+        public bool TryGetSerializableField(
+            Compilation compilation, out AttributeData? attributeData
+        ) => symbol.TryGetMemberWithAttribute(
+            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE),
+            out attributeData
         );
 
-    public static bool TryGetSerializableFieldSaveFlagMethod(
-        this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
-    ) => fieldSymbol.TryGetMemberWithAttribute(
-        compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
-        out attributeData
-    );
+        public bool TryGetSerializableProperty(
+            Compilation compilation, out AttributeData? attributeData
+        ) => symbol.TryGetMemberWithAttribute(
+            compilation.GetTypeByMetadataName(SERIALIZABLE_PROPERTY_ATTRIBUTE),
+            out attributeData
+        );
 
-    public static bool TryGetSerializableFieldDefaultMethod(
-        this ISymbol fieldSymbol, Compilation compilation, out AttributeData? attributeData
-    ) => fieldSymbol.TryGetMemberWithAttribute(
-        compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
-        out attributeData
-    );
+        public bool TryGetDirtyTrackingEntityField(Compilation compilation) =>
+            symbol.TryGetMemberWithAttribute(
+                compilation.GetTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
+                out _
+            );
+
+        public bool TryGetSerializableFieldSaveFlagMethod(
+            Compilation compilation, out AttributeData? attributeData
+        ) => symbol.TryGetMemberWithAttribute(
+            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
+            out attributeData
+        );
+
+        public bool TryGetSerializableFieldDefaultMethod(
+            Compilation compilation, out AttributeData? attributeData
+        ) => symbol.TryGetMemberWithAttribute(
+            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
+            out attributeData
+        );
+    }
+
+    extension(INamedTypeSymbol symbol)
+    {
+        public bool HasStaticDeserializeFactory(
+            Compilation compilation
+        )
+        {
+            var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
+
+            return symbol.GetMembers("Deserialize")
+                .OfType<IMethodSymbol>()
+                .Any(
+                    m => m.IsStatic &&
+                         m.Parameters.Length == 1 &&
+                         SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, genericReaderInterface) &&
+                         SymbolEqualityComparer.Default.Equals(m.ReturnType, symbol) &&
+                         m.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
+                );
+        }
+
+        public bool HasInstanceDeserializeMethod(
+            Compilation compilation
+        )
+        {
+            var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
+
+            return symbol.GetMembers("Deserialize")
+                .OfType<IMethodSymbol>()
+                .Any(
+                    m => !m.IsStatic &&
+                         m.ReturnsVoid &&
+                         m.Parameters.Length == 1 &&
+                         SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, genericReaderInterface) &&
+                         m.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
+                );
+        }
+
+        public bool HasDeserializationCapability(
+            Compilation compilation,
+            out bool usesStaticFactory
+        )
+        {
+            if (symbol.HasStaticDeserializeFactory(compilation))
+            {
+                usesStaticFactory = true;
+                return true;
+            }
+
+            if (symbol.HasInstanceDeserializeMethod(compilation))
+            {
+                usesStaticFactory = false;
+                return true;
+            }
+
+            usesStaticFactory = false;
+            return false;
+        }
+    }
 }

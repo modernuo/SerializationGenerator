@@ -15,7 +15,6 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -195,7 +194,7 @@ public class KeyValuePairMigrationRule : MigrationRule
         );
 
         source.AppendLine(
-            $"{indent}{propertyName} = new {SymbolMetadata.KEYVALUEPAIR_STRUCT}<{keyType}, {valueType}>(key, value);"
+            $"{indent}{propertyName} = new System.Collections.Generic.KeyValuePair<{keyType}, {valueType}>(key, value);"
         );
     }
 

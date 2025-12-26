@@ -86,35 +86,43 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
         var syntaxNode = (AttributeSyntax)ctx.Node;
 
-        if (syntaxNode.Parent?.Parent is not ClassDeclarationSyntax classNode)
+        if (syntaxNode.Parent?.Parent is not TypeDeclarationSyntax typeNode)
         {
             return null;
         }
 
-        if (!classNode.IsPartial())
+        if (!typeNode.IsPartial())
         {
-            var className = compilation
-                .GetSemanticModel(classNode.SyntaxTree)
-                .GetDeclaredSymbol(classNode)?
+            var typeName = compilation
+                .GetSemanticModel(typeNode.SyntaxTree)
+                .GetDeclaredSymbol(typeNode)?
                 .Name;
 
-            var diagnostic = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3001, className);
+            var diagnostic = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3001, typeName);
             return (null, [diagnostic]);
         }
 
-        var node = (ClassDeclarationSyntax)ctx.Node.Parent!.Parent!;
+        var node = (TypeDeclarationSyntax)ctx.Node.Parent!.Parent!;
         var classSymbol = ctx.SemanticModel.GetDeclaredSymbol(node) as INamedTypeSymbol;
 
         // This happens when there is no using import
         if (!classSymbol.TryGetSerializable(compilation, out var serializationAttribute))
         {
-            var className = compilation
-                .GetSemanticModel(classNode.SyntaxTree)
-                .GetDeclaredSymbol(classNode)?
+            var typeName = compilation
+                .GetSemanticModel(typeNode.SyntaxTree)
+                .GetDeclaredSymbol(typeNode)?
                 .Name;
 
-            var diagnostic = classNode.GenerateDiagnostic(DiagnosticDescriptors.SG3002, className);
+            var diagnostic = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3002, typeName);
 
+            return (null, [diagnostic]);
+        }
+
+        // Validate that structs/records have deserialization capability
+        if (classSymbol.IsValueType && !classSymbol.HasDeserializationCapability(compilation, out _))
+        {
+            var typeName = classSymbol.Name;
+            var diagnostic = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3009, typeName);
             return (null, [diagnostic]);
         }
 
@@ -177,7 +185,7 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
         }
 
         var record = new SerializableClassRecord(
-            classNode,
+            typeNode,
             classSymbol,
             serializationAttribute,
             fields.ToImmutable(),
@@ -208,7 +216,9 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
         if (classRecord != null)
         {
-            if (additionalTexts.TryGetValue(classRecord.ClassSymbol.ToDisplayString(), out var migs))
+            // Use arity notation for generic types to match migration file naming
+            var migrationKey = classRecord.ClassSymbol.GetGenericArityName();
+            if (additionalTexts.TryGetValue(migrationKey, out var migs))
             {
                 classRecord = classRecord with
                 {
@@ -245,7 +255,11 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
                 builder[className] = classMigrationSet = new Dictionary<int, AdditionalText>();
             }
 
-            classMigrationSet[version] = additionalText;
+            // Only use the first migration file for each version to prevent silent overwrites
+            if (!classMigrationSet.ContainsKey(version))
+            {
+                classMigrationSet[version] = additionalText;
+            }
         }
 
         return builder.ToImmutable();
@@ -284,8 +298,9 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
                 if (classSource != null)
                 {
+                    // Use arity notation for generic types to avoid invalid characters in filename
                     context.AddSource(
-                        $"{classRecord.ClassSymbol.ToDisplayString()}.Serialization.g.cs",
+                        $"{classRecord.ClassSymbol.GetGenericArityName()}.Serialization.g.cs",
                         SourceText.From(classSource, Encoding.UTF8)
                     );
 
@@ -305,7 +320,7 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
             catch (Exception e)
             {
                 var descriptor = DiagnosticDescriptors.GeneratorCrashedDiagnostic(e);
-                var diagnostic = classRecord.ClassNode.GenerateDiagnostic(
+                var diagnostic = classRecord.TypeNode.GenerateDiagnostic(
                     descriptor,
                     e.GetType(),
                     classRecord.ClassSymbol.Name,

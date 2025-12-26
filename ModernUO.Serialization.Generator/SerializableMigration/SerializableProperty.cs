@@ -39,4 +39,7 @@ public record SerializableProperty
 
     [JsonIgnore]
     public string? FieldName { get; init; }
+
+    [JsonIgnore]
+    public bool IsReadOnly { get; init; }
 }

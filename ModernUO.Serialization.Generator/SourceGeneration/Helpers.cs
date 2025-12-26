@@ -13,11 +13,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -26,19 +24,22 @@ namespace ModernUO.Serialization.Generator;
 
 public static class Helpers
 {
-    public static bool ContainsInterface(this ITypeSymbol symbol, ISymbol interfaceSymbol) =>
-        symbol.Interfaces.Any(i => i.ConstructedFrom.Equals(interfaceSymbol, SymbolEqualityComparer.Default)) ||
-        symbol.AllInterfaces.Any(i => i.ConstructedFrom.Equals(interfaceSymbol, SymbolEqualityComparer.Default));
-
-    public static ImmutableArray<IMethodSymbol> GetAllMethods(this ITypeSymbol symbol, string name)
+    extension(ITypeSymbol symbol)
     {
-        var builder = ImmutableArray.CreateBuilder<IMethodSymbol>();
-        builder.AddRange(symbol.GetMembers(name).OfType<IMethodSymbol>());
-        if (symbol.BaseType is ITypeSymbol typeSymbol)
+        public bool ContainsInterface(ISymbol interfaceSymbol) =>
+            symbol.Interfaces.Any(i => i.ConstructedFrom.Equals(interfaceSymbol, SymbolEqualityComparer.Default)) ||
+            symbol.AllInterfaces.Any(i => i.ConstructedFrom.Equals(interfaceSymbol, SymbolEqualityComparer.Default));
+
+        public ImmutableArray<IMethodSymbol> GetAllMethods(string name)
         {
-            builder.AddRange(typeSymbol.GetAllMethods(name));
+            var builder = ImmutableArray.CreateBuilder<IMethodSymbol>();
+            builder.AddRange(symbol.GetMembers(name).OfType<IMethodSymbol>());
+            if (symbol.BaseType is ITypeSymbol typeSymbol)
+            {
+                builder.AddRange(typeSymbol.GetAllMethods(name));
+            }
+            return builder.ToImmutable();
         }
-        return builder.ToImmutable();
     }
 
     public static string ToFriendlyString(this Accessibility accessibility) => SyntaxFacts.GetText(accessibility);
@@ -80,9 +81,9 @@ public static class Helpers
             _                       => null
         };
 
-    public static bool IsPartial(this ClassDeclarationSyntax classDeclaration)
+    public static bool IsPartial(this TypeDeclarationSyntax typeDeclaration)
     {
-        foreach (var m in classDeclaration.Modifiers)
+        foreach (var m in typeDeclaration.Modifiers)
         {
             if (m.IsKind(SyntaxKind.PartialKeyword))
             {
@@ -100,7 +101,7 @@ public static class Helpers
                 (t, token) =>
                 {
                     token.ThrowIfCancellationRequested();
-                    return (T)Convert.ChangeType(t, typeof(T));
+                    return t!;
                 }
             );
 

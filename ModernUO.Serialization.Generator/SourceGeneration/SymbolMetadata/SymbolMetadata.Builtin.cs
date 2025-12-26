@@ -28,71 +28,74 @@ public static partial class SymbolMetadata
     public const string HASHSET_CLASS = "System.Collections.Generic.HashSet`1";
     public const string SORTEDSET_CLASS = "System.Collections.Generic.SortedSet`1";
     public const string IPADDRESS_CLASS = "System.Net.IPAddress";
-    public const string KEYVALUEPAIR_STRUCT = "System.Collections.Generic.KeyValuePair";
+    public const string KEYVALUEPAIR_STRUCT = "System.Collections.Generic.KeyValuePair`2";
     public const string TIMESPAN_STRUCT = "System.TimeSpan";
     public const string DATETIME_STRUCT = "System.DateTime";
     public const string GUID_STRUCT = "System.Guid";
     public const string TYPE_CLASS = "System.Type";
 
-    public static bool IsGuid(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(GUID_STRUCT),
-            SymbolEqualityComparer.Default
-        );
+    extension(ISymbol symbol)
+    {
+        public bool IsGuid(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(GUID_STRUCT),
+                SymbolEqualityComparer.Default
+            );
 
-    public static bool IsTimeSpan(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(TIMESPAN_STRUCT),
-            SymbolEqualityComparer.Default
-        );
+        public bool IsTimeSpan(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(TIMESPAN_STRUCT),
+                SymbolEqualityComparer.Default
+            );
 
-    public static bool IsIpAddress(this ISymbol symbol, Compilation compilation) =>
-        symbol.Equals(
-            compilation.GetTypeByMetadataName(IPADDRESS_CLASS),
-            SymbolEqualityComparer.Default
-        );
+        public bool IsIpAddress(Compilation compilation) =>
+            symbol.Equals(
+                compilation.GetTypeByMetadataName(IPADDRESS_CLASS),
+                SymbolEqualityComparer.Default
+            );
 
-    public static bool IsKeyValuePair(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
-            compilation.GetTypeByMetadataName(KEYVALUEPAIR_STRUCT),
-            SymbolEqualityComparer.Default
-        ) == true;
+        public bool IsKeyValuePair(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
+                compilation.GetTypeByMetadataName(KEYVALUEPAIR_STRUCT),
+                SymbolEqualityComparer.Default
+            ) == true;
 
-    public static bool IsDictionary(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
-            compilation.GetTypeByMetadataName(DICTIONARY_CLASS),
-            SymbolEqualityComparer.Default
-        ) == true;
+        public bool IsDictionary(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
+                compilation.GetTypeByMetadataName(DICTIONARY_CLASS),
+                SymbolEqualityComparer.Default
+            ) == true;
 
-    public static bool IsDictionaryInterface(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ContainsInterface(compilation.GetTypeByMetadataName(DICTIONARY_INTERFACE)) ?? false;
+        public bool IsDictionaryInterface(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ContainsInterface(compilation.GetTypeByMetadataName(DICTIONARY_INTERFACE)) ?? false;
 
-    public static bool IsHashSet(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
-            compilation.GetTypeByMetadataName(HASHSET_CLASS),
-            SymbolEqualityComparer.Default
-        ) == true;
+        public bool IsHashSet(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
+                compilation.GetTypeByMetadataName(HASHSET_CLASS),
+                SymbolEqualityComparer.Default
+            ) == true;
 
-    public static bool IsSortedSet(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
-            compilation.GetTypeByMetadataName(SORTEDSET_CLASS),
-            SymbolEqualityComparer.Default
-        ) == true;
+        public bool IsSortedSet(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
+                compilation.GetTypeByMetadataName(SORTEDSET_CLASS),
+                SymbolEqualityComparer.Default
+            ) == true;
 
-    public static bool IsSet(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ContainsInterface(compilation.GetTypeByMetadataName(SET_INTERFACE)) ?? false;
+        public bool IsSet(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ContainsInterface(compilation.GetTypeByMetadataName(SET_INTERFACE)) ?? false;
 
-    public static bool IsCollection(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ContainsInterface(compilation.GetTypeByMetadataName(COLLECTION_INTERFACE)) ?? false;
+        public bool IsCollection(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ContainsInterface(compilation.GetTypeByMetadataName(COLLECTION_INTERFACE)) ?? false;
 
-    public static bool IsList(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
-            compilation.GetTypeByMetadataName(LIST_CLASS),
-            SymbolEqualityComparer.Default
-        ) == true;
+        public bool IsList(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ConstructedFrom.Equals(
+                compilation.GetTypeByMetadataName(LIST_CLASS),
+                SymbolEqualityComparer.Default
+            ) == true;
 
-    public static bool IsListInterface(this ISymbol symbol, Compilation compilation) =>
-        (symbol as INamedTypeSymbol)?.ContainsInterface(compilation.GetTypeByMetadataName(LIST_INTERFACE)) ?? false;
+        public bool IsListInterface(Compilation compilation) =>
+            (symbol as INamedTypeSymbol)?.ContainsInterface(compilation.GetTypeByMetadataName(LIST_INTERFACE)) ?? false;
+    }
 
     public static bool IsPrimitiveFromTypeDisplayString(string type) =>
         type is "bool" or "sbyte" or "short" or "int" or "long" or "byte" or "ushort"
