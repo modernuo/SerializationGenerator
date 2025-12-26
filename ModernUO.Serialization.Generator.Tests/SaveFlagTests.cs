@@ -180,13 +180,33 @@ public partial class SaveFlagTests
 
         Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
         Assert.NotNull(generatedSource);
-        // Should have SaveFlag enum with ulong type (for > 32 flags, uses ulong up to 64)
-        // When > 64 flags, should generate multiple enums
-        Assert.Contains("enum SaveFlag", generatedSource);
-        // For 70 flags, need 2 enums (64 + 6)
-        // Check that there are multiple SaveFlag usages (SaveFlag and SaveFlag2 or multiple ulong enums)
-        var saveFlagCount = EnumSaveFlagRegex().Count(generatedSource);
-        Assert.True(saveFlagCount >= 2, $"Expected at least 2 SaveFlag enums, found {saveFlagCount}");
+
+        // Should have SaveFlag enum (first 64 flags)
+        Assert.Matches(EnumSaveFlagRegex(), generatedSource);
+
+        // Should have SaveFlag2 enum (flags 65-70)
+        Assert.Matches(EnumSaveFlag2Regex(), generatedSource);
+
+        // Verify correct enum naming - should NOT have duplicate "enum SaveFlag : ulong" without number
+        var saveFlagMatches = EnumSaveFlagRegex().Matches(generatedSource);
+        var saveFlag2Matches = EnumSaveFlag2Regex().Matches(generatedSource);
+        Assert.Single(saveFlagMatches); // Only one "enum SaveFlag : ulong"
+        Assert.Single(saveFlag2Matches); // Only one "enum SaveFlag2 : ulong"
+
+        // Verify serialization uses correct enum for fields >= 64
+        // Field64 should use saveFlags2 & SaveFlag2.Field64
+        Assert.Matches(SerializeSaveFlags2Regex(), generatedSource);
+
+        // Verify deserialization uses correct enum for fields >= 64
+        Assert.Matches(DeserializeSaveFlags2Regex(), generatedSource);
+
+        // Verify fields 0-63 use SaveFlag (not SaveFlag2)
+        Assert.Contains("saveFlags & SaveFlag.Field0", generatedSource);
+        Assert.Contains("saveFlags & SaveFlag.Field63", generatedSource);
+
+        // Verify fields 64+ use SaveFlag2
+        Assert.Contains("saveFlags2 & SaveFlag2.Field64", generatedSource);
+        Assert.Contains("saveFlags2 & SaveFlag2.Field69", generatedSource);
     }
 
     [Fact]
@@ -224,6 +244,15 @@ public partial class SaveFlagTests
         Assert.Contains("GetCountDefault", generatedSource);
     }
 
-    [GeneratedRegex("enum SaveFlag")]
+    [GeneratedRegex(@"enum SaveFlag\s*:\s*ulong")]
     private static partial Regex EnumSaveFlagRegex();
+
+    [GeneratedRegex(@"enum SaveFlag2\s*:\s*ulong")]
+    private static partial Regex EnumSaveFlag2Regex();
+
+    [GeneratedRegex(@"saveFlags2\s*&\s*SaveFlag2\.Field")]
+    private static partial Regex SerializeSaveFlags2Regex();
+
+    [GeneratedRegex(@"saveFlags2\s*&\s*SaveFlag2\.Field")]
+    private static partial Regex DeserializeSaveFlags2Regex();
 }

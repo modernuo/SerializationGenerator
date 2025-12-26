@@ -105,12 +105,14 @@ public static partial class SerializableEntityGeneration
                 continue;
             }
 
-            if (serializableFieldSaveFlagMethodsDictionary.ContainsKey(field.Order))
+            if (saveFlagMapping.TryGetValue(field.Order, out var mapping))
             {
                 // Special case
                 if (field.Type != "bool")
                 {
-                    source.AppendLine($"\n{bodyIndent}if ((saveFlags & SaveFlag.{field.Name}) != 0)\n{bodyIndent}{{");
+                    var enumName = mapping.EnumIndex == 0 ? "SaveFlag" : $"SaveFlag{mapping.EnumIndex + 1}";
+                    var varName = mapping.EnumIndex == 0 ? "saveFlags" : $"saveFlags{mapping.EnumIndex + 1}";
+                    source.AppendLine($"\n{bodyIndent}if (({varName} & {enumName}.{field.Name}) != 0)\n{bodyIndent}{{");
                     SerializableMigrationRulesEngine.Rules[field.Rule]
                         .GenerateSerializationMethod(
                             source,

@@ -555,6 +555,13 @@ public static partial class SerializableEntityGeneration
                         source.GenerateEnumEnd(indent);
                     }
 
+                    // If we're starting a new enum due to overflow, increment the enum index first
+                    if (currentBitIndex >= bitsPerEnum)
+                    {
+                        currentBitIndex = 0;
+                        currentEnumIndex++;
+                    }
+
                     source.AppendLine();
                     var enumName = currentEnumIndex == 0 ? "SaveFlag" : $"SaveFlag{currentEnumIndex + 1}";
                     source.GenerateEnumStart(
@@ -574,11 +581,6 @@ public static partial class SerializableEntityGeneration
                         source.GenerateEnumValue($"{indent}    ", true, "None", -1);
                     }
 
-                    if (currentBitIndex >= bitsPerEnum)
-                    {
-                        currentBitIndex = 0;
-                        currentEnumIndex++;
-                    }
                     isFirstEnum = false;
                 }
 
