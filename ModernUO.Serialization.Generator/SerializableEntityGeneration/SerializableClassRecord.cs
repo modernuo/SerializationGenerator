@@ -12,6 +12,7 @@ public record SerializableClassRecord(
     ImmutableArray<(ISymbol, AttributeData)> SerializableProperties,
     ImmutableArray<(ISymbol, AttributeData)> SerializableFieldSaveFlags,
     ImmutableArray<(ISymbol, AttributeData)> SerializableFieldDefault,
+    ImmutableArray<(ISymbol, AttributeData)> SerializableFieldChanged,
     ISymbol? DirtyTrackingEntity,
     ImmutableDictionary<int, AdditionalText> Migrations
 )

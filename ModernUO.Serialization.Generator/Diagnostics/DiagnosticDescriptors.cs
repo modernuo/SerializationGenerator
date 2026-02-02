@@ -103,6 +103,15 @@ public static class DiagnosticDescriptors
         true
     );
 
+    public static readonly DiagnosticDescriptor SG3010 = new(
+        "SG3010",
+        "SerializableFieldChanged method has invalid signature",
+        "Method '{0}' must have signature 'void {0}({1} oldValue, {1} newValue)' for field of type '{1}'",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
     public static DiagnosticDescriptor GeneratorCrashedDiagnostic(Exception e) =>
         new(
             "SG0001",

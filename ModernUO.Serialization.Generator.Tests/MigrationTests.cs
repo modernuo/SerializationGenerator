@@ -64,46 +64,46 @@ public class MigrationTests
     [Fact]
     public void MigrationFileRegex_MatchesStandardFormat()
     {
-        var regex = ModernUO.Serialization.Generator.SerializableMigrationSchema.MigrationFileRegex;
+        var regex = SerializableMigrationSchema.MigrationFileRegex;
 
-        Assert.True(regex.IsMatch("MyClass.v0.json"));
-        Assert.True(regex.IsMatch("MyClass.v1.json"));
-        Assert.True(regex.IsMatch("MyClass.V0.json"));
-        Assert.True(regex.IsMatch("Namespace.MyClass.v0.json"));
-        Assert.True(regex.IsMatch("Deep.Namespace.MyClass.v0.json"));
+        Assert.Matches(regex, "MyClass.v0.json");
+        Assert.Matches(regex, "MyClass.v1.json");
+        Assert.Matches(regex, "MyClass.V0.json");
+        Assert.Matches(regex, "Namespace.MyClass.v0.json");
+        Assert.Matches(regex, "Deep.Namespace.MyClass.v0.json");
     }
 
     [Fact]
     public void MigrationFileRegex_MatchesGenericFormat()
     {
-        var regex = ModernUO.Serialization.Generator.SerializableMigrationSchema.MigrationFileRegex;
+        var regex = SerializableMigrationSchema.MigrationFileRegex;
 
-        Assert.True(regex.IsMatch("MyClass`1.v0.json"));
-        Assert.True(regex.IsMatch("MyClass`2.v0.json"));
-        Assert.True(regex.IsMatch("Namespace.MyClass`1.v0.json"));
-        Assert.True(regex.IsMatch("Deep.Namespace.MyClass`2.v1.json"));
+        Assert.Matches(regex, "MyClass`1.v0.json");
+        Assert.Matches(regex, "MyClass`2.v0.json");
+        Assert.Matches(regex, "Namespace.MyClass`1.v0.json");
+        Assert.Matches(regex, "Deep.Namespace.MyClass`2.v1.json");
     }
 
     [Fact]
     public void MigrationFileRegex_DoesNotMatchInvalid()
     {
-        var regex = ModernUO.Serialization.Generator.SerializableMigrationSchema.MigrationFileRegex;
+        var regex = SerializableMigrationSchema.MigrationFileRegex;
 
-        Assert.False(regex.IsMatch("MyClass.json"));
-        Assert.False(regex.IsMatch("MyClass.v.json"));
-        Assert.False(regex.IsMatch("MyClass.va.json"));
-        Assert.False(regex.IsMatch(".v0.json"));
+        Assert.DoesNotMatch(regex, "MyClass.json");
+        Assert.DoesNotMatch(regex, "MyClass.v.json");
+        Assert.DoesNotMatch(regex, "MyClass.va.json");
+        Assert.DoesNotMatch(regex, ".v0.json");
     }
 
     [Fact]
     public void MatchMigrationFilename_ExtractsCorrectInfo()
     {
-        Assert.True(ModernUO.Serialization.Generator.SerializableMigrationSchema.MatchMigrationFilename(
+        Assert.True(SerializableMigrationSchema.MatchMigrationFilename(
             "MyClass.v0.json", out var className, out var version));
         Assert.Equal("MyClass", className);
         Assert.Equal(0, version);
 
-        Assert.True(ModernUO.Serialization.Generator.SerializableMigrationSchema.MatchMigrationFilename(
+        Assert.True(SerializableMigrationSchema.MatchMigrationFilename(
             "Namespace.MyClass.v5.json", out className, out version));
         Assert.Equal("Namespace.MyClass", className);
         Assert.Equal(5, version);
@@ -112,12 +112,12 @@ public class MigrationTests
     [Fact]
     public void MatchMigrationFilename_ExtractsGenericInfo()
     {
-        Assert.True(ModernUO.Serialization.Generator.SerializableMigrationSchema.MatchMigrationFilename(
+        Assert.True(SerializableMigrationSchema.MatchMigrationFilename(
             "MyClass`1.v0.json", out var className, out var version));
         Assert.Equal("MyClass`1", className);
         Assert.Equal(0, version);
 
-        Assert.True(ModernUO.Serialization.Generator.SerializableMigrationSchema.MatchMigrationFilename(
+        Assert.True(SerializableMigrationSchema.MatchMigrationFilename(
             "Namespace.MyClass`2.v3.json", out className, out version));
         Assert.Equal("Namespace.MyClass`2", className);
         Assert.Equal(3, version);
