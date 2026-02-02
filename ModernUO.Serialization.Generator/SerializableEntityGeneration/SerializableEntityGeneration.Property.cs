@@ -29,7 +29,8 @@ public static partial class SerializableEntityGeneration
         Accessibility getter,
         Accessibility? setter,
         bool isVirtual,
-        string? markDirtyMethod
+        string? markDirtyMethod,
+        IMethodSymbol? fieldChangedMethod = null
     )
     {
         var fieldName = fieldSymbol.Name;
@@ -61,6 +62,13 @@ public static partial class SerializableEntityGeneration
 
             // Setter
             source.GeneratePropertySetterStart(propertyIndent, false, setterAccessor.Value);
+
+            // Capture old value before comparison if we have a changed callback
+            if (fieldChangedMethod != null)
+            {
+                source.AppendLine($"{innerIndent}var oldValue = {fieldName};");
+            }
+
             source.AppendLine($"{innerIndent}if (value != {fieldName})");
             source.AppendLine($"{innerIndent}{{");
             source.AppendLine($"{innerIndent}    {fieldName} = value;");
@@ -73,6 +81,13 @@ public static partial class SerializableEntityGeneration
             {
                 source.AppendLine($"{innerIndent}    InvalidateProperties();");
             }
+
+            // Invoke the changed callback after assignment
+            if (fieldChangedMethod != null)
+            {
+                source.AppendLine($"{innerIndent}    {fieldChangedMethod.Name}(oldValue, value);");
+            }
+
             source.AppendLine($"{innerIndent}}}");
             source.GeneratePropertyGetSetEnd(propertyIndent, false);
         }

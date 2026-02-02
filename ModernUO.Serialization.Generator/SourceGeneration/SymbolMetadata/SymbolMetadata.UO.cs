@@ -36,6 +36,7 @@ public static partial class SymbolMetadata
     public const string DESERIALIZE_TIMER_FIELD_ATTRIBUTE = "ModernUO.Serialization.DeserializeTimerFieldAttribute";
     public const string SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldSaveFlagAttribute";
     public const string SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldDefaultAttribute";
+    public const string SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldChangedAttribute";
     public const string SERIALIZED_PROPERTY_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializedPropertyAttrAttribute`1";
     public const string SORTED_SET_COMPARER_ATTRIBUTE = "ModernUO.Serialization.SortedSetComparerAttribute";
 
@@ -440,6 +441,12 @@ public static partial class SymbolMetadata
             compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
             out attributeData
         );
+
+        public bool TryGetSerializableFieldChangedMethod(Compilation compilation, out AttributeData? attributeData) =>
+            symbol.TryGetMemberWithAttribute(
+                compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE),
+                out attributeData
+            );
     }
 
     extension(INamedTypeSymbol symbol)

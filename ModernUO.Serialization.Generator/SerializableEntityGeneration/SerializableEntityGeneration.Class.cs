@@ -48,6 +48,7 @@ public static partial class SerializableEntityGeneration
             properties,
             saveFlagMethods,
             defaultMethods,
+            changedMethods,
             dirtyTrackingEntity,
             migrations
         ) = classRecord;
@@ -205,6 +206,29 @@ public static partial class SerializableEntityGeneration
             markDirtyMethod = null;
         }
 
+        // Process SerializableFieldChanged methods into dictionary by order
+        var serializableFieldChangedMethods = new Dictionary<int, IMethodSymbol>();
+        for (var i = 0; i < changedMethods.Length; i++)
+        {
+            var (symbol, attrData) = changedMethods[i];
+            var order = (int)attrData.ConstructorArguments[0].Value!;
+
+            if (order < 0)
+            {
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3006, SymbolMetadata.SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE, symbol.Name);
+                return (null, null, [diag]);
+            }
+
+            // Duplicate found, failure.
+            if (serializableFieldChangedMethods.ContainsKey(order))
+            {
+                var diag = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE, order);
+                return (null, null, [diag]);
+            }
+
+            serializableFieldChangedMethods[order] = (IMethodSymbol)symbol;
+        }
+
         var serializableFieldSet = new SortedSet<SerializableProperty>(new SerializablePropertyComparer());
 
         foreach (var (symbol, attributeData) in properties)
@@ -334,6 +358,29 @@ public static partial class SerializableEntityGeneration
                 // Readonly fields cannot have setters - force to null
                 var effectiveSetterAccessor = fieldSymbol.IsReadOnly ? (Accessibility?)null : setterAccessor;
 
+                // Get the changed method for this field if any
+                serializableFieldChangedMethods.TryGetValue(order, out var fieldChangedMethod);
+
+                // Validate changed method signature if present
+                if (fieldChangedMethod != null)
+                {
+                    var fieldType = fieldSymbol.Type;
+                    var isValidSignature = fieldChangedMethod.ReturnsVoid &&
+                                           fieldChangedMethod.Parameters.Length == 2 &&
+                                           SymbolEqualityComparer.Default.Equals(fieldChangedMethod.Parameters[0].Type, fieldType) &&
+                                           SymbolEqualityComparer.Default.Equals(fieldChangedMethod.Parameters[1].Type, fieldType);
+
+                    if (!isValidSignature)
+                    {
+                        var diag = typeNode.GenerateDiagnostic(
+                            DiagnosticDescriptors.SG3010,
+                            fieldChangedMethod.Name,
+                            fieldType.ToDisplayString()
+                        );
+                        return (null, null, [diag]);
+                    }
+                }
+
                 source.GenerateSerializableProperty(
                     compilation,
                     indent,
@@ -341,7 +388,8 @@ public static partial class SerializableEntityGeneration
                     getterAccessor,
                     effectiveSetterAccessor,
                     virtualProperty,
-                    markDirtyMethod
+                    markDirtyMethod,
+                    fieldChangedMethod
                 );
                 source.AppendLine();
 

@@ -119,7 +119,7 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
         }
 
         // Validate that structs/records have deserialization capability
-        if (classSymbol.IsValueType && !classSymbol.HasDeserializationCapability(compilation, out _))
+        if (classSymbol!.IsValueType && !classSymbol.HasDeserializationCapability(compilation, out _))
         {
             var typeName = classSymbol.Name;
             var diagnostic = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3009, typeName);
@@ -130,6 +130,7 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
         var properties = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         var saveFlagMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         var defaultValueMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
+        var changedMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
         ISymbol? dirtyTrackingEntity = null;
         foreach (var m in node.Members)
         {
@@ -180,6 +181,10 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
                     {
                         defaultValueMethods.Add((methodSymbol, attributeData));
                     }
+                    else if (methodSymbol.TryGetSerializableFieldChangedMethod(compilation, out attributeData))
+                    {
+                        changedMethods.Add((methodSymbol, attributeData));
+                    }
                 }
             }
         }
@@ -192,6 +197,7 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
             properties.ToImmutable(),
             saveFlagMethods.ToImmutable(),
             defaultValueMethods.ToImmutable(),
+            changedMethods.ToImmutable(),
             dirtyTrackingEntity,
             ImmutableDictionary<int, AdditionalText>.Empty
         );
