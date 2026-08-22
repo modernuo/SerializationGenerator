@@ -29,7 +29,8 @@ public static class SerializableMigrationSchema
             AllowTrailingCommas = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             ReadCommentHandling = JsonCommentHandling.Skip,
-            NewLine = "\n" // Force all json files to \n line endings
+            NewLine = "\n", // Force all json files to \n line endings
+            TypeInfoResolver = MigrationJsonContext.Default
         }
     );
 

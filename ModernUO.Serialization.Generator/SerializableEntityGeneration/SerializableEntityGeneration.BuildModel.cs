@@ -378,7 +378,7 @@ public static partial class SerializableEntityGeneration
 
                 var invalidateProperties = allAttributes.Any(
                     attr => attr.AttributeClass?.Equals(
-                        compilation.GetTypeByMetadataName(SymbolMetadata.INVALIDATE_PROPERTIES_ATTRIBUTE),
+                        compilation.GetCachedTypeByMetadataName(SymbolMetadata.INVALIDATE_PROPERTIES_ATTRIBUTE),
                         SymbolEqualityComparer.Default
                     ) ?? false
                 );
@@ -502,7 +502,7 @@ public static partial class SerializableEntityGeneration
                 .FirstOrDefault(
                     a => SymbolEqualityComparer.Default.Equals(
                         a.AttributeClass,
-                        compilation.GetTypeByMetadataName(SymbolMetadata.AFTER_DESERIALIZATION_ATTRIBUTE)
+                        compilation.GetCachedTypeByMetadataName(SymbolMetadata.AFTER_DESERIALIZATION_ATTRIBUTE)
                     )
                 );
 
