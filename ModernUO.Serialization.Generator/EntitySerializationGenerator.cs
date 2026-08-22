@@ -14,9 +14,9 @@
  *************************************************************************/
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -34,12 +34,11 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
     {
     }
 
-    public Dictionary<string, SerializableMetadata> Migrations { get; } = [];
+    // Populated concurrently: RegisterSourceOutput callbacks can run in parallel.
+    public ConcurrentDictionary<string, SerializableMetadata> Migrations { get; } = [];
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var currentCulture = CultureInfo.DefaultThreadCurrentCulture;
-
         // Gather all classes with [ModernUO.Serialization.SerializationGenerator] attribute
         var serializableClasses = context
             .SyntaxProvider
@@ -65,7 +64,6 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
         // Generate source code
         context.RegisterSourceOutput(classesWithMigrations, ExecuteIncremental);
-        CultureInfo.DefaultThreadCurrentCulture = currentCulture;
     }
 
     public static bool IsSerializationGeneratorSyntaxNode(SyntaxNode node, CancellationToken token)
@@ -118,8 +116,8 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
             return (null, [diagnostic]);
         }
 
-        // Validate that structs/records have deserialization capability
-        if (classSymbol!.IsValueType && !classSymbol.HasDeserializationCapability(compilation, out _))
+        // The generator emits Deserialize for value types; a user-declared one collides with it.
+        if (classSymbol!.IsValueType && classSymbol.HasDeserializationCapability(compilation, out _))
         {
             var typeName = classSymbol.Name;
             var diagnostic = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3009, typeName);
@@ -199,14 +197,15 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
             defaultValueMethods.ToImmutable(),
             changedMethods.ToImmutable(),
             dirtyTrackingEntity,
-            ImmutableDictionary<int, AdditionalText>.Empty
+            ImmutableDictionary<int, AdditionalText>.Empty,
+            ImmutableArray<string>.Empty
         );
 
         return (record, []);
     }
 
     private static (SerializableClassRecord, Diagnostic[]) TransformToClassMigrationPairs(
-        ((SerializableClassRecord, Diagnostic[])?, ImmutableDictionary<string, Dictionary<int, AdditionalText>>) pair,
+        ((SerializableClassRecord, Diagnostic[])?, ImmutableDictionary<string, MigrationFileSet>) pair,
         CancellationToken token
     )
     {
@@ -228,7 +227,8 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
             {
                 classRecord = classRecord with
                 {
-                    Migrations = migs.ToImmutableDictionary()
+                    Migrations = migs.Files.ToImmutableDictionary(),
+                    DuplicateMigrationFiles = migs.Duplicates?.ToImmutableArray() ?? ImmutableArray<string>.Empty
                 };
             }
         }
@@ -236,14 +236,19 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
         return (classRecord, diags);
     }
 
-    private static ImmutableDictionary<string, Dictionary<int, AdditionalText>> ToMigrationFileSet(
+    internal sealed record MigrationFileSet(Dictionary<int, AdditionalText> Files)
+    {
+        public List<string> Duplicates { get; set; }
+    }
+
+    private static ImmutableDictionary<string, MigrationFileSet> ToMigrationFileSet(
         ImmutableArray<AdditionalText> additionalTexts,
         CancellationToken token
     )
     {
         token.ThrowIfCancellationRequested();
 
-        var builder = ImmutableDictionary.CreateBuilder<string, Dictionary<int, AdditionalText>>();
+        var builder = ImmutableDictionary.CreateBuilder<string, MigrationFileSet>();
 
         foreach (var additionalText in additionalTexts)
         {
@@ -258,13 +263,17 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
             if (!builder.TryGetValue(className, out var classMigrationSet))
             {
-                builder[className] = classMigrationSet = new Dictionary<int, AdditionalText>();
+                builder[className] = classMigrationSet = new MigrationFileSet(new Dictionary<int, AdditionalText>());
             }
 
-            // Only use the first migration file for each version to prevent silent overwrites
-            if (!classMigrationSet.ContainsKey(version))
+            // Only use the first migration file for each version; the rest are reported (SG3011).
+            if (!classMigrationSet.Files.ContainsKey(version))
             {
-                classMigrationSet[version] = additionalText;
+                classMigrationSet.Files[version] = additionalText;
+            }
+            else
+            {
+                (classMigrationSet.Duplicates ??= []).Add(path);
             }
         }
 
@@ -302,6 +311,12 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
                     context.CancellationToken
                 );
 
+                // Warnings are produced alongside successful generation; report either way.
+                for (var i = 0; i < (diags?.Length ?? 0); i++)
+                {
+                    context.ReportDiagnostic(diags[i]);
+                }
+
                 if (classSource != null)
                 {
                     // Use arity notation for generic types to avoid invalid characters in filename
@@ -313,13 +328,6 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
                     if (migration != null)
                     {
                         Migrations[migration.Type] = migration;
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < diags.Length; i++)
-                    {
-                        context.ReportDiagnostic(diags[i]);
                     }
                 }
             }

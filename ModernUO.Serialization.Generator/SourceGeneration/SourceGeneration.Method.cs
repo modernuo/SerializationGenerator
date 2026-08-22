@@ -25,10 +25,11 @@ public static partial class SourceGeneration
     {
         public void GenerateMethodStart(
             string indent, string methodName, Accessibility accessors, bool isOverride,
-            string returnType, ImmutableArray<(ITypeSymbol, string)> parameters
+            string returnType, ImmutableArray<(ITypeSymbol, string)> parameters, bool isVirtual = true
         )
         {
-            source.Append($"{indent}{accessors.ToFriendlyString()}{(isOverride ? " override" : " virtual")} {returnType} {methodName}(");
+            var modifier = isOverride ? " override" : isVirtual ? " virtual" : "";
+            source.Append($"{indent}{accessors.ToFriendlyString()}{modifier} {returnType} {methodName}(");
             source.GenerateSignatureArguments(parameters);
             source.AppendLine($")\n{indent}{{");
         }

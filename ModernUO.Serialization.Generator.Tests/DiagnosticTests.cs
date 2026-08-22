@@ -172,7 +172,7 @@ public class DiagnosticTests
     }
 
     [Fact]
-    public void SG3009_StructWithoutDeserialize_ReportsDiagnostic()
+    public void SG3009_StructWithDeserialize_ReportsDiagnostic()
     {
         const string source = """
             using ModernUO.Serialization;
@@ -181,10 +181,14 @@ public class DiagnosticTests
             namespace TestNamespace
             {
                 [SerializationGenerator(0)]
-                public partial struct MissingDeserializeStruct
+                public partial struct ConflictingDeserializeStruct
                 {
                     [SerializableField(0)]
                     private int _value;
+
+                    public void Deserialize(IGenericReader reader)
+                    {
+                    }
                 }
             }
             """;

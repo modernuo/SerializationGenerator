@@ -32,7 +32,8 @@ public static partial class SerializableEntityGeneration
         SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary,
         Dictionary<int, (int EnumIndex, int BitIndex)> saveFlagMapping,
         bool saveFlagUseUlong,
-        int saveFlagEnumCount
+        int saveFlagEnumCount,
+        bool isVirtual = true
     )
     {
         var genericWriterInterface = compilation.GetTypeByMetadataName(SymbolMetadata.GENERIC_WRITER_INTERFACE);
@@ -43,7 +44,8 @@ public static partial class SerializableEntityGeneration
             Accessibility.Public,
             isOverride,
             "void",
-            ImmutableArray.Create<(ITypeSymbol, string)>((genericWriterInterface, "writer"))
+            ImmutableArray.Create<(ITypeSymbol, string)>((genericWriterInterface, "writer")),
+            isVirtual
         );
 
         var bodyIndent = $"{indent}    ";

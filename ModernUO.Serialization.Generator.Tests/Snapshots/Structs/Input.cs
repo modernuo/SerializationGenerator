@@ -4,25 +4,19 @@ using Server;
 namespace Server.TestContent
 {
     [SerializationGenerator(0)]
-    public partial struct FactoryStruct
+    public partial struct PlainStruct
     {
         [SerializableField(0)]
         private int _value;
-
-        public static FactoryStruct Deserialize(IGenericReader reader)
-        {
-            return new FactoryStruct();
-        }
     }
 
     [SerializationGenerator(0)]
-    public partial struct InstanceStruct
+    public partial record struct WideRecordStruct
     {
         [SerializableField(0)]
-        private int _value;
+        private int _amount;
 
-        public void Deserialize(IGenericReader reader)
-        {
-        }
+        [SerializableField(1)]
+        private string _label;
     }
 }

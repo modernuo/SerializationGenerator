@@ -11,34 +11,40 @@
 namespace Server.TestContent
 {
     [System.CodeDom.Compiler.GeneratedCode("ModernUO.Serialization.Generator", "{VERSION}")]
-    public partial struct InstanceStruct
+    public partial class CustomDirtyItem
     {
         private const int SerializationVersion = 0;
 
-        public int Value
+        public string Name
         {
-            get => _value;
+            get => _name;
             set
             {
-                if (value != _value)
+                if (value != _name)
                 {
-                    _value = value;
+                    _name = value;
+                    MarkDirty();
                 }
             }
+        }
+
+        public CustomDirtyItem(Server.Serial serial)
+        {
+            Serial = serial;
         }
 
         public virtual void Serialize(Server.IGenericWriter writer)
         {
             writer.WriteEncodedInt(SerializationVersion);
 
-            writer.Write(_value);
+            writer.Write(_name);
         }
 
         public virtual void Deserialize(Server.IGenericReader reader)
         {
             var version = reader.ReadEncodedInt();
 
-            _value = reader.ReadInt();
+            _name = reader.ReadString();
         }
     }
 }

@@ -96,8 +96,8 @@ public static class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor SG3009 = new(
         "SG3009",
-        "Struct/record must have a Deserialize method",
-        "'{0}' must have either a static 'Deserialize(IGenericReader)' factory method or an instance 'void Deserialize(IGenericReader)' method",
+        "Struct/record must not declare a Deserialize method",
+        "'{0}' must not declare a 'Deserialize(IGenericReader)' method or factory; the generator provides 'void Deserialize(IGenericReader)' for value types",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -109,6 +109,24 @@ public static class DiagnosticDescriptors
         "Method '{0}' must have signature 'void {0}({1} oldValue, {1} newValue)' for field of type '{1}'",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3011 = new(
+        "SG3011",
+        "Duplicate migration file ignored",
+        "Duplicate migration file '{0}' was ignored; another file already defines this class and version",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Warning,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3012 = new(
+        "SG3012",
+        "Stale migration file",
+        "Migration file for version {0} is above the current version {1} and is never read",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Warning,
         true
     );
 

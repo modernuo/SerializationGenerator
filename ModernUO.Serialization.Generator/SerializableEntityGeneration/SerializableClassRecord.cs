@@ -14,7 +14,8 @@ public record SerializableClassRecord(
     ImmutableArray<(ISymbol, AttributeData)> SerializableFieldDefault,
     ImmutableArray<(ISymbol, AttributeData)> SerializableFieldChanged,
     ISymbol? DirtyTrackingEntity,
-    ImmutableDictionary<int, AdditionalText> Migrations
+    ImmutableDictionary<int, AdditionalText> Migrations,
+    ImmutableArray<string> DuplicateMigrationFiles
 )
 {
     public bool IsValueType => ClassSymbol.IsValueType;

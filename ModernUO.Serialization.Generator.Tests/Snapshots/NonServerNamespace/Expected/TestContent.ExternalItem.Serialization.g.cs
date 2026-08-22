@@ -8,12 +8,12 @@
 
 #pragma warning disable
 
-namespace Server.TestContent
+namespace TestContent
 {
     [System.CodeDom.Compiler.GeneratedCode("ModernUO.Serialization.Generator", "{VERSION}")]
-    public partial class MigratingItem
+    public partial class ExternalItem
     {
-        private const int SerializationVersion = 2;
+        private const int SerializationVersion = 1;
 
         public string Name
         {
@@ -28,33 +28,20 @@ namespace Server.TestContent
             }
         }
 
-        public int Charges
+        public Server.Timer RefreshTimer
         {
-            get => _charges;
+            get => _refreshTimer;
             set
             {
-                if (value != _charges)
+                if (value != _refreshTimer)
                 {
-                    _charges = value;
+                    _refreshTimer = value;
                     Server.ISerializableExtensions.MarkDirty(this);
                 }
             }
         }
 
-        public bool Identified
-        {
-            get => _identified;
-            set
-            {
-                if (value != _identified)
-                {
-                    _identified = value;
-                    Server.ISerializableExtensions.MarkDirty(this);
-                }
-            }
-        }
-
-        public MigratingItem(Server.Serial serial)
+        public ExternalItem(Server.Serial serial)
         {
             Serial = serial;
         }
@@ -62,20 +49,9 @@ namespace Server.TestContent
         ref struct V0Content
         {
             internal readonly string Name;
-            internal V0Content(Server.IGenericReader reader, Server.TestContent.MigratingItem entity)
+            internal V0Content(Server.IGenericReader reader, TestContent.ExternalItem entity)
             {
                 Name = reader.ReadString();
-            }
-        }
-
-        ref struct V1Content
-        {
-            internal readonly string Name;
-            internal readonly int Charges;
-            internal V1Content(Server.IGenericReader reader, Server.TestContent.MigratingItem entity)
-            {
-                Name = reader.ReadString();
-                Charges = reader.ReadInt();
             }
         }
 
@@ -85,9 +61,7 @@ namespace Server.TestContent
 
             writer.Write(_name);
 
-            writer.Write(_charges);
-
-            writer.Write(_identified);
+            writer.Write(RefreshTimer?.Next ?? System.DateTime.MinValue);
         }
 
         public virtual void Deserialize(Server.IGenericReader reader)
@@ -101,18 +75,11 @@ namespace Server.TestContent
                 return;
             }
 
-            if (version == 1)
-            {
-                MigrateFrom(new V1Content(reader, this));
-                Server.ISerializableExtensions.MarkDirty(this);
-                return;
-            }
-
             _name = reader.ReadString();
 
-            _charges = reader.ReadInt();
-
-            _identified = reader.ReadBool();
+            var RefreshTimerNext = reader.ReadDateTime();
+            var RefreshTimerDelay = RefreshTimerNext == System.DateTime.MinValue ? System.TimeSpan.MinValue : RefreshTimerNext - Server.Core.Now;
+            DeserializeRefreshTimer(RefreshTimerDelay);
         }
     }
 }
