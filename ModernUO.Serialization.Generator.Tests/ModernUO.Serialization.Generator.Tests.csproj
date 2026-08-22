@@ -29,4 +29,10 @@
         <ProjectReference Include="..\ModernUO.Serialization.Annotations\ModernUO.Serialization.Annotations.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Snapshot fixtures are test data, not code: SnapshotTests compiles them itself. -->
+        <Compile Remove="Snapshots/**/*.cs" />
+        <None Include="Snapshots/**" />
+    </ItemGroup>
+
 </Project>

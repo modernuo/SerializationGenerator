@@ -1,0 +1,11 @@
+{
+    "version": 0,
+    "type": "Server.TestContent.MigratingItem",
+    "properties": [
+        {
+            "name": "Name",
+            "type": "string",
+            "rule": "PrimitiveTypeMigrationRule"
+        }
+    ]
+}
