@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ModernUO.Serialization.SchemaGenerator\ModernUO.Serialization.SchemaGenerator.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Same MSBuildLocator guard the schema generator uses. -->
+        <PackageReference Include="Microsoft.Build.Framework" Version="18.0.2" ExcludeAssets="runtime" PrivateAssets="all" />
+    </ItemGroup>
+
+</Project>

@@ -28,7 +28,9 @@ public static class SourceCodeAnalysis
 {
     public static async Task<IEnumerable<Project>> GetProjectsAsync(string solutionPath)
     {
-        if (!File.Exists(solutionPath) || !solutionPath.EndsWith(".sln", StringComparison.Ordinal))
+        if (!File.Exists(solutionPath) ||
+            !solutionPath.EndsWith(".sln", StringComparison.Ordinal) &&
+            !solutionPath.EndsWith(".slnx", StringComparison.Ordinal))
         {
             throw new FileNotFoundException($"Could not open a valid solution at location {solutionPath}");
         }
