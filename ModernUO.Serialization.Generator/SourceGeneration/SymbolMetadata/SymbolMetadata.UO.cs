@@ -69,7 +69,7 @@ public static partial class SymbolMetadata
                 return false;
             }
 
-            var serializedPropertyAttrType = compilation.GetTypeByMetadataName(SERIALIZED_PROPERTY_ATTR_ATTRIBUTE);
+            var serializedPropertyAttrType = compilation.GetCachedTypeByMetadataName(SERIALIZED_PROPERTY_ATTR_ATTRIBUTE);
             if (!attrClass.BaseType.ConstructedFrom.Equals(serializedPropertyAttrType, SymbolEqualityComparer.Default))
             {
                 genericType = null;
@@ -88,37 +88,37 @@ public static partial class SymbolMetadata
         }
 
         public bool IsCanBeNull(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetTypeByMetadataName(CAN_BE_NULL_ATTRIBUTE)) == true;
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(CAN_BE_NULL_ATTRIBUTE)) == true;
 
         public bool IsTimerDrift(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetTypeByMetadataName(TIMER_DRIFT_ATTRIBUTE)) == true;
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(TIMER_DRIFT_ATTRIBUTE)) == true;
     }
 
     public static bool IsTimer(this ITypeSymbol symbol, Compilation compilation) =>
-        symbol.CanBeConstructedFrom(compilation.GetTypeByMetadataName(TIMER_CLASS));
+        symbol.CanBeConstructedFrom(compilation.GetCachedTypeByMetadataName(TIMER_CLASS));
 
     extension(AttributeData attr)
     {
         public bool IsEncodedInt(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetTypeByMetadataName(ENCODED_INT_ATTRIBUTE)) == true;
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(ENCODED_INT_ATTRIBUTE)) == true;
 
         public bool IsDeltaDateTime(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetTypeByMetadataName(DELTA_DATE_TIME_ATTRIBUTE)) == true;
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(DELTA_DATE_TIME_ATTRIBUTE)) == true;
 
         public bool IsAnchoredDateTime(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetTypeByMetadataName(ANCHORED_DATE_TIME_ATTRIBUTE)) == true;
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(ANCHORED_DATE_TIME_ATTRIBUTE)) == true;
 
         public bool IsInternString(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetTypeByMetadataName(INTERN_STRING_ATTRIBUTE)) == true;
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(INTERN_STRING_ATTRIBUTE)) == true;
 
         public bool IsTidy(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetTypeByMetadataName(TIDY_ATTRIBUTE)) == true;
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(TIDY_ATTRIBUTE)) == true;
 
         public bool IsAttribute(ISymbol symbol) =>
             attr?.AttributeClass?.Equals(symbol, SymbolEqualityComparer.Default) == true;
 
         public bool IsSortedSetComparer(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetTypeByMetadataName(SORTED_SET_COMPARER_ATTRIBUTE)) == true;
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(SORTED_SET_COMPARER_ATTRIBUTE)) == true;
     }
 
     public static bool TryGetSortedSetComparer(
@@ -127,7 +127,7 @@ public static partial class SymbolMetadata
         out string? comparerExpression
     )
     {
-        var sortedSetComparerAttr = compilation.GetTypeByMetadataName(SORTED_SET_COMPARER_ATTRIBUTE);
+        var sortedSetComparerAttr = compilation.GetCachedTypeByMetadataName(SORTED_SET_COMPARER_ATTRIBUTE);
         var attr = attributes.FirstOrDefault(a => a.IsAttribute(sortedSetComparerAttr));
 
         if (attr == null)
@@ -166,7 +166,7 @@ public static partial class SymbolMetadata
 
         public bool HasSerializableInterface(
             Compilation compilation
-        ) => symbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
+        ) => symbol.ContainsInterface(compilation.GetCachedTypeByMetadataName(SERIALIZABLE_INTERFACE));
     }
 
     public static bool Contains(this ImmutableArray<INamedTypeSymbol> symbols, ITypeSymbol? symbol) =>
@@ -179,7 +179,7 @@ public static partial class SymbolMetadata
             Compilation compilation
         )
         {
-            var serialType = compilation.GetTypeByMetadataName(SERIAL_STRUCT);
+            var serialType = compilation.GetCachedTypeByMetadataName(SERIAL_STRUCT);
             return symbol.Constructors.FirstOrDefault(
                 member =>
                     member.Parameters.Length == 1
@@ -243,7 +243,7 @@ public static partial class SymbolMetadata
             out bool requiresParent
         )
         {
-            var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
+            var genericReaderInterface = compilation.GetCachedTypeByMetadataName(GENERIC_READER_INTERFACE);
             var genericCtor = symbol.Constructors.FirstOrDefault(
                 m => !m.IsStatic &&
                      m.MethodKind == MethodKind.Constructor &&
@@ -338,7 +338,7 @@ public static partial class SymbolMetadata
                                 {
                                     if (!SymbolEqualityComparer.Default.Equals(
                                             attr.AttributeClass,
-                                            compilation.GetTypeByMetadataName(DESERIALIZE_TIMER_FIELD_ATTRIBUTE)
+                                            compilation.GetCachedTypeByMetadataName(DESERIALIZE_TIMER_FIELD_ATTRIBUTE)
                                         ))
                                     {
                                         return false;
@@ -353,7 +353,7 @@ public static partial class SymbolMetadata
 
         public bool HasPublicSerializeMethod(Compilation compilation)
         {
-            var genericWriterInterface = compilation.GetTypeByMetadataName(GENERIC_WRITER_INTERFACE);
+            var genericWriterInterface = compilation.GetCachedTypeByMetadataName(GENERIC_WRITER_INTERFACE);
 
             return symbol.GetAllMethods("Serialize")
                 .Any(
@@ -369,7 +369,7 @@ public static partial class SymbolMetadata
             Compilation compilation
         )
         {
-            var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
+            var genericReaderInterface = compilation.GetCachedTypeByMetadataName(GENERIC_READER_INTERFACE);
 
             return symbol.GetAllMethods("Deserialize")
                 .Any(
@@ -389,53 +389,53 @@ public static partial class SymbolMetadata
     extension(ISymbol symbol)
     {
         public bool IsTextDefinition(Compilation compilation) =>
-            symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(TEXTDEFINITION_CLASS));
+            symbol.IsTypeRecurse(compilation, compilation.GetCachedTypeByMetadataName(TEXTDEFINITION_CLASS));
 
         public bool IsPoison(Compilation compilation) =>
-            symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(POISON_CLASS));
+            symbol.IsTypeRecurse(compilation, compilation.GetCachedTypeByMetadataName(POISON_CLASS));
 
         public bool IsPoint2D(Compilation compilation) =>
             symbol.Equals(
-                compilation.GetTypeByMetadataName(POINT2D_STRUCT),
+                compilation.GetCachedTypeByMetadataName(POINT2D_STRUCT),
                 SymbolEqualityComparer.Default
             );
 
         public bool IsPoint3D(Compilation compilation) =>
             symbol.Equals(
-                compilation.GetTypeByMetadataName(POINT3D_STRUCT),
+                compilation.GetCachedTypeByMetadataName(POINT3D_STRUCT),
                 SymbolEqualityComparer.Default
             );
 
         public bool IsRectangle2D(Compilation compilation) =>
             symbol.Equals(
-                compilation.GetTypeByMetadataName(RECTANGLE2D_STRUCT),
+                compilation.GetCachedTypeByMetadataName(RECTANGLE2D_STRUCT),
                 SymbolEqualityComparer.Default
             );
 
         public bool IsRectangle3D(Compilation compilation) =>
             symbol.Equals(
-                compilation.GetTypeByMetadataName(RECTANGLE3D_STRUCT),
+                compilation.GetCachedTypeByMetadataName(RECTANGLE3D_STRUCT),
                 SymbolEqualityComparer.Default
             );
 
         public bool IsRace(Compilation compilation) =>
-            symbol.IsTypeRecurse(compilation, compilation.GetTypeByMetadataName(RACE_CLASS));
+            symbol.IsTypeRecurse(compilation, compilation.GetCachedTypeByMetadataName(RACE_CLASS));
 
         public bool IsMap(Compilation compilation) =>
             symbol.Equals(
-                compilation.GetTypeByMetadataName(MAP_CLASS),
+                compilation.GetCachedTypeByMetadataName(MAP_CLASS),
                 SymbolEqualityComparer.Default
             );
 
         public bool IsBitArray(Compilation compilation) =>
             symbol.Equals(
-                compilation.GetTypeByMetadataName(BITARRAY_CLASS),
+                compilation.GetCachedTypeByMetadataName(BITARRAY_CLASS),
                 SymbolEqualityComparer.Default
             );
 
         public bool IsSerial(Compilation compilation) =>
             symbol.Equals(
-                compilation.GetTypeByMetadataName(SERIAL_STRUCT),
+                compilation.GetCachedTypeByMetadataName(SERIAL_STRUCT),
                 SymbolEqualityComparer.Default
             );
 
@@ -450,7 +450,7 @@ public static partial class SymbolMetadata
     extension(INamedTypeSymbol classSymbol)
     {
         public bool HasSerializableInterface(Compilation compilation) =>
-            classSymbol.ContainsInterface(compilation.GetTypeByMetadataName(SERIALIZABLE_INTERFACE));
+            classSymbol.ContainsInterface(compilation.GetCachedTypeByMetadataName(SERIALIZABLE_INTERFACE));
 
         public bool IsSerializableRecursive(Compilation compilation) =>
             classSymbol.TryGetSerializable(compilation, out _) ||
@@ -461,7 +461,7 @@ public static partial class SymbolMetadata
         )
         {
             var serializableEntityAttribute =
-                compilation.GetTypeByMetadataName(SERIALIZABLE_ATTRIBUTE);
+                compilation.GetCachedTypeByMetadataName(SERIALIZABLE_ATTRIBUTE);
 
             attributeData = classSymbol.GetAttribute(serializableEntityAttribute);
             return attributeData != null;
@@ -481,40 +481,40 @@ public static partial class SymbolMetadata
         public bool TryGetSerializableField(
             Compilation compilation, out AttributeData? attributeData
         ) => symbol.TryGetMemberWithAttribute(
-            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE),
+            compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_ATTRIBUTE),
             out attributeData
         );
 
         public bool TryGetSerializableProperty(
             Compilation compilation, out AttributeData? attributeData
         ) => symbol.TryGetMemberWithAttribute(
-            compilation.GetTypeByMetadataName(SERIALIZABLE_PROPERTY_ATTRIBUTE),
+            compilation.GetCachedTypeByMetadataName(SERIALIZABLE_PROPERTY_ATTRIBUTE),
             out attributeData
         );
 
         public bool TryGetDirtyTrackingEntityField(Compilation compilation) =>
             symbol.TryGetMemberWithAttribute(
-                compilation.GetTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
+                compilation.GetCachedTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
                 out _
             );
 
         public bool TryGetSerializableFieldSaveFlagMethod(
             Compilation compilation, out AttributeData? attributeData
         ) => symbol.TryGetMemberWithAttribute(
-            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
+            compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
             out attributeData
         );
 
         public bool TryGetSerializableFieldDefaultMethod(
             Compilation compilation, out AttributeData? attributeData
         ) => symbol.TryGetMemberWithAttribute(
-            compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
+            compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
             out attributeData
         );
 
         public bool TryGetSerializableFieldChangedMethod(Compilation compilation, out AttributeData? attributeData) =>
             symbol.TryGetMemberWithAttribute(
-                compilation.GetTypeByMetadataName(SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE),
+                compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE),
                 out attributeData
             );
     }
@@ -525,7 +525,7 @@ public static partial class SymbolMetadata
             Compilation compilation
         )
         {
-            var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
+            var genericReaderInterface = compilation.GetCachedTypeByMetadataName(GENERIC_READER_INTERFACE);
 
             return symbol.GetMembers("Deserialize")
                 .OfType<IMethodSymbol>()
@@ -542,7 +542,7 @@ public static partial class SymbolMetadata
             Compilation compilation
         )
         {
-            var genericReaderInterface = compilation.GetTypeByMetadataName(GENERIC_READER_INTERFACE);
+            var genericReaderInterface = compilation.GetCachedTypeByMetadataName(GENERIC_READER_INTERFACE);
 
             return symbol.GetMembers("Deserialize")
                 .OfType<IMethodSymbol>()

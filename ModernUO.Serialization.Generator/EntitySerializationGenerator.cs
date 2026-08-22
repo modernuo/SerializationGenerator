@@ -123,11 +123,14 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
         var builder = ImmutableArray.CreateBuilder<SerializableProperty>(properties.Length);
         foreach (var property in properties)
         {
+            // The fact only affects the nullable suffix on save-flagged content struct fields.
             builder.Add(
-                property with
-                {
-                    TypeIsValueType = compilation.GetTypeByMetadataName(property.Type)?.IsValueType == true
-                }
+                property.UsesSaveFlag != true
+                    ? property
+                    : property with
+                    {
+                        TypeIsValueType = compilation.GetCachedTypeByMetadataName(property.Type)?.IsValueType == true
+                    }
             );
         }
 
