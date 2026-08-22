@@ -70,6 +70,10 @@ namespace Server.TestContent
         [SerializableField(19, setter: "private")]
         private int _privateSet;
 
+        [SerializableField(20)]
+        [AnchoredDateTime]
+        private DateTime _lastRested;
+
         public DateTime Created { get; set; }
         public Serial Serial { get; }
         public bool Deleted => false;

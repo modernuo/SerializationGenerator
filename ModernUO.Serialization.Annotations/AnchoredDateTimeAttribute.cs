@@ -1,8 +1,8 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: AfterDeserializationAttribute.cs                                *
+ * File: AnchoredDateTimeAttribute.cs                                    *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -18,20 +18,12 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that this method should be executed after deserializing the object.
-/// Method must have no parameters and return void.
+/// Hints to the source generator that a serializable DateTime field or property is anchored to
+/// the save time: it is written as an absolute value and re-anchored once at load, so downtime
+/// does not age it and an unchanged entity serializes to identical bytes. Takes precedence
+/// over <see cref="DeltaDateTimeAttribute" /> when both are present.
 /// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-public class AfterDeserializationAttribute : Attribute
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+public class AnchoredDateTimeAttribute : Attribute
 {
-    /// <summary>
-    /// Indicates whether the source generator should execute the method this is attached to immediately, or when
-    /// this is set to false, execute it using a Timer Delay.
-    ///
-    /// Note: Use false when the after deserialization involves deleting objects. This is to prevent corrupted
-    /// deserialization by removing an object before it has finished deserializing.
-    /// </summary>
-    public bool Synchronous { get; set; }
-
-    public AfterDeserializationAttribute(bool synchronous = true) => Synchronous = synchronous;
 }

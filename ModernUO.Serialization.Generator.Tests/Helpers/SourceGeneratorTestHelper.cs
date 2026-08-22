@@ -31,6 +31,7 @@ public static class SourceGeneratorTestHelper
                 decimal ReadDecimal();
                 System.DateTime ReadDateTime();
                 System.DateTime ReadDeltaTime();
+                System.DateTime ReadAnchoredTime();
                 System.TimeSpan ReadTimeSpan();
                 System.Guid ReadGuid();
                 int ReadEncodedInt();
@@ -59,6 +60,7 @@ public static class SourceGeneratorTestHelper
                 void Write(decimal value);
                 void Write(System.DateTime value);
                 void WriteDeltaTime(System.DateTime value);
+                void WriteAnchoredTime(System.DateTime value);
                 void Write(System.TimeSpan value);
                 void Write(System.Guid value);
                 void WriteEncodedInt(int value);
@@ -168,6 +170,7 @@ public static class SourceGeneratorTestHelper
             {
                 public System.TimeSpan Delay { get; set; }
                 public System.DateTime Next { get; set; }
+                public static void DelayCall(System.Action callback) { }
             }
 
             public static class Core

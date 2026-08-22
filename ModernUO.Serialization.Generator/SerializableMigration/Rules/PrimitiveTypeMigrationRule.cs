@@ -68,6 +68,8 @@ public class PrimitiveTypeMigrationRule : MigrationRule
         {
             SpecialType.System_Int32 when attributes.Any(a => a.IsEncodedInt(compilation)) =>
                 ["EncodedInt"],
+            SpecialType.System_DateTime when attributes.Any(a => a.IsAnchoredDateTime(compilation)) =>
+                ["AnchoredTime"],
             SpecialType.System_DateTime when attributes.Any(a => a.IsDeltaDateTime(compilation)) =>
                 ["DeltaTime"],
             SpecialType.System_String when attributes.Any(a => a.IsInternString(compilation)) =>
@@ -114,8 +116,9 @@ public class PrimitiveTypeMigrationRule : MigrationRule
             "double"                            => "ReadDouble",
             "string"                            => "ReadString",
             "decimal"                           => "ReadDecimal",
-            date when argument == "DeltaTime"   => "ReadDeltaTime",
-            date                                => "ReadDateTime",
+            date when argument == "DeltaTime"    => "ReadDeltaTime",
+            date when argument == "AnchoredTime" => "ReadAnchoredTime",
+            date                                 => "ReadDateTime",
             SymbolMetadata.IPADDRESS_CLASS      => "ReadIPAddress",
             SymbolMetadata.TIMESPAN_STRUCT      => "ReadTimeSpan",
             SymbolMetadata.GUID_STRUCT          => "ReadGuid",
@@ -144,9 +147,10 @@ public class PrimitiveTypeMigrationRule : MigrationRule
 
         var writeMethod = property.Type switch
         {
-            date when argument == "DeltaTime"   => "WriteDeltaTime",
-            "int" when argument == "EncodedInt" => "WriteEncodedInt",
-            _                                   => "Write"
+            date when argument == "DeltaTime"    => "WriteDeltaTime",
+            date when argument == "AnchoredTime" => "WriteAnchoredTime",
+            "int" when argument == "EncodedInt"  => "WriteEncodedInt",
+            _                                    => "Write"
         };
 
         source.AppendLine($"{indent}writer.{writeMethod}({propertyName});");
