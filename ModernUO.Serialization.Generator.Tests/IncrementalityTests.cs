@@ -231,6 +231,36 @@ public class IncrementalityTests
         Assert.True(reparsed == 0, $"No migration file changed, but {reparsed} parse outputs ran.");
     }
 
+    // The payoff case: editing logic inside a serializable class - a method body, a comment -
+    // produces an equal model, so nothing regenerates even though the class itself changed.
+    [Fact]
+    public void EditingNonSerializationCode_InASerializableClass_RegeneratesNothing()
+    {
+        var sources = new Dictionary<string, string> { ["A.cs"] = ClassA, ["B.cs"] = ClassB };
+        var (driver, compilation, _) = CreateTrackedRun(
+            sources,
+            [("Server.TestContent.AlphaItem.v0.json", AlphaMigrationJson)]
+        );
+
+        // Add a method that has nothing to do with serialization.
+        var edited = ReplaceTree(
+            compilation,
+            "B.cs",
+            ClassB.Replace(
+                "public void Delete() { }",
+                "public void Delete() { }\n\n        public int ComputeDamage(int roll) => roll * 2 + _charges;"
+            )
+        );
+        driver = driver.RunGenerators(edited);
+
+        var (executed, _) = CountSourceOutputRuns(driver);
+
+        Assert.True(
+            executed == 0,
+            $"A non-serialization edit inside a serializable class must not regenerate, but {executed} outputs ran."
+        );
+    }
+
     [Fact]
     public void EditingAMigrationFile_OnlyAffectsItsClass()
     {

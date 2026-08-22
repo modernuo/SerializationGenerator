@@ -25,7 +25,7 @@ public static partial class SourceGeneration
     {
         public void GenerateMethodStart(
             string indent, string methodName, Accessibility accessors, bool isOverride,
-            string returnType, ImmutableArray<(ITypeSymbol, string)> parameters, bool isVirtual = true
+            string returnType, ImmutableArray<(string, string)> parameters, bool isVirtual = true
         )
         {
             var modifier = isOverride ? " override" : isVirtual ? " virtual" : "";
@@ -37,7 +37,7 @@ public static partial class SourceGeneration
         public void GenerateMethodEnd(string indent) => source.AppendLine($"{indent}}}");
 
         public void GenerateConstructorStart(
-            string indent, string className, Accessibility accessors, ImmutableArray<(ITypeSymbol, string)> parameters,
+            string indent, string className, Accessibility accessors, ImmutableArray<(string, string)> parameters,
             ImmutableArray<string>? baseParameters, bool isOverload = false
         )
         {

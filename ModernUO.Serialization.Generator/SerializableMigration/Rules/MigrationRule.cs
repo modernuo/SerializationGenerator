@@ -24,11 +24,11 @@ public abstract class MigrationRule : ISerializableMigrationRule
     public abstract string RuleName { get; }
 
     public virtual void GenerateMigrationProperty(
-        StringBuilder source, Compilation compilation, string indent, SerializableProperty property
+        StringBuilder source, string indent, SerializableProperty property
     )
     {
         var propertyType = property.Type;
-        var type = compilation.GetTypeByMetadataName(propertyType)?.IsValueType == true
+        var type = property.TypeIsValueType == true
                    || SymbolMetadata.IsPrimitiveFromTypeDisplayString(propertyType) && propertyType != "bool"
             ? $"{propertyType}{(property.UsesSaveFlag == true ? "?" : "")}" : propertyType;
 
@@ -43,7 +43,6 @@ public abstract class MigrationRule : ISerializableMigrationRule
     public abstract void GenerateDeserializationMethod(
         StringBuilder source,
         string indent,
-        Compilation compilation,
         SerializableProperty property,
         string? parentReference,
         bool isMigration = false

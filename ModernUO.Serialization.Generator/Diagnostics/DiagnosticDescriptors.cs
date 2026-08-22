@@ -130,6 +130,15 @@ public static class DiagnosticDescriptors
         true
     );
 
+    public static readonly DiagnosticDescriptor SG3013 = new(
+        "SG3013",
+        "Invalid migration file",
+        "Migration file '{0}' could not be parsed: {1}",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
     public static DiagnosticDescriptor GeneratorCrashedDiagnostic(Exception e) =>
         new(
             "SG0001",

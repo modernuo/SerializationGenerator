@@ -25,7 +25,6 @@ public interface ISerializableMigrationRule
 
     void GenerateMigrationProperty(
         StringBuilder source,
-        Compilation compilation,
         string indent,
         SerializableProperty property
     );
@@ -41,7 +40,6 @@ public interface ISerializableMigrationRule
     void GenerateDeserializationMethod(
         StringBuilder source,
         string indent,
-        Compilation compilation,
         SerializableProperty property,
         string? parentReference,
         bool isMigration = false

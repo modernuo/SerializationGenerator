@@ -39,12 +39,12 @@ public static partial class SourceGeneration
 
     extension(StringBuilder source)
     {
-        public void GenerateSignatureArguments(ImmutableArray<(ITypeSymbol, string)> parameters)
+        public void GenerateSignatureArguments(ImmutableArray<(string, string)> parameters)
         {
             for (var i = 0; i < parameters.Length; i++)
             {
                 var (t, v) = parameters[i];
-                source.AppendFormat("{0} {1}", t.ToDisplayString(), v);
+                source.AppendFormat("{0} {1}", t, v);
                 if (i < parameters.Length - 1)
                 {
                     source.Append(", ");

@@ -24,27 +24,24 @@ public static partial class SerializableEntityGeneration
 {
     public static void GenerateSerializeMethod(
         this StringBuilder source,
-        Compilation compilation,
         string indent,
         bool isOverride,
         bool encodedVersion,
         ImmutableArray<SerializableProperty> fields,
-        SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary,
+        SortedDictionary<int, SaveFlagModel> serializableFieldSaveFlagMethodsDictionary,
         Dictionary<int, (int EnumIndex, int BitIndex)> saveFlagMapping,
         bool saveFlagUseUlong,
         int saveFlagEnumCount,
         bool isVirtual = true
     )
     {
-        var genericWriterInterface = compilation.GetTypeByMetadataName(SymbolMetadata.GENERIC_WRITER_INTERFACE);
-
         source.GenerateMethodStart(
             indent,
             "Serialize",
             Accessibility.Public,
             isOverride,
             "void",
-            ImmutableArray.Create<(ITypeSymbol, string)>((genericWriterInterface, "writer")),
+            ImmutableArray.Create(("Server.IGenericWriter", "writer")),
             isVirtual
         );
 
@@ -79,7 +76,7 @@ public static partial class SerializableEntityGeneration
                     continue;
                 }
 
-                source.AppendLine($"{bodyIndent}if ({saveFlagMethods.DetermineFieldShouldSerialize!.Name}())\n{bodyIndent}{{");
+                source.AppendLine($"{bodyIndent}if ({saveFlagMethods.DetermineName}())\n{bodyIndent}{{");
 
                 var propertyName = fields[order].Name;
                 var enumName = mapping.EnumIndex == 0 ? "SaveFlag" : $"SaveFlag{mapping.EnumIndex + 1}";

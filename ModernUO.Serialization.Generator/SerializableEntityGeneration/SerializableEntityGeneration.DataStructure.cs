@@ -1,5 +1,4 @@
 using System.Text;
-using Microsoft.CodeAnalysis;
 
 namespace ModernUO.Serialization.Generator;
 
@@ -7,37 +6,24 @@ public static partial class SerializableEntityGeneration
 {
     public static bool GenerateDataStructureMethods(
         this StringBuilder source,
-        Compilation compilation,
         string indent,
-        IFieldSymbol symbol,
+        FieldPropertyModel field,
         string propertyAccessor,
         string? markDirtyMethod
     )
     {
-        var propertyName = symbol.Name.GetPropertyName();
-        var propertyType = symbol.Type;
-        var namedTypeSymbol = propertyType as INamedTypeSymbol;
-
-        var elementTypeName = (propertyType as IArrayTypeSymbol)?.ElementType ?? (namedTypeSymbol?.TypeArguments.Length > 0 ? namedTypeSymbol.TypeArguments[0] : null);
-        if (elementTypeName == null)
-        {
-            return false;
-        }
-
-        var isArray = propertyType is IArrayTypeSymbol;
-        var isDictionary = propertyType.IsDictionaryInterface(compilation);
-        var isList = propertyType.IsListInterface(compilation);
-        var isCollection = propertyType.IsCollection(compilation);
-
         // Non-collection generics (e.g. KeyValuePair) have type arguments but no Add/Clear surface.
-        if (!isArray && !isDictionary && !isList && !isCollection)
+        if (!field.HasDataStructureMethods)
         {
             return false;
         }
 
-        if (isDictionary)
+        var propertyName = field.PropertyName;
+        var elementTypeName = field.DsElementType;
+
+        if (field.DsIsDictionary)
         {
-            var valueTypeName = namedTypeSymbol!.TypeArguments[1];
+            var valueTypeName = field.DsValueType;
 
             // Add
             source.AppendLine($"{indent}{propertyAccessor} void AddTo{propertyName}({elementTypeName} key, {valueTypeName} value)");
@@ -64,7 +50,7 @@ public static partial class SerializableEntityGeneration
             source.AppendLine($"{indent}    {markDirtyMethod};");
             source.AppendLine($"{indent}}}");
         }
-        else if (isCollection)
+        else if (field.DsIsCollection)
         {
             // Add
             source.AppendLine($"{indent}{propertyAccessor} void AddTo{propertyName}({elementTypeName} value)");
@@ -85,7 +71,7 @@ public static partial class SerializableEntityGeneration
             source.AppendLine();
         }
 
-        if (isList)
+        if (field.DsIsList)
         {
             // Insert
             source.AppendLine($"{indent}{propertyAccessor} void InsertInto{propertyName}(int index, {elementTypeName} value)");
@@ -106,7 +92,7 @@ public static partial class SerializableEntityGeneration
 
         source.AppendLine();
 
-        if (isArray)
+        if (field.DsIsArray)
         {
             // Clear
             source.AppendLine($"{indent}{propertyAccessor} void Clear{propertyName}()");

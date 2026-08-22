@@ -25,19 +25,16 @@ public static partial class SerializableEntityGeneration
 
     public static void GenerateSerialCtor(
         this StringBuilder source,
-        Compilation compilation,
         string className,
         string indent,
         bool isOverride
     )
     {
-        var serialType = (ITypeSymbol)compilation.GetTypeByMetadataName("Server.Serial");
-
         source.GenerateConstructorStart(
             indent,
             className,
             Accessibility.Public,
-            new []{ (serialType, "serial") }.ToImmutableArray(),
+            new[] { ("Server.Serial", "serial") }.ToImmutableArray(),
             isOverride ? _baseParameters : null
         );
 

@@ -15,7 +15,6 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -26,8 +25,7 @@ public static partial class SerializableEntityGeneration
     extension(StringBuilder source)
     {
         public void GenerateDeserializeMethod(
-            Compilation compilation,
-            INamedTypeSymbol classSymbol,
+            SerializationModel model,
             string indent,
             bool isOverride,
             int version,
@@ -36,22 +34,20 @@ public static partial class SerializableEntityGeneration
             ImmutableArray<SerializableProperty> fields,
             string markDirtyMethod,
             string parentReference,
-            SortedDictionary<int, SerializableFieldSaveFlagMethods> serializableFieldSaveFlagMethodsDictionary,
+            SortedDictionary<int, SaveFlagModel> serializableFieldSaveFlagMethodsDictionary,
             Dictionary<int, (int EnumIndex, int BitIndex)> saveFlagMapping,
             bool saveFlagUseUlong,
             int saveFlagEnumCount,
             bool isVirtual = true
         )
         {
-            var genericReaderInterface = compilation.GetTypeByMetadataName(SymbolMetadata.GENERIC_READER_INTERFACE);
-
             source.GenerateMethodStart(
                 indent,
                 "Deserialize",
                 Accessibility.Public,
                 isOverride,
                 "void",
-                ImmutableArray.Create<(ITypeSymbol, string)>((genericReaderInterface, "reader")),
+                ImmutableArray.Create(("Server.IGenericReader", "reader")),
                 isVirtual
             );
 
@@ -64,26 +60,7 @@ public static partial class SerializableEntityGeneration
                 source.AppendLine();
             }
 
-            var afterDeserialization = classSymbol
-                .GetMembers()
-                .OfType<IMethodSymbol>()
-                .Select(
-                    m =>
-                    {
-                        if (!m.ReturnsVoid || m.Parameters.Length != 0)
-                        {
-                            return (m, null);
-                        }
-
-                        return (m, m.GetAttributes()
-                            .FirstOrDefault(
-                                attr => SymbolEqualityComparer.Default.Equals(
-                                    attr.AttributeClass,
-                                    compilation.GetTypeByMetadataName(SymbolMetadata.AFTER_DESERIALIZATION_ATTRIBUTE)
-                                )
-                            ));
-                    }
-                ).Where(m => m.Item2 != null).ToList();
+            var afterDeserialization = model.AfterDeserialization;
 
             // Version
             source.AppendLine($"{bodyIndent}var version = reader.{(encodedVersion ? "ReadEncodedInt" : "ReadInt")}();");
@@ -173,7 +150,6 @@ public static partial class SerializableEntityGeneration
                         rule.GenerateDeserializationMethod(
                             source,
                             innerIndent,
-                            compilation,
                             field,
                             parentReference
                         );
@@ -181,15 +157,14 @@ public static partial class SerializableEntityGeneration
                             source,
                             innerIndent,
                             field,
-                            compilation,
-                            classSymbol
+                            model
                         );
 
-                        if (serializableFieldSaveFlagMethods.GetFieldDefaultValue != null)
+                        if (serializableFieldSaveFlagMethods.DefaultName != null)
                         {
                             source.AppendLine($"{bodyIndent}}}\n{bodyIndent}else\n{bodyIndent}{{");
                             source.AppendLine(
-                                $"{bodyIndent}    {field.FieldName} = {serializableFieldSaveFlagMethods.GetFieldDefaultValue.Name}();"
+                                $"{bodyIndent}    {field.FieldName} = {serializableFieldSaveFlagMethods.DefaultName}();"
                             );
                         }
 
@@ -202,7 +177,6 @@ public static partial class SerializableEntityGeneration
                     rule.GenerateDeserializationMethod(
                         source,
                         bodyIndent,
-                        compilation,
                         field,
                         parentReference
                     );
@@ -210,8 +184,7 @@ public static partial class SerializableEntityGeneration
                         source,
                         bodyIndent,
                         field,
-                        compilation,
-                        classSymbol
+                        model
                     );
                 }
             }
@@ -221,18 +194,18 @@ public static partial class SerializableEntityGeneration
         }
 
         private void GenerateAfterDeserialization(
-            string indent, IList<(IMethodSymbol, AttributeData?)> afterDeserialization
+            string indent, EquatableArray<AfterDeserializeModel> afterDeserialization
         )
         {
-            foreach (var (method, attr) in afterDeserialization)
+            foreach (var method in afterDeserialization)
             {
-                if ((bool)attr.ConstructorArguments[0].Value!)
+                if (method.Synchronous)
                 {
-                    source.AppendLine($"{indent}{method.Name}();");
+                    source.AppendLine($"{indent}{method.MethodName}();");
                 }
                 else
                 {
-                    source.AppendLine($"{indent}Timer.DelayCall({method.Name});");
+                    source.AppendLine($"{indent}Timer.DelayCall({method.MethodName});");
                 }
             }
         }

@@ -45,7 +45,6 @@ public class EnumMigrationRule : MigrationRule
     public override void GenerateDeserializationMethod(
         StringBuilder source,
         string indent,
-        Compilation compilation,
         SerializableProperty property,
         string? parentReference,
         bool isMigration = false

@@ -107,7 +107,6 @@ public class DictionaryMigrationRule : MigrationRule
     public override void GenerateDeserializationMethod(
         StringBuilder source,
         string indent,
-        Compilation compilation,
         SerializableProperty property,
         string? parentReference,
         bool isMigration = false
@@ -157,7 +156,6 @@ public class DictionaryMigrationRule : MigrationRule
             source.AppendLine($"{indent}{{");
             GenerateDeserialize(
                 source,
-                compilation,
                 $"{indent}    ",
                 propertyName,
                 parentReference,
@@ -178,7 +176,6 @@ public class DictionaryMigrationRule : MigrationRule
         {
             GenerateDeserialize(
                 source,
-                compilation,
                 indent,
                 propertyName,
                 parentReference,
@@ -194,7 +191,6 @@ public class DictionaryMigrationRule : MigrationRule
 
     private static void GenerateDeserialize(
         StringBuilder source,
-        Compilation compilation,
         string indent,
         string propertyName,
         string parentReference,
@@ -229,7 +225,6 @@ public class DictionaryMigrationRule : MigrationRule
         keyElementRule.GenerateDeserializationMethod(
             source,
             $"{indent}    ",
-            compilation,
             serializableKeyElement,
             parentReference
         );
@@ -245,7 +240,6 @@ public class DictionaryMigrationRule : MigrationRule
         valueElementRule.GenerateDeserializationMethod(
             source,
             $"{indent}    ",
-            compilation,
             serializableValueElement,
             parentReference
         );
