@@ -9,10 +9,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="BenchmarkDotNet" Version="0.15.4" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+        <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
         <!-- The generator's analyzer-private dependency does not flow transitively. -->
-        <PackageReference Include="Humanizer.Core" Version="3.0.1" />
+        <PackageReference Include="Humanizer.Core" Version="3.0.10" />
     </ItemGroup>
 
     <ItemGroup>
