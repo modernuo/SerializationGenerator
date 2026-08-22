@@ -275,6 +275,19 @@ namespace Server.TestContent
             }
         }
 
+        public System.DateTime LastRested
+        {
+            get => _lastRested;
+            set
+            {
+                if (value != _lastRested)
+                {
+                    _lastRested = value;
+                    Server.ISerializableExtensions.MarkDirty(this);
+                }
+            }
+        }
+
         public BasicFieldsItem(Server.Serial serial)
         {
             Serial = serial;
@@ -323,6 +336,8 @@ namespace Server.TestContent
             writer.Write(_floatValue);
 
             writer.Write(_privateSet);
+
+            writer.WriteAnchoredTime(_lastRested);
         }
 
         public virtual void Deserialize(Server.IGenericReader reader)
@@ -368,6 +383,8 @@ namespace Server.TestContent
             _floatValue = reader.ReadFloat();
 
             _privateSet = reader.ReadInt();
+
+            _lastRested = reader.ReadAnchoredTime();
         }
     }
 }

@@ -28,5 +28,15 @@ namespace TestContent
         {
             _name = content.Name;
         }
+
+        [AfterDeserialization]
+        private void ValidateState()
+        {
+        }
+
+        [AfterDeserialization(false)]
+        private void RebuildCaches()
+        {
+        }
     }
 }

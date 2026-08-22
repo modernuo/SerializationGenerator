@@ -28,6 +28,7 @@ public static partial class SymbolMetadata
     public const string SERIALIZABLE_FIELD_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttribute";
     public const string SERIALIZABLE_PROPERTY_ATTRIBUTE = "ModernUO.Serialization.SerializablePropertyAttribute";
     public const string DELTA_DATE_TIME_ATTRIBUTE = "ModernUO.Serialization.DeltaDateTimeAttribute";
+    public const string ANCHORED_DATE_TIME_ATTRIBUTE = "ModernUO.Serialization.AnchoredDateTimeAttribute";
     public const string INTERN_STRING_ATTRIBUTE = "ModernUO.Serialization.InternStringAttribute";
     public const string ENCODED_INT_ATTRIBUTE = "ModernUO.Serialization.EncodedIntAttribute";
     public const string CAN_BE_NULL_ATTRIBUTE = "ModernUO.Serialization.CanBeNullAttribute";
@@ -103,6 +104,9 @@ public static partial class SymbolMetadata
 
         public bool IsDeltaDateTime(Compilation compilation) =>
             attr?.IsAttribute(compilation.GetTypeByMetadataName(DELTA_DATE_TIME_ATTRIBUTE)) == true;
+
+        public bool IsAnchoredDateTime(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetTypeByMetadataName(ANCHORED_DATE_TIME_ATTRIBUTE)) == true;
 
         public bool IsInternString(Compilation compilation) =>
             attr?.IsAttribute(compilation.GetTypeByMetadataName(INTERN_STRING_ATTRIBUTE)) == true;

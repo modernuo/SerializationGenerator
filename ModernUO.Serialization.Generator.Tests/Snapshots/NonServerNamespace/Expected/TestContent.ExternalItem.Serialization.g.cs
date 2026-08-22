@@ -72,6 +72,8 @@ namespace TestContent
             {
                 MigrateFrom(new V0Content(reader, this));
                 Server.ISerializableExtensions.MarkDirty(this);
+                ValidateState();
+                Server.Timer.DelayCall(RebuildCaches);
                 return;
             }
 
@@ -80,6 +82,8 @@ namespace TestContent
             var RefreshTimerNext = reader.ReadDateTime();
             var RefreshTimerDelay = RefreshTimerNext == System.DateTime.MinValue ? System.TimeSpan.MinValue : RefreshTimerNext - Server.Core.Now;
             DeserializeRefreshTimer(RefreshTimerDelay);
+            ValidateState();
+            Server.Timer.DelayCall(RebuildCaches);
         }
     }
 }

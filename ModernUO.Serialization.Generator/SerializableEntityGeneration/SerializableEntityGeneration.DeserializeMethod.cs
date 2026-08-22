@@ -205,7 +205,7 @@ public static partial class SerializableEntityGeneration
                 }
                 else
                 {
-                    source.AppendLine($"{indent}Timer.DelayCall({method.MethodName});");
+                    source.AppendLine($"{indent}Server.Timer.DelayCall({method.MethodName});");
                 }
             }
         }
