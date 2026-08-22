@@ -60,7 +60,7 @@ namespace Server.TestContent
             var version = reader.ReadInt();
 
             var RefreshTimerNext = reader.ReadDateTime();
-            var RefreshTimerDelay = RefreshTimerNext == System.DateTime.MinValue ? System.TimeSpan.MinValue : RefreshTimerNext - Core.Now;
+            var RefreshTimerDelay = RefreshTimerNext == System.DateTime.MinValue ? System.TimeSpan.MinValue : RefreshTimerNext - Server.Core.Now;
             DeserializeRefreshTimer(RefreshTimerDelay);
 
             _progress = reader.ReadInt();

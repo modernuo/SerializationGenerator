@@ -1,3 +1,0 @@
-Struct emission marks Serialize/Deserialize as `virtual`, which is illegal on structs
-(CS0106). The pinned output preserves the current behavior; fixing the emission should
-update this snapshot and delete this marker.

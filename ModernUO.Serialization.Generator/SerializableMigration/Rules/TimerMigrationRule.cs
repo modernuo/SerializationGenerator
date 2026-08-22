@@ -77,7 +77,7 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
         var readTimer = driftTimer ? "reader.ReadDeltaTime()" : "reader.ReadDateTime()";
         var useVar = isMigration ? "" : "var ";
         source.AppendLine($"{indent}{useVar}{propertyName}Next = {readTimer};");
-        source.AppendLine($"{indent}{useVar}{propertyName}Delay = {propertyName}Next == System.DateTime.MinValue ? System.TimeSpan.MinValue : {propertyName}Next - Core.Now;");
+        source.AppendLine($"{indent}{useVar}{propertyName}Delay = {propertyName}Next == System.DateTime.MinValue ? System.TimeSpan.MinValue : {propertyName}Next - Server.Core.Now;");
     }
 
     public override void GenerateSerializationMethod(StringBuilder source, string indent, SerializableProperty property)

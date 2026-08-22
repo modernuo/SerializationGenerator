@@ -50,7 +50,8 @@ public static partial class SerializableEntityGeneration
             defaultMethods,
             changedMethods,
             dirtyTrackingEntity,
-            migrations
+            migrations,
+            duplicateMigrationFiles
         ) = classRecord;
 
         var typeKeyword = typeNode.GetTypeKeyword();
@@ -466,6 +467,26 @@ public static partial class SerializableEntityGeneration
             source.AppendLine();
         }
 
+        var warnings = new List<Diagnostic>();
+
+        if (!duplicateMigrationFiles.IsDefaultOrEmpty)
+        {
+            foreach (var path in duplicateMigrationFiles)
+            {
+                warnings.Add(typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3011, path));
+            }
+        }
+
+        // The file at the current version is the schema record the migration tool maintains;
+        // anything beyond it is left over from a rolled-back version bump.
+        foreach (var migrationVersion in migrations.Keys)
+        {
+            if (migrationVersion > version)
+            {
+                warnings.Add(typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3012, migrationVersion, version));
+            }
+        }
+
         var migrationsBuilder = ImmutableArray.CreateBuilder<SerializableMetadata>();
 
         for (var i = 0; i < version; i++)
@@ -549,7 +570,8 @@ public static partial class SerializableEntityGeneration
             serializableFieldSaveFlags,
             saveFlagMapping,
             saveFlagUseUlong,
-            saveFlagEnumCount
+            saveFlagEnumCount,
+            !isValueType
         );
         source.AppendLine();
 
@@ -570,7 +592,8 @@ public static partial class SerializableEntityGeneration
                 serializableFieldSaveFlags,
                 saveFlagMapping,
                 saveFlagUseUlong,
-                saveFlagEnumCount
+                saveFlagEnumCount,
+                !isValueType
             );
         }
         catch (DeserializeTimerFieldRequiredException e)
@@ -661,7 +684,7 @@ public static partial class SerializableEntityGeneration
             Properties = serializableFieldsForMigration.Length > 0 ? serializableFieldsForMigration : null
         } : null;
 
-        return (source.ToString(), newMigration, null);
+        return (source.ToString(), newMigration, warnings.ToArray());
     }
 
     extension(StringBuilder source)

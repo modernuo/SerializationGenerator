@@ -29,6 +29,12 @@ public static partial class SerializableEntityGeneration
         var isList = propertyType.IsListInterface(compilation);
         var isCollection = propertyType.IsCollection(compilation);
 
+        // Non-collection generics (e.g. KeyValuePair) have type arguments but no Add/Clear surface.
+        if (!isArray && !isDictionary && !isList && !isCollection)
+        {
+            return false;
+        }
+
         if (isDictionary)
         {
             var valueTypeName = namedTypeSymbol!.TypeArguments[1];

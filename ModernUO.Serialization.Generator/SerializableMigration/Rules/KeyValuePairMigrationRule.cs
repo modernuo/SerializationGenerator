@@ -161,9 +161,17 @@ public class KeyValuePairMigrationRule : MigrationRule
         string[] valueRuleArguments
     )
     {
+        // Sub-rules assign to the property name they are given, so declare uniquely named
+        // locals for them to fill; multiple pair fields in one method must not collide.
+        var keyVariable = $"{propertyName.Replace(".", "")}Key";
+        var valueVariable = $"{propertyName.Replace(".", "")}Value";
+
+        source.AppendLine($"{indent}{keyType} {keyVariable};");
+        source.AppendLine($"{indent}{valueType} {valueVariable};");
+
         var serializableKeyProperty = new SerializableProperty
         {
-            Name = "key",
+            Name = keyVariable,
             Type = keyType,
             Rule = keyRule.RuleName,
             RuleArguments = keyRuleArguments
@@ -179,7 +187,7 @@ public class KeyValuePairMigrationRule : MigrationRule
 
         var serializableValueProperty = new SerializableProperty
         {
-            Name = "value",
+            Name = valueVariable,
             Type = valueType,
             Rule = valueRule.RuleName,
             RuleArguments = valueRuleArguments
@@ -194,7 +202,7 @@ public class KeyValuePairMigrationRule : MigrationRule
         );
 
         source.AppendLine(
-            $"{indent}{propertyName} = new System.Collections.Generic.KeyValuePair<{keyType}, {valueType}>(key, value);"
+            $"{indent}{propertyName} = new System.Collections.Generic.KeyValuePair<{keyType}, {valueType}>({keyVariable}, {valueVariable});"
         );
     }
 

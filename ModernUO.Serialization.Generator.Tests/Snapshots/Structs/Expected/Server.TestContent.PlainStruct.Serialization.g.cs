@@ -11,7 +11,7 @@
 namespace Server.TestContent
 {
     [System.CodeDom.Compiler.GeneratedCode("ModernUO.Serialization.Generator", "{VERSION}")]
-    public partial struct FactoryStruct
+    public partial struct PlainStruct
     {
         private const int SerializationVersion = 0;
 
@@ -27,14 +27,14 @@ namespace Server.TestContent
             }
         }
 
-        public virtual void Serialize(Server.IGenericWriter writer)
+        public void Serialize(Server.IGenericWriter writer)
         {
             writer.WriteEncodedInt(SerializationVersion);
 
             writer.Write(_value);
         }
 
-        public virtual void Deserialize(Server.IGenericReader reader)
+        public void Deserialize(Server.IGenericReader reader)
         {
             var version = reader.ReadEncodedInt();
 

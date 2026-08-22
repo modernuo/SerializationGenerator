@@ -68,7 +68,7 @@ public static partial class SerializableEntityGeneration
             source.GenerateEnumEnd($"{indent}    ");
         }
 
-        source.AppendLine($"{indent}    internal V{migration.Version}Content(IGenericReader reader, {classSymbol.ToDisplayString()} entity)");
+        source.AppendLine($"{indent}    internal V{migration.Version}Content(Server.IGenericReader reader, {classSymbol.ToDisplayString()} entity)");
         source.AppendLine($"{indent}    {{");
 
         if (usesSaveFlags)

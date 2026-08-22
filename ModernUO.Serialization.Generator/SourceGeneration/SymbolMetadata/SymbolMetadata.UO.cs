@@ -271,7 +271,7 @@ public static partial class SymbolMetadata
             {
                 var dirtyTrackingEntityName =
                     dirtyTrackingEntity != null ? $"{dirtyTrackingEntity}{(dirtyCanBeNull ? "?" : "")}." : "";
-                return $"{dirtyTrackingEntityName}{markDirtyMethod.ToDisplayString()}()";
+                return $"{dirtyTrackingEntityName}{markDirtyMethod.Name}()";
             }
 
             return isSerializable switch
@@ -279,6 +279,37 @@ public static partial class SymbolMetadata
                 true => $"Server.ISerializableExtensions.MarkDirty({dirtyTrackingEntity ?? "this"})",
                 _    => null
             };
+        }
+
+        /// <summary>
+        /// True when <c>value != field</c> compiles for this type: reference types, enums,
+        /// primitives, type parameters constrained to a class, and types declaring
+        /// <c>op_Inequality</c>. Everything else compares via EqualityComparer.
+        /// </summary>
+        public bool HasInequalityOperator()
+        {
+            if (symbol.IsReferenceType || symbol.TypeKind is TypeKind.Enum or TypeKind.Pointer)
+            {
+                return true;
+            }
+
+            if (symbol.SpecialType != SpecialType.None)
+            {
+                return true;
+            }
+
+            if (symbol is ITypeParameterSymbol typeParameter)
+            {
+                return typeParameter.HasReferenceTypeConstraint;
+            }
+
+            // Nullable<T> lifts T's operators.
+            if (symbol is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable)
+            {
+                return nullable.TypeArguments[0].HasInequalityOperator();
+            }
+
+            return symbol.GetMembers("op_Inequality").Length > 0;
         }
 
         public bool HasPublicSerializeMethod(Compilation compilation)

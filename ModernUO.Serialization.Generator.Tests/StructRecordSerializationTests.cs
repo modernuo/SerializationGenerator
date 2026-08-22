@@ -6,7 +6,7 @@ namespace ModernUO.Serialization.Generator.Tests;
 public class StructRecordSerializationTests
 {
     [Fact]
-    public void Struct_WithStaticFactory_GeneratesCorrectly()
+    public void Struct_GeneratesSerializeAndDeserialize()
     {
         const string source = """
             using ModernUO.Serialization;
@@ -19,11 +19,6 @@ public class StructRecordSerializationTests
                 {
                     [SerializableField(0)]
                     private int _value;
-
-                    public static SimpleStruct Deserialize(IGenericReader reader)
-                    {
-                        return new SimpleStruct();
-                    }
                 }
             }
             """;
@@ -33,13 +28,17 @@ public class StructRecordSerializationTests
         Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
         Assert.NotNull(generatedSource);
         Assert.Contains("partial struct SimpleStruct", generatedSource);
-        Assert.Contains("void Serialize(", generatedSource);
+        Assert.Contains("public void Serialize(", generatedSource);
+        Assert.Contains("public void Deserialize(", generatedSource);
+        // Structs cannot have virtual members
+        Assert.DoesNotContain("virtual", generatedSource);
         // Struct should NOT have a serial constructor
         Assert.DoesNotContain("SimpleStruct(Serial serial)", generatedSource);
     }
 
+    // The generator emits Deserialize for value types; a user-declared one collides with it.
     [Fact]
-    public void Struct_WithInstanceDeserialize_GeneratesCorrectly()
+    public void Struct_WithInstanceDeserialize_ReportsDiagnostic()
     {
         const string source = """
             using ModernUO.Serialization;
@@ -56,31 +55,6 @@ public class StructRecordSerializationTests
                     public void Deserialize(IGenericReader reader)
                     {
                     }
-                }
-            }
-            """;
-
-        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
-
-        Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
-        Assert.NotNull(generatedSource);
-        Assert.Contains("partial struct SimpleStruct", generatedSource);
-    }
-
-    [Fact]
-    public void Struct_WithoutDeserializeMethod_ReportsDiagnostic()
-    {
-        const string source = """
-            using ModernUO.Serialization;
-            using Server;
-
-            namespace TestNamespace
-            {
-                [SerializationGenerator(0)]
-                public partial struct BadStruct
-                {
-                    [SerializableField(0)]
-                    private int _value;
                 }
             }
             """;
@@ -119,7 +93,34 @@ public class StructRecordSerializationTests
     }
 
     [Fact]
-    public void RecordStruct_WithStaticFactory_GeneratesCorrectly()
+    public void RecordStruct_GeneratesCorrectly()
+    {
+        const string source = """
+            using ModernUO.Serialization;
+            using Server;
+
+            namespace TestNamespace
+            {
+                [SerializationGenerator(0)]
+                public partial record struct SimpleRecordStruct
+                {
+                    [SerializableField(0)]
+                    private int _value;
+                }
+            }
+            """;
+
+        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
+        Assert.NotNull(generatedSource);
+        Assert.Contains("partial record struct SimpleRecordStruct", generatedSource);
+        // Record struct should NOT have a serial constructor
+        Assert.DoesNotContain("SimpleRecordStruct(Serial serial)", generatedSource);
+    }
+
+    [Fact]
+    public void RecordStruct_WithStaticFactory_ReportsDiagnostic()
     {
         const string source = """
             using ModernUO.Serialization;
@@ -137,33 +138,6 @@ public class StructRecordSerializationTests
                     {
                         return new SimpleRecordStruct();
                     }
-                }
-            }
-            """;
-
-        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
-
-        Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
-        Assert.NotNull(generatedSource);
-        Assert.Contains("partial record struct SimpleRecordStruct", generatedSource);
-        // Record struct should NOT have a serial constructor
-        Assert.DoesNotContain("SimpleRecordStruct(Serial serial)", generatedSource);
-    }
-
-    [Fact]
-    public void RecordStruct_WithoutDeserializeMethod_ReportsDiagnostic()
-    {
-        const string source = """
-            using ModernUO.Serialization;
-            using Server;
-
-            namespace TestNamespace
-            {
-                [SerializationGenerator(0)]
-                public partial record struct BadRecordStruct
-                {
-                    [SerializableField(0)]
-                    private int _value;
                 }
             }
             """;
@@ -193,11 +167,6 @@ public class StructRecordSerializationTests
 
                     [SerializableField(2)]
                     private int _z;
-
-                    public static MultiFieldStruct Deserialize(IGenericReader reader)
-                    {
-                        return new MultiFieldStruct();
-                    }
                 }
             }
             """;

@@ -69,7 +69,11 @@ public static partial class SerializableEntityGeneration
                 source.AppendLine($"{innerIndent}var oldValue = {fieldName};");
             }
 
-            source.AppendLine($"{innerIndent}if (value != {fieldName})");
+            var comparison = fieldSymbol.Type.HasInequalityOperator()
+                ? $"value != {fieldName}"
+                : $"!System.Collections.Generic.EqualityComparer<{fieldSymbol.Type.ToDisplayString()}>.Default.Equals(value, {fieldName})";
+
+            source.AppendLine($"{innerIndent}if ({comparison})");
             source.AppendLine($"{innerIndent}{{");
             source.AppendLine($"{innerIndent}    {fieldName} = value;");
             if (markDirtyMethod != null)
