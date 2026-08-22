@@ -61,7 +61,7 @@ namespace TestContent
 
             writer.Write(_name);
 
-            writer.Write(RefreshTimer?.Next ?? System.DateTime.MinValue);
+            writer.WriteAnchoredTime(RefreshTimer?.Next ?? System.DateTime.MinValue);
         }
 
         public virtual void Deserialize(Server.IGenericReader reader)
@@ -79,9 +79,12 @@ namespace TestContent
 
             _name = reader.ReadString();
 
-            var RefreshTimerNext = reader.ReadDateTime();
+            var RefreshTimerNext = reader.ReadAnchoredTime();
             var RefreshTimerDelay = RefreshTimerNext == System.DateTime.MinValue ? System.TimeSpan.MinValue : RefreshTimerNext - Server.Core.Now;
-            DeserializeRefreshTimer(RefreshTimerDelay);
+            if (RefreshTimerNext != System.DateTime.MinValue)
+            {
+                DeserializeRefreshTimer(RefreshTimerDelay);
+            }
             ValidateState();
             Server.Timer.DelayCall(RebuildCaches);
         }

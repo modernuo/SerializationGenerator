@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: TimerDriftAttribute.cs                                          *
  *                                                                       *
@@ -18,10 +18,13 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that this serializable timer field or property will drift
-/// during deserialization.
+/// Removed in v4. Timer serialization is declared with [DeserializeTimer(nameof(Method))] on
+/// the timer field; drift is the default. Migrating a drifting timer changes its wire format
+/// (anchored time), so bump the class's [SerializationGenerator] version and add a
+/// MigrateFrom for the previous version.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+[Obsolete("Removed in v4. Use [DeserializeTimer(nameof(Method))] on the timer field; drift is the default. Bump the class version - the wire format changes to anchored time.", true)]
 public sealed class TimerDriftAttribute : Attribute
 {
 }

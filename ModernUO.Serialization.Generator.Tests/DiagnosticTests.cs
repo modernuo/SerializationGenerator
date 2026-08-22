@@ -246,10 +246,10 @@ public class DiagnosticTests
                     [SerializableField(1)]
                     private int _count;
 
-                    [SerializableFieldSaveFlag(0)]
+                    [SerializableFieldSaveFlag(nameof(_name))]
                     private bool ShouldSerializeName() => _name != null;
 
-                    [SerializableFieldSaveFlag(0)]
+                    [SerializableFieldSaveFlag(nameof(_name))]
                     private bool ShouldSerializeName2() => _name != null;
 
                     public Serial Serial => default;
@@ -264,7 +264,7 @@ public class DiagnosticTests
     }
 
     [Fact]
-    public void NegativeSaveFlagOrder_ReportsDiagnostic()
+    public void UnknownSaveFlagField_ReportsDiagnostic()
     {
         const string source = """
             using ModernUO.Serialization;
@@ -273,12 +273,12 @@ public class DiagnosticTests
             namespace TestNamespace
             {
                 [SerializationGenerator(0)]
-                public partial class NegativeFlagItem : ISerializable
+                public partial class UnknownFlagItem : ISerializable
                 {
                     [SerializableField(0)]
                     private string _name;
 
-                    [SerializableFieldSaveFlag(-1)]
+                    [SerializableFieldSaveFlag("_missing")]
                     private bool ShouldSerializeName() => _name != null;
 
                     public Serial Serial => default;
@@ -289,6 +289,6 @@ public class DiagnosticTests
 
         var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
 
-        Assert.Contains(diagnostics, d => d.Id == "SG3006");
+        Assert.Contains(diagnostics, d => d.Id == "SG3014");
     }
 }

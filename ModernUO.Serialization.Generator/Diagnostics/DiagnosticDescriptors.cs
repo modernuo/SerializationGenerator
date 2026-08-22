@@ -87,8 +87,8 @@ public static class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor SG3008 = new(
         "SG3008",
-        "Missing DeserializeTimerField attribute",
-        "Missing DeserializeTimerField attribute for '{0}'",
+        "Missing DeserializeTimer attribute",
+        "Serializable timer field '{0}' must declare [DeserializeTimer(nameof(Method))]",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -136,6 +136,42 @@ public static class DiagnosticDescriptors
         "Migration file '{0}' could not be parsed: {1}",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3014 = new(
+        "SG3014",
+        "Unknown serializable field reference",
+        "[{0}] references '{1}', which is not a serializable field or property of this type",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3015 = new(
+        "SG3015",
+        "Linked method not found or invalid",
+        "Method '{0}' referenced by [{1}] was not found or does not match the expected signature '{2}'",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3016 = new(
+        "SG3016",
+        "Conflicting linkage styles",
+        "Field '{0}' declares {1} on the field and on a method; declare one style, not both",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3017 = new(
+        "SG3017",
+        "Default value without a save flag",
+        "The default value for '{0}' is ignored because the field has no save flag",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Warning,
         true
     );
 

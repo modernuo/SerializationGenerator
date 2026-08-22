@@ -23,9 +23,9 @@ namespace Server.TestContent
         private OwnerEntity _owner;
 
         [SerializableField(0)]
+        [DeserializeTimer(nameof(DeserializeRefreshTimer))]
         private Timer _refreshTimer;
 
-        [DeserializeTimerField(0)]
         private void DeserializeRefreshTimer(TimeSpan delay)
         {
             _refreshTimer = new Timer();

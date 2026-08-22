@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: DeserializeTimerFieldAttribute.cs                               *
  *                                                                       *
@@ -18,16 +18,16 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the specified serializable field, which must be a timer,
-/// can be deserialized by this method. The method signature should look like this:
-///
-/// [DeserializeTimerField(0)]
-/// private void DeserializeTimer(TimeSpan delay)
+/// Removed in v4. Timer serialization is declared with [DeserializeTimer(nameof(Method))] on
+/// the timer field instead of an order-linked attribute on the method. The method is now
+/// invoked only when a timer was running at save.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
+[Obsolete("Removed in v4. Use [DeserializeTimer(nameof(Method))] on the timer field. The method is invoked only when a timer was running at save.", true)]
 public sealed class DeserializeTimerFieldAttribute : Attribute
 {
-    public int Order { get; }
-
-    public DeserializeTimerFieldAttribute(int order) => Order = order;
+    [Obsolete("Removed in v4. Use [DeserializeTimer(nameof(Method))] on the timer field.", true)]
+    public DeserializeTimerFieldAttribute(int order)
+    {
+    }
 }

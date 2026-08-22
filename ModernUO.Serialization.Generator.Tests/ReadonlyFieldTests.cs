@@ -156,10 +156,10 @@ public class ReadonlyFieldTests
                     [SerializableField(1)]
                     private string _name;
 
-                    [SerializableFieldSaveFlag(0)]
+                    [SerializableFieldSaveFlag(nameof(_id))]
                     private bool ShouldSerializeId() => _id != null;
 
-                    [SerializableFieldSaveFlag(1)]
+                    [SerializableFieldSaveFlag(nameof(_name))]
                     private bool ShouldSerializeName() => _name != null;
 
                     public Serial Serial => default;

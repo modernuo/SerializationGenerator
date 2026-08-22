@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: SerializableFieldDefaultAttribute.cs                            *
  *                                                                       *
@@ -18,17 +18,25 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the field with the same order should use this default value
-/// while deserializing. The default is used when the save flag indicates that we don't need to serialize the value
-/// because this default can be used instead.
+/// Hints to the source generator that the named serializable field should use this method's
+/// return value while deserializing when the save flag indicates the value was not written.
 ///
-/// Note: This is only used for the current version, not previous versions. Previous versions will always use null or default
-/// for that type if it is not deserialized.
+/// Note: This is only used for the current version, not previous versions. Previous versions
+/// will always use null or default for that type if it is not deserialized.
+/// <code>
+/// [SerializableFieldDefault(nameof(_charges))]
+/// private int ChargesDefaultValue() => 8;
+/// </code>
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class SerializableFieldDefaultAttribute : Attribute
 {
-    public int Order { get; }
+    public string FieldName { get; }
 
-    public SerializableFieldDefaultAttribute(int order) => Order = order;
+    public SerializableFieldDefaultAttribute(string fieldName) => FieldName = fieldName;
+
+    [Obsolete("Order-based linkage was removed in v4. Use [SerializableFieldDefault(nameof(_field))], or [SaveFlag(...)] on the field.", true)]
+    public SerializableFieldDefaultAttribute(int order)
+    {
+    }
 }

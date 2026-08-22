@@ -4,15 +4,11 @@ The ModernUO serialization source generator takes the boilerplate out of writing
 While it is not the most elegant solution (recommendations and contributions are welcome!), it should handle most use-cases.
 
 ### How to install
-Add `ModernUO.SerializationGenerator` as an analyzer project reference:
+Add `ModernUO.Serialization.Generator` and `ModernUO.Serialization.Annotations` as package references:
 ```xml
     <ItemGroup>
-        <PackageReference Include="ModernUO.SerializationGenerator" Version="2.2.0">
-            <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
-            <OutputItemType>Analyzer</OutputItemType>
-            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
+        <PackageReference Include="ModernUO.Serialization.Annotations" Version="4.0.0" />
+        <PackageReference Include="ModernUO.Serialization.Generator" Version="4.0.0" PrivateAssets="all" />
     </ItemGroup>
 ```
 
@@ -248,20 +244,15 @@ Here is a complete example of how we would convert this:
     [SerializationGenerator(3, false)]
     public partial class DeathRobe : Robe
     {
-        [TimerDrift]
+        // The timer's next tick is written as anchored time by default, so downtime does not
+        // consume the remaining delay. Use wallClock: true for absolute deadlines instead.
         [SerializableField(0)]
+        [DeserializeTimer(nameof(DeserializeDecayTimer))]
         private Timer _decayTimer;
 
-        // Since the field is a timer, we need to tell the source generator how to convert from a time span to an actual timer.
+        // Invoked only when a timer was running at save, with its remaining delay.
         // This is a void instead of returning a Timer for flexiblity.
-        [DeserializeTimerField(0)]
-        private void DeserializeDecayTimer(TimeSpan delay)
-        {
-            if (delay != TimeSpan.MinValue)
-            {
-                BeginDecay(delay);
-            }
-        }
+        private void DeserializeDecayTimer(TimeSpan delay) => BeginDecay(delay);
 
         [Constructible]
         public DeathRobe()
@@ -309,3 +300,61 @@ Here is a complete example of how we would convert this:
         }
     }
 ```
+
+## v4 Linkage and Timers
+
+v4 removes order-based linkage between fields and their companion methods. Attributes that
+reference a serializable field take `nameof(_field)` instead of the field's order, and every
+linkage can alternatively be declared on the field itself:
+
+```cs
+    // Method-side: attributes on the methods name the field.
+    [SerializableField(0)]
+    private int _charges;
+
+    [SerializableFieldSaveFlag(nameof(_charges))]
+    private bool ShouldSerializeCharges() => _charges != 8;
+
+    [SerializableFieldDefault(nameof(_charges))]
+    private int ChargesDefaultValue() => 8;
+
+    // Field-side: one attribute on the field names the methods. Same generated code.
+    [SerializableField(0)]
+    [SaveFlag(nameof(ShouldSerializeCharges), nameof(ChargesDefaultValue))]
+    private int _charges;
+
+    // Change callbacks work the same way, in either style:
+    [SerializableField(1)]
+    [FieldChanged(nameof(OnLevelChanged))]
+    private int _level;
+```
+
+Timers are declared on the field with `[DeserializeTimer]`, replacing `[TimerDrift]` and
+`[DeserializeTimerField]`:
+
+```cs
+    [SerializableField(0)]
+    [DeserializeTimer(nameof(RestartDecayTimer))]
+    private Timer _decayTimer;
+
+    private void RestartDecayTimer(TimeSpan delay) => BeginDecay(delay);
+```
+
+By default the timer drifts: its next tick is stored as anchored time, so downtime does not
+consume the remaining delay, and the restart method is invoked only when a timer was actually
+running at save. Use `[DeserializeTimer(nameof(Method), wallClock: true)]` for absolute
+deadlines; the delay is then negative when the deadline passed during downtime.
+
+### Migrating from v3
+
+- Replace `[SerializableFieldSaveFlag(order)]`, `[SerializableFieldDefault(order)]`, and
+  `[SerializableFieldChanged(order)]` with `nameof(_field)` (or move them onto the field as
+  `[SaveFlag]` / `[FieldChanged]`). These conversions do not change the wire format.
+- Replace `[TimerDrift]` + `[DeserializeTimerField(order)]` with
+  `[DeserializeTimer(nameof(Method))]` on the timer field. Drifting timers change wire format
+  (delta time to anchored time), so bump the class's `[SerializationGenerator]` version and
+  add a `MigrateFrom` for the previous version; old saves keep reading correctly through the
+  migration schema. Wall-clock timers (no `[TimerDrift]` before) keep their format: use
+  `wallClock: true` and no version bump is needed.
+- Remove `delay != TimeSpan.MinValue` checks from restart methods; they are no longer called
+  when no timer was running.

@@ -1,0 +1,22 @@
+{
+    "version": 0,
+    "type": "Server.TestContent.TimersItem",
+    "properties": [
+        {
+            "name": "DriftTimer",
+            "type": "Server.Timer",
+            "rule": "TimerMigrationRule",
+            "ruleArguments": [
+                "@TimerDrift"
+            ]
+        },
+        {
+            "name": "DeadlineTimer",
+            "type": "Server.Timer",
+            "rule": "TimerMigrationRule",
+            "ruleArguments": [
+                ""
+            ]
+        }
+    ]
+}

@@ -2,7 +2,7 @@
  * ModernUO                                                              *
  * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: SerializableFieldSaveFlagAttribute.cs                           *
+ * File: SaveFlagAttribute.cs                                            *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -18,22 +18,28 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the named serializable field should use a save flag
-/// determined by this method.
+/// Declares conditional serialization for a serializable field, on the field itself. The
+/// first method (<c>bool Method()</c>) decides whether the value is written; the optional
+/// second method (returning the field's type, no parameters) supplies the value at load when
+/// it was not written.
 /// <code>
-/// [SerializableFieldSaveFlag(nameof(_name))]
-/// private bool ShouldSerializeName() => _name != null;
+/// [SerializableField(0)]
+/// [SaveFlag(nameof(ShouldSerializeName), nameof(NameDefaultValue))]
+/// private string _name;
 /// </code>
+/// Equivalent to placing [SerializableFieldSaveFlag] and [SerializableFieldDefault] on the
+/// methods; declare one style per field, not both.
 /// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class SerializableFieldSaveFlagAttribute : Attribute
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+public sealed class SaveFlagAttribute : Attribute
 {
-    public string FieldName { get; }
+    public string ShouldSerializeMethod { get; }
 
-    public SerializableFieldSaveFlagAttribute(string fieldName) => FieldName = fieldName;
+    public string DefaultValueMethod { get; }
 
-    [Obsolete("Order-based linkage was removed in v4. Use [SerializableFieldSaveFlag(nameof(_field))], or [SaveFlag(...)] on the field.", true)]
-    public SerializableFieldSaveFlagAttribute(int order)
+    public SaveFlagAttribute(string shouldSerializeMethod, string defaultValueMethod = null)
     {
+        ShouldSerializeMethod = shouldSerializeMethod;
+        DefaultValueMethod = defaultValueMethod;
     }
 }

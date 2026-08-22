@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: SerializableFieldChangedAttribute.cs                            *
  *                                                                       *
@@ -18,13 +18,23 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the method should be called when the field with the same order value changes.
-/// The method must have the signature: void MethodName(T oldValue, T newValue) where T is the field type.
+/// Hints to the source generator that this method should be invoked by the generated setter
+/// of the named serializable field after its value changes. The method signature must be
+/// <c>void Method(T oldValue, T newValue)</c> where T is the field's type.
+/// <code>
+/// [SerializableFieldChanged(nameof(_level))]
+/// private void OnLevelChanged(int oldValue, int newValue) { }
+/// </code>
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class SerializableFieldChangedAttribute : Attribute
 {
-    public int Order { get; }
+    public string FieldName { get; }
 
-    public SerializableFieldChangedAttribute(int order) => Order = order;
+    public SerializableFieldChangedAttribute(string fieldName) => FieldName = fieldName;
+
+    [Obsolete("Order-based linkage was removed in v4. Use [SerializableFieldChanged(nameof(_field))], or [FieldChanged(...)] on the field.", true)]
+    public SerializableFieldChangedAttribute(int order)
+    {
+    }
 }

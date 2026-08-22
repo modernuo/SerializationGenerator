@@ -6,8 +6,8 @@
         <Platforms>x64;arm64</Platforms>
         <LangVersion>preview</LangVersion>
         <OutputType>Exe</OutputType>
-        <AssemblyVersion>3.0.0</AssemblyVersion>
-        <PackageVersion>3.0.0</PackageVersion>
+        <AssemblyVersion>4.0.0</AssemblyVersion>
+        <PackageVersion>4.0.0</PackageVersion>
         <PackAsTool>true</PackAsTool>
         <AssemblyName>ModernUOSchemaGenerator</AssemblyName>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

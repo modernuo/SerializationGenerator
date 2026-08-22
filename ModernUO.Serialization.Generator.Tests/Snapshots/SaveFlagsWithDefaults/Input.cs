@@ -10,25 +10,25 @@ namespace Server.TestContent
         [SerializableField(0)]
         private string _name;
 
-        [SerializableFieldSaveFlag(0)]
+        [SerializableFieldSaveFlag(nameof(_name))]
         private bool ShouldSerializeName() => _name != null;
 
         [SerializableField(1)]
         private int _charges;
 
-        [SerializableFieldSaveFlag(1)]
+        [SerializableFieldSaveFlag(nameof(_charges))]
         private bool ShouldSerializeCharges() => _charges != 8;
 
-        [SerializableFieldDefault(1)]
+        [SerializableFieldDefault(nameof(_charges))]
         private int ChargesDefaultValue() => 8;
 
         [SerializableField(2)]
         private DateTime _expires;
 
-        [SerializableFieldSaveFlag(2)]
+        [SerializableFieldSaveFlag(nameof(_expires))]
         private bool ShouldSerializeExpires() => _expires != DateTime.MinValue;
 
-        [SerializableFieldDefault(2)]
+        [SerializableFieldDefault(nameof(_expires))]
         private DateTime ExpiresDefaultValue() => DateTime.MinValue;
 
         [SerializableField(3)]

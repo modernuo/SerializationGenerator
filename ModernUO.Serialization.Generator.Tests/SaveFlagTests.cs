@@ -22,7 +22,7 @@ public partial class SaveFlagTests
                     [SerializableField(0)]
                     private string _name;
 
-                    [SerializableFieldSaveFlag(0)]
+                    [SerializableFieldSaveFlag(nameof(_name))]
                     private bool ShouldSerializeName() => _name != null;
 
                     public Serial Serial => default;
@@ -61,7 +61,7 @@ public partial class SaveFlagTests
             sb.AppendLine($"        [SerializableField({i})]");
             sb.AppendLine($"        private string _field{i};");
             sb.AppendLine();
-            sb.AppendLine($"        [SerializableFieldSaveFlag({i})]");
+            sb.AppendLine($"        [SerializableFieldSaveFlag(nameof(_field{i}))]");
             sb.AppendLine($"        private bool ShouldSerializeField{i}() => _field{i} != null;");
             sb.AppendLine();
         }
@@ -108,7 +108,7 @@ public partial class SaveFlagTests
             sb.AppendLine($"        [SerializableField({i})]");
             sb.AppendLine($"        private int _field{i};");
             sb.AppendLine();
-            sb.AppendLine($"        [SerializableFieldSaveFlag({i})]");
+            sb.AppendLine($"        [SerializableFieldSaveFlag(nameof(_field{i}))]");
             sb.AppendLine($"        private bool ShouldSerializeField{i}() => _field{i} != 0;");
             sb.AppendLine();
         }
@@ -149,7 +149,7 @@ public partial class SaveFlagTests
             sb.AppendLine($"        [SerializableField({i})]");
             sb.AppendLine($"        private int _field{i};");
             sb.AppendLine();
-            sb.AppendLine($"        [SerializableFieldSaveFlag({i})]");
+            sb.AppendLine($"        [SerializableFieldSaveFlag(nameof(_field{i}))]");
             sb.AppendLine($"        private bool ShouldSerializeField{i}() => _field{i} != 0;");
             sb.AppendLine();
         }
@@ -209,10 +209,10 @@ public partial class SaveFlagTests
                     [SerializableField(0)]
                     private int _count;
 
-                    [SerializableFieldSaveFlag(0)]
+                    [SerializableFieldSaveFlag(nameof(_count))]
                     private bool ShouldSerializeCount() => _count != 0;
 
-                    [SerializableFieldDefault(0)]
+                    [SerializableFieldDefault(nameof(_count))]
                     private int GetCountDefault() => 0;
 
                     public Serial Serial => default;

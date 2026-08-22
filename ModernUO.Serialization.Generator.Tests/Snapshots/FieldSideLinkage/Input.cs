@@ -1,26 +1,30 @@
 using System;
-using System.Collections.Generic;
 using ModernUO.Serialization;
 using Server;
 
 namespace Server.TestContent
 {
     [SerializationGenerator(0)]
-    public partial class FieldModifiersItem : ISerializable
+    public partial class FieldLinkedItem : ISerializable
     {
         [SerializableField(0)]
-        [CanBeNull]
-        private string _description;
+        [SaveFlag(nameof(ShouldSerializeName))]
+        private string _name;
+
+        private bool ShouldSerializeName() => _name != null;
 
         [SerializableField(1)]
-        [Tidy]
-        private Dictionary<int, string> _entries;
+        [SaveFlag(nameof(ShouldSerializeCharges), nameof(ChargesDefaultValue))]
+        private int _charges;
+
+        private bool ShouldSerializeCharges() => _charges != 8;
+
+        private int ChargesDefaultValue() => 8;
 
         [SerializableField(2)]
-        [InvalidateProperties]
+        [FieldChanged(nameof(OnLevelChanged))]
         private int _level;
 
-        [SerializableFieldChanged(nameof(_level))]
         private void OnLevelChanged(int oldValue, int newValue)
         {
         }
@@ -29,6 +33,5 @@ namespace Server.TestContent
         public Serial Serial { get; }
         public bool Deleted => false;
         public void Delete() { }
-        public void InvalidateProperties() { }
     }
 }

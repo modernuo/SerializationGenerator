@@ -2,7 +2,7 @@
  * ModernUO                                                              *
  * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: SerializableFieldSaveFlagAttribute.cs                           *
+ * File: FieldChangedAttribute.cs                                        *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -18,22 +18,21 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the named serializable field should use a save flag
-/// determined by this method.
+/// Declares the change callback for a serializable field, on the field itself. The named
+/// method must have the signature <c>void Method(T oldValue, T newValue)</c> where T is the
+/// field's type; it is invoked by the generated setter after assignment.
 /// <code>
-/// [SerializableFieldSaveFlag(nameof(_name))]
-/// private bool ShouldSerializeName() => _name != null;
+/// [SerializableField(2)]
+/// [FieldChanged(nameof(OnLevelChanged))]
+/// private int _level;
 /// </code>
+/// Equivalent to placing [SerializableFieldChanged] on the method; declare one style per
+/// field, not both.
 /// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class SerializableFieldSaveFlagAttribute : Attribute
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+public sealed class FieldChangedAttribute : Attribute
 {
-    public string FieldName { get; }
+    public string MethodName { get; }
 
-    public SerializableFieldSaveFlagAttribute(string fieldName) => FieldName = fieldName;
-
-    [Obsolete("Order-based linkage was removed in v4. Use [SerializableFieldSaveFlag(nameof(_field))], or [SaveFlag(...)] on the field.", true)]
-    public SerializableFieldSaveFlagAttribute(int order)
-    {
-    }
+    public FieldChangedAttribute(string methodName) => MethodName = methodName;
 }
