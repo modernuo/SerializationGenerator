@@ -24,10 +24,11 @@ public class SnapshotTests
     private static bool UpdateMode => Environment.GetEnvironmentVariable("UPDATE_SNAPSHOTS") == "1";
 
     // The emitted header stamps the generator version; normalize it so version bumps do not
-    // invalidate every snapshot.
+    // invalidate every snapshot. Line endings are normalized so autocrlf checkouts compare
+    // equal.
     private static string NormalizeVersion(string content) =>
         Regex.Replace(
-            content,
+            content.Replace("\r\n", "\n"),
             """(Version: |"ModernUO\.Serialization\.Generator", ")\d+\.\d+\.\d+\.\d+""",
             "$1{VERSION}"
         );
@@ -109,7 +110,7 @@ public class SnapshotTests
 
         foreach (var (fileName, content) in sources)
         {
-            var expected = File.ReadAllText(Path.Combine(expectedDir, fileName));
+            var expected = File.ReadAllText(Path.Combine(expectedDir, fileName)).Replace("\r\n", "\n");
             Assert.Equal(expected, NormalizeVersion(content));
         }
     }
