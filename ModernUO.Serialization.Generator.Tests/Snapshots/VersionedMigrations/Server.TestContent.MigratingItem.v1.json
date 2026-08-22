@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "type": "Server.TestContent.MigratingItem",
+    "properties": [
+        {
+            "name": "Name",
+            "type": "string",
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Charges",
+            "type": "int",
+            "rule": "PrimitiveTypeMigrationRule"
+        }
+    ]
+}

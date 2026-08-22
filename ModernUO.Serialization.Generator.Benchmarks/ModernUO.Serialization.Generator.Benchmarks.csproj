@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BenchmarkDotNet" Version="0.15.4" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ModernUO.Serialization.Generator\ModernUO.Serialization.Generator.csproj" />
+        <ProjectReference Include="..\ModernUO.Serialization.Annotations\ModernUO.Serialization.Annotations.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Shared Server stubs and driver plumbing from the test project. -->
+        <Compile Include="..\ModernUO.Serialization.Generator.Tests\Helpers\SourceGeneratorTestHelper.cs" Link="SourceGeneratorTestHelper.cs" />
+    </ItemGroup>
+
+</Project>
