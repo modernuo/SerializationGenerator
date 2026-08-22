@@ -24,10 +24,9 @@ public static partial class SerializableEntityGeneration
 {
     public static void GenerateMigrationContentStruct(
         this StringBuilder source,
-        Compilation compilation,
         string indent,
         SerializableMetadata migration,
-        INamedTypeSymbol classSymbol
+        string classDisplayString
     )
     {
         source.AppendLine($"{indent}ref struct V{migration.Version}Content");
@@ -37,7 +36,7 @@ public static partial class SerializableEntityGeneration
         foreach (var serializableProperty in properties)
         {
             SerializableMigrationRulesEngine.Rules[serializableProperty.Rule].GenerateMigrationProperty(
-                source, compilation, $"{indent}    ", serializableProperty
+                source, $"{indent}    ", serializableProperty
             );
         }
 
@@ -68,7 +67,7 @@ public static partial class SerializableEntityGeneration
             source.GenerateEnumEnd($"{indent}    ");
         }
 
-        source.AppendLine($"{indent}    internal V{migration.Version}Content(Server.IGenericReader reader, {classSymbol.ToDisplayString()} entity)");
+        source.AppendLine($"{indent}    internal V{migration.Version}Content(Server.IGenericReader reader, {classDisplayString} entity)");
         source.AppendLine($"{indent}    {{");
 
         if (usesSaveFlags)
@@ -93,7 +92,6 @@ public static partial class SerializableEntityGeneration
                     SerializableMigrationRulesEngine.Rules[property.Rule].GenerateDeserializationMethod(
                         source,
                         $"{innerIndent}    ",
-                        compilation,
                         property,
                         "entity",
                         true
@@ -109,7 +107,6 @@ public static partial class SerializableEntityGeneration
                 SerializableMigrationRulesEngine.Rules[property.Rule].GenerateDeserializationMethod(
                     source,
                     innerIndent,
-                    compilation,
                     property,
                     "entity",
                     true

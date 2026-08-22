@@ -14,7 +14,6 @@
  *************************************************************************/
 
 using System.Text;
-using Microsoft.CodeAnalysis;
 
 namespace ModernUO.Serialization.Generator;
 
@@ -24,7 +23,6 @@ public interface IPostDeserializeMethod
         StringBuilder source,
         string indent,
         SerializableProperty property,
-        Compilation compilation,
-        INamedTypeSymbol classSymbol
+        SerializationModel model
     );
 }

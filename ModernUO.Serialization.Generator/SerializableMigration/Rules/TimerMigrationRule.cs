@@ -47,7 +47,7 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
     }
 
     public override void GenerateMigrationProperty(
-        StringBuilder source, Compilation compilation, string indent, SerializableProperty property
+        StringBuilder source, string indent, SerializableProperty property
     )
     {
         source.AppendLine($"{indent}internal readonly System.DateTime {property.Name}Next;");
@@ -57,7 +57,6 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
     public override void GenerateDeserializationMethod(
         StringBuilder source,
         string indent,
-        Compilation compilation,
         SerializableProperty property,
         string? parentReference,
         bool isMigration = false
@@ -98,41 +97,17 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
     }
 
     public void PostDeserializeMethod(
-        StringBuilder source, string indent, SerializableProperty property, Compilation compilation, INamedTypeSymbol classSymbol
+        StringBuilder source, string indent, SerializableProperty property, SerializationModel model
     )
     {
-        var deserializeTimerMethod = classSymbol
-            .GetMembers()
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault(
-                m =>
-                {
-                    if (!m.ReturnsVoid || m.Parameters.Length != 1 || !m.Parameters[0].Type.IsTimeSpan(compilation))
-                    {
-                        return false;
-                    }
-
-                    return m.GetAttributes()
-                        .FirstOrDefault(
-                            attr =>
-                            {
-                                if (!SymbolEqualityComparer.Default.Equals(
-                                        attr.AttributeClass,
-                                        compilation.GetTypeByMetadataName(
-                                            SymbolMetadata.DESERIALIZE_TIMER_FIELD_ATTRIBUTE
-                                        )
-                                    ))
-                                {
-                                    return false;
-                                }
-
-                                var order = (int)attr.ConstructorArguments[0].Value!;
-                                return order == property.Order;
-                            }
-                        ) != null;
-                }
-            ) ?? throw new DeserializeTimerFieldRequiredException(property.Name);
-
-        source.AppendLine($"{indent}{deserializeTimerMethod.Name}({property.Name}Delay);");
+        // Resolved during model building; SG3008 fires there when the method is missing.
+        foreach (var timerField in model.TimerFields)
+        {
+            if (timerField.Order == property.Order)
+            {
+                source.AppendLine($"{indent}{timerField.DeserializeMethodName}({property.Name}Delay);");
+                return;
+            }
+        }
     }
 }

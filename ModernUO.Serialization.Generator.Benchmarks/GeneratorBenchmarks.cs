@@ -86,6 +86,16 @@ public class GeneratorBenchmarks
             .RunGenerators(_compilation);
         _warmCompilation = _compilation;
         _editTarget = _warmCompilation.SyntaxTrees.Last();
+
+        // Guard against measuring a silently failing generator.
+        var result = _warmDriver.GetRunResult().Results[0];
+        if (result.GeneratedSources.Length != ClassCount)
+        {
+            throw new InvalidOperationException(
+                $"Expected {ClassCount} generated sources but got {result.GeneratedSources.Length}. " +
+                $"Diagnostics: {string.Join("; ", result.Diagnostics.Take(3))}"
+            );
+        }
     }
 
     [Benchmark]
@@ -94,6 +104,13 @@ public class GeneratorBenchmarks
             .Create(new EntitySerializationGenerator())
             .AddAdditionalTexts(_additionalTexts)
             .RunGenerators(_compilation);
+
+    [Benchmark]
+    public GeneratorDriver WarmRerunNoChange()
+    {
+        _warmDriver = _warmDriver.RunGenerators(_warmCompilation);
+        return _warmDriver;
+    }
 
     [Benchmark]
     public GeneratorDriver WarmRerunAfterSingleEdit()

@@ -89,7 +89,6 @@ public class SortedSetMigrationRule : MigrationRule
     public override void GenerateDeserializationMethod(
         StringBuilder source,
         string indent,
-        Compilation compilation,
         SerializableProperty property,
         string? parentReference,
         bool isMigration = false
@@ -132,7 +131,6 @@ public class SortedSetMigrationRule : MigrationRule
             source.AppendLine($"{indent}{{");
             GenerateDeserialize(
                 source,
-                compilation,
                 $"{indent}    ",
                 propertyName,
                 parentReference,
@@ -151,7 +149,6 @@ public class SortedSetMigrationRule : MigrationRule
         {
             GenerateDeserialize(
                 source,
-                compilation,
                 indent,
                 propertyName,
                 parentReference,
@@ -165,7 +162,6 @@ public class SortedSetMigrationRule : MigrationRule
 
     private static void GenerateDeserialize(
         StringBuilder source,
-        Compilation compilation,
         string indent,
         string propertyName,
         string parentReference,
@@ -198,7 +194,6 @@ public class SortedSetMigrationRule : MigrationRule
         setElementRule.GenerateDeserializationMethod(
             source,
             $"{indent}    ",
-            compilation,
             serializableSetElement,
             parentReference
         );

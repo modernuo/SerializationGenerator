@@ -312,6 +312,41 @@ public static partial class SymbolMetadata
             return symbol.GetMembers("op_Inequality").Length > 0;
         }
 
+        /// <summary>
+        /// Finds the [DeserializeTimerField] method for the given field order, or null.
+        /// </summary>
+        public IMethodSymbol GetDeserializeTimerMethod(Compilation compilation, int order)
+        {
+            return symbol
+                .GetMembers()
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault(
+                    m =>
+                    {
+                        if (!m.ReturnsVoid || m.Parameters.Length != 1 || !m.Parameters[0].Type.IsTimeSpan(compilation))
+                        {
+                            return false;
+                        }
+
+                        return m.GetAttributes()
+                            .FirstOrDefault(
+                                attr =>
+                                {
+                                    if (!SymbolEqualityComparer.Default.Equals(
+                                            attr.AttributeClass,
+                                            compilation.GetTypeByMetadataName(DESERIALIZE_TIMER_FIELD_ATTRIBUTE)
+                                        ))
+                                    {
+                                        return false;
+                                    }
+
+                                    return (int)attr.ConstructorArguments[0].Value! == order;
+                                }
+                            ) != null;
+                    }
+                );
+        }
+
         public bool HasPublicSerializeMethod(Compilation compilation)
         {
             var genericWriterInterface = compilation.GetTypeByMetadataName(GENERIC_WRITER_INTERFACE);

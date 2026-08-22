@@ -71,7 +71,6 @@ public class ArrayMigrationRule : MigrationRule
     public override void GenerateDeserializationMethod(
         StringBuilder source,
         string indent,
-        Compilation compilation,
         SerializableProperty property,
         string? parentReference,
         bool isMigration = false
@@ -100,7 +99,6 @@ public class ArrayMigrationRule : MigrationRule
             source.AppendLine($"{indent}{{");
             GenerateDeserialize(
                 source,
-                compilation,
                 $"{indent}    ",
                 propertyName,
                 parentReference,
@@ -118,7 +116,6 @@ public class ArrayMigrationRule : MigrationRule
         {
             GenerateDeserialize(
                 source,
-                compilation,
                 indent,
                 propertyName,
                 parentReference,
@@ -131,7 +128,6 @@ public class ArrayMigrationRule : MigrationRule
 
     private static void GenerateDeserialize(
         StringBuilder source,
-        Compilation compilation,
         string indent,
         string propertyName,
         string parentReference,
@@ -159,7 +155,6 @@ public class ArrayMigrationRule : MigrationRule
         arrayElementRule.GenerateDeserializationMethod(
             source,
             $"{indent}    ",
-            compilation,
             serializableArrayElement,
             parentReference
         );

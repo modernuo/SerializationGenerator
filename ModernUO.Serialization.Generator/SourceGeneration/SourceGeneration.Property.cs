@@ -48,13 +48,13 @@ public static partial class SourceGeneration
             string indent,
             Accessibility accessors,
             bool isVirtual,
-            IFieldSymbol fieldSymbol
+            string typeDisplay,
+            string propertyName
         )
         {
-            var propertyName = fieldSymbol.Name.GetPropertyName();
             var virt = isVirtual ? "virtual " : "";
 
-            source.AppendLine($"{indent}{accessors.ToFriendlyString()} {virt}{fieldSymbol.Type} {propertyName}");
+            source.AppendLine($"{indent}{accessors.ToFriendlyString()} {virt}{typeDisplay} {propertyName}");
             source.AppendLine($"{indent}{{");
         }
 
@@ -100,12 +100,12 @@ public static partial class SourceGeneration
 
         public void GeneratePropertyGetterReturnsField(
             string indent,
-            IFieldSymbol fieldSymbol,
+            string fieldName,
             Accessibility Accessibility
         )
         {
             var accessor = Accessibility != Accessibility.NotApplicable ? $"{Accessibility.ToFriendlyString()} " : "";
-            source.AppendLine($"{indent}{accessor}get => {fieldSymbol.Name};");
+            source.AppendLine($"{indent}{accessor}get => {fieldName};");
         }
 
         public void GeneratePropertyGetterStart(

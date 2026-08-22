@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: EntitySerializationGenerator.cs                                 *
  *                                                                       *
@@ -8,9 +8,6 @@
  * it under the terms of the GNU General Public License as published by  *
  * the Free Software Foundation, either version 3 of the License, or     *
  * (at your option) any later version.                                   *
- *                                                                       *
- * You should have received a copy of the GNU General Public License     *
- * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
 using System;
@@ -18,7 +15,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -29,7 +28,6 @@ namespace ModernUO.Serialization.Generator;
 [Generator]
 public class EntitySerializationGenerator(bool generateMigrations = false) : IIncrementalGenerator
 {
-
     public EntitySerializationGenerator() : this(false)
     {
     }
@@ -39,310 +37,320 @@ public class EntitySerializationGenerator(bool generateMigrations = false) : IIn
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Gather all classes with [ModernUO.Serialization.SerializationGenerator] attribute
+        // Fully resolved, value-equatable models. The transform re-runs when the compilation
+        // changes, but an edit that does not affect the serialization surface produces an
+        // equal model and everything downstream stays cached.
         var serializableClasses = context
             .SyntaxProvider
-            .CreateSyntaxProvider(
-                IsSerializationGeneratorSyntaxNode,
-                GetSerializableClassAndProperties
+            .ForAttributeWithMetadataName(
+                SymbolMetadata.SERIALIZABLE_ATTRIBUTE,
+                static (node, _) => node is TypeDeclarationSyntax,
+                static (ctx, token) => SerializableEntityGeneration.BuildSerializationModel(ctx, token)
             )
-            .Where(t => t != null && (t.Value.Item1 != null || t.Value.Item2 != null))
             .WithTrackingName("serializableClasses");
 
-        // Gather all migration JSON files and organize them by file name (namespace/class) and version.
+        // Each migration file parses once and re-parses only when its content changes.
         var migrationFiles = context
             .AdditionalTextsProvider
+            .Where(static text => SerializableMigrationSchema.MatchMigrationFilename(
+                Path.GetFileName(text.Path), out _, out _)
+            )
+            .Select(static (text, token) => ParseMigrationFile(text, token))
+            .WithTrackingName("migrationFiles");
+
+        // Value-type facts need the compilation; this recomputes cheaply per compilation and
+        // produces equal output while the answers are unchanged, keeping downstream cached.
+        var augmentedMigrations = migrationFiles
+            .Combine(context.CompilationProvider)
+            .Select(static (pair, token) => AugmentMigrationFile(pair.Left, pair.Right, token))
+            .WithTrackingName("augmentedMigrations");
+
+        var migrationMap = augmentedMigrations
             .Collect()
-            .Select(ToMigrationFileSet)
-            .WithTrackingName("migrations");
+            .Select(static (files, token) => MigrationFileMap.Create(files, token))
+            .WithTrackingName("migrationMap");
 
-        // Combine the classes, migrations, and fields into a single set
         var classesWithMigrations = serializableClasses
-            .Combine(migrationFiles)
-            .Select(TransformToClassMigrationPairs)
-            .Combine(context.CompilationProvider);
+            .Combine(migrationMap)
+            .Select(static (pair, token) => AttachMigrations(pair.Left, pair.Right, token))
+            .WithTrackingName("classesWithMigrations");
 
-        // Generate source code
         context.RegisterSourceOutput(classesWithMigrations, ExecuteIncremental);
     }
 
-    public static bool IsSerializationGeneratorSyntaxNode(SyntaxNode node, CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-        var name = (node as AttributeSyntax)?.Name.ExtractName();
-        return name is "SerializationGenerator" or "SerializationGeneratorAttribute";
-    }
-
-    private static (SerializableClassRecord, Diagnostic[])? GetSerializableClassAndProperties(
-        GeneratorSyntaxContext ctx,
-        CancellationToken token
-    )
+    private static MigrationFileModel ParseMigrationFile(AdditionalText text, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        var compilation = ctx.SemanticModel.Compilation;
-
-        var syntaxNode = (AttributeSyntax)ctx.Node;
-
-        if (syntaxNode.Parent?.Parent is not TypeDeclarationSyntax typeNode)
-        {
-            return null;
-        }
-
-        if (!typeNode.IsPartial())
-        {
-            var typeName = compilation
-                .GetSemanticModel(typeNode.SyntaxTree)
-                .GetDeclaredSymbol(typeNode)?
-                .Name;
-
-            var diagnostic = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3001, typeName);
-            return (null, [diagnostic]);
-        }
-
-        var node = (TypeDeclarationSyntax)ctx.Node.Parent!.Parent!;
-        var classSymbol = ctx.SemanticModel.GetDeclaredSymbol(node) as INamedTypeSymbol;
-
-        // This happens when there is no using import
-        if (!classSymbol.TryGetSerializable(compilation, out var serializationAttribute))
-        {
-            var typeName = compilation
-                .GetSemanticModel(typeNode.SyntaxTree)
-                .GetDeclaredSymbol(typeNode)?
-                .Name;
-
-            var diagnostic = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3002, typeName);
-
-            return (null, [diagnostic]);
-        }
-
-        // The generator emits Deserialize for value types; a user-declared one collides with it.
-        if (classSymbol!.IsValueType && classSymbol.HasDeserializationCapability(compilation, out _))
-        {
-            var typeName = classSymbol.Name;
-            var diagnostic = typeNode.GenerateDiagnostic(DiagnosticDescriptors.SG3009, typeName);
-            return (null, [diagnostic]);
-        }
-
-        var fields = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
-        var properties = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
-        var saveFlagMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
-        var defaultValueMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
-        var changedMethods = ImmutableArray.CreateBuilder<(ISymbol, AttributeData)>();
-        ISymbol? dirtyTrackingEntity = null;
-        foreach (var m in node.Members)
-        {
-            token.ThrowIfCancellationRequested();
-
-            if (m is PropertyDeclarationSyntax propertyNode)
-            {
-                if (ctx.SemanticModel.GetDeclaredSymbol(propertyNode) is IPropertySymbol propertySymbol)
-                {
-                    if (propertySymbol.TryGetDirtyTrackingEntityField(compilation))
-                    {
-                        dirtyTrackingEntity = propertySymbol;
-                    }
-                    else if (propertySymbol.TryGetSerializableProperty(compilation, out var attributeData))
-                    {
-                        properties.Add((propertySymbol, attributeData));
-                    }
-                }
-            }
-            else if (m is FieldDeclarationSyntax fieldNode)
-            {
-                foreach (var variable in fieldNode.Declaration.Variables)
-                {
-                    token.ThrowIfCancellationRequested();
-
-                    if (ctx.SemanticModel.GetDeclaredSymbol(variable) is IFieldSymbol fieldSymbol)
-                    {
-                        if (fieldSymbol.TryGetDirtyTrackingEntityField(compilation))
-                        {
-                            dirtyTrackingEntity = fieldSymbol;
-                        }
-                        else if (fieldSymbol.TryGetSerializableField(compilation, out var attributeData))
-                        {
-                            fields.Add((fieldSymbol, attributeData));
-                        }
-                    }
-                }
-            }
-            else if (m is MethodDeclarationSyntax methodNode)
-            {
-                if (ctx.SemanticModel.GetDeclaredSymbol(methodNode) is IMethodSymbol methodSymbol)
-                {
-                    if (methodSymbol.TryGetSerializableFieldSaveFlagMethod(compilation, out var attributeData))
-                    {
-                        saveFlagMethods.Add((methodSymbol, attributeData));
-                    }
-                    else if (methodSymbol.TryGetSerializableFieldDefaultMethod(compilation, out attributeData))
-                    {
-                        defaultValueMethods.Add((methodSymbol, attributeData));
-                    }
-                    else if (methodSymbol.TryGetSerializableFieldChangedMethod(compilation, out attributeData))
-                    {
-                        changedMethods.Add((methodSymbol, attributeData));
-                    }
-                }
-            }
-        }
-
-        var record = new SerializableClassRecord(
-            typeNode,
-            classSymbol,
-            serializationAttribute,
-            fields.ToImmutable(),
-            properties.ToImmutable(),
-            saveFlagMethods.ToImmutable(),
-            defaultValueMethods.ToImmutable(),
-            changedMethods.ToImmutable(),
-            dirtyTrackingEntity,
-            ImmutableDictionary<int, AdditionalText>.Empty,
-            ImmutableArray<string>.Empty
+        SerializableMigrationSchema.MatchMigrationFilename(
+            Path.GetFileName(text.Path), out var className, out var version
         );
 
-        return (record, []);
+        var sourceText = text.GetText(token);
+        if (sourceText == null)
+        {
+            return new MigrationFileModel(className, version, text.Path, null, "file could not be read");
+        }
+
+        try
+        {
+            var metadata = JsonSerializer.Deserialize<SerializableMetadata>(
+                sourceText.ToString(),
+                SerializableMigrationSchema.GetJsonSerializerOptions()
+            );
+
+            return new MigrationFileModel(className, version, text.Path, metadata, null);
+        }
+        catch (Exception e)
+        {
+            return new MigrationFileModel(className, version, text.Path, null, e.Message);
+        }
     }
 
-    private static (SerializableClassRecord, Diagnostic[]) TransformToClassMigrationPairs(
-        ((SerializableClassRecord, Diagnostic[])?, ImmutableDictionary<string, MigrationFileSet>) pair,
+    private static MigrationFileModel AugmentMigrationFile(
+        MigrationFileModel file,
+        Compilation compilation,
         CancellationToken token
     )
     {
         token.ThrowIfCancellationRequested();
 
-        var (recordPair, additionalTexts) = pair;
-        if (!recordPair.HasValue)
+        if (file.Metadata?.Properties is not { } properties)
         {
-            return (null, []);
+            return file;
         }
 
-        var (classRecord, diags) = recordPair.Value;
-
-        if (classRecord != null)
+        var builder = ImmutableArray.CreateBuilder<SerializableProperty>(properties.Length);
+        foreach (var property in properties)
         {
-            // Use arity notation for generic types to match migration file naming
-            var migrationKey = classRecord.ClassSymbol.GetGenericArityName();
-            if (additionalTexts.TryGetValue(migrationKey, out var migs))
-            {
-                classRecord = classRecord with
+            builder.Add(
+                property with
                 {
-                    Migrations = migs.Files.ToImmutableDictionary(),
-                    DuplicateMigrationFiles = migs.Duplicates?.ToImmutableArray() ?? ImmutableArray<string>.Empty
-                };
-            }
+                    TypeIsValueType = compilation.GetTypeByMetadataName(property.Type)?.IsValueType == true
+                }
+            );
         }
 
-        return (classRecord, diags);
+        return file with { Metadata = file.Metadata with { Properties = builder.MoveToImmutable() } };
     }
 
-    internal sealed record MigrationFileSet(Dictionary<int, AdditionalText> Files)
-    {
-        public List<string> Duplicates { get; set; }
-    }
-
-    private static ImmutableDictionary<string, MigrationFileSet> ToMigrationFileSet(
-        ImmutableArray<AdditionalText> additionalTexts,
+    private static FinalModel AttachMigrations(
+        SerializationModelResult result,
+        MigrationFileMap map,
         CancellationToken token
     )
     {
         token.ThrowIfCancellationRequested();
 
-        var builder = ImmutableDictionary.CreateBuilder<string, MigrationFileSet>();
+        var model = result.Model;
+        if (model == null)
+        {
+            return new FinalModel(result, EquatableArray<SerializableMetadata>.Empty, EquatableArray<DiagnosticInfo>.Empty);
+        }
 
-        foreach (var additionalText in additionalTexts)
+        var files = map.GetFiles(model.ArityName);
+        if (files.Count == 0)
+        {
+            return new FinalModel(result, EquatableArray<SerializableMetadata>.Empty, EquatableArray<DiagnosticInfo>.Empty);
+        }
+
+        var location = model.Location;
+        var diagnostics = new List<DiagnosticInfo>();
+        var byVersion = new Dictionary<int, MigrationFileModel>();
+
+        foreach (var file in files)
         {
             token.ThrowIfCancellationRequested();
 
-            var path = additionalText.Path;
-            var fileName = Path.GetFileName(path);
-            if (!SerializableMigrationSchema.MatchMigrationFilename(fileName, out var className, out var version))
+            if (file.Error != null)
             {
+                diagnostics.Add(
+                    new DiagnosticInfo(
+                        "SG3013", location.FilePath, location.Span, location.LineSpan,
+                        new[] { file.FilePath, file.Error }.ToEquatableArray()
+                    )
+                );
                 continue;
             }
 
-            if (!builder.TryGetValue(className, out var classMigrationSet))
+            // Only use the first migration file for each version; the rest are reported (SG3011).
+            if (byVersion.ContainsKey(file.Version))
             {
-                builder[className] = classMigrationSet = new MigrationFileSet(new Dictionary<int, AdditionalText>());
+                diagnostics.Add(
+                    new DiagnosticInfo(
+                        "SG3011", location.FilePath, location.Span, location.LineSpan,
+                        new[] { file.FilePath }.ToEquatableArray()
+                    )
+                );
+                continue;
             }
 
-            // Only use the first migration file for each version; the rest are reported (SG3011).
-            if (!classMigrationSet.Files.ContainsKey(version))
+            byVersion[file.Version] = file;
+
+            // The file at the current version is the schema record the migration tool
+            // maintains; anything beyond it is left over from a rolled-back version bump.
+            if (file.Version > model.Version)
             {
-                classMigrationSet.Files[version] = additionalText;
-            }
-            else
-            {
-                (classMigrationSet.Duplicates ??= []).Add(path);
+                diagnostics.Add(
+                    new DiagnosticInfo(
+                        "SG3012", location.FilePath, location.Span, location.LineSpan,
+                        new[] { file.Version.ToString(), model.Version.ToString() }.ToEquatableArray()
+                    )
+                );
             }
         }
 
-        return builder.ToImmutable();
+        var migrations = new List<SerializableMetadata>();
+        for (var i = 0; i < model.Version; i++)
+        {
+            if (byVersion.TryGetValue(i, out var file) && file.Metadata != null)
+            {
+                migrations.Add(file.Metadata);
+            }
+        }
+
+        return new FinalModel(result, migrations.ToEquatableArray(), diagnostics.ToEquatableArray());
     }
 
-    private void ExecuteIncremental(
-        SourceProductionContext context,
-        ((SerializableClassRecord, Diagnostic[]), Compilation) combined
-    )
+    private void ExecuteIncremental(SourceProductionContext context, FinalModel finalModel)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
-        var ((classRecord, prereqFailures), compilation) = combined;
 
-        if (prereqFailures.Length > 0)
+        foreach (var diagnostic in finalModel.Result.Diagnostics)
         {
-            for (var i = 0; i < prereqFailures.Length; i++)
-            {
-                context.ReportDiagnostic(prereqFailures[i]);
-            }
+            context.ReportDiagnostic(diagnostic.ToDiagnostic());
+        }
 
+        foreach (var diagnostic in finalModel.MigrationDiagnostics)
+        {
+            context.ReportDiagnostic(diagnostic.ToDiagnostic());
+        }
+
+        var model = finalModel.Result.Model;
+        if (model == null)
+        {
             return;
         }
 
-        if (classRecord != null)
+        try
         {
-            var jsonOptions = SerializableMigrationSchema.GetJsonSerializerOptions();
+            var (classSource, migration) = SerializableEntityGeneration.GenerateFromModel(
+                model,
+                finalModel.Migrations.AsImmutableArray(),
+                generateMigrations,
+                context.CancellationToken
+            );
 
-            try
+            // Use arity notation for generic types to avoid invalid characters in filename
+            context.AddSource(
+                $"{model.ArityName}.Serialization.g.cs",
+                SourceText.From(classSource, Encoding.UTF8)
+            );
+
+            if (migration != null)
             {
-                var (classSource, migration, diags) = compilation.GenerateSerializationPartialClass(
-                    classRecord,
-                    jsonOptions,
-                    generateMigrations,
-                    context.CancellationToken
-                );
+                Migrations[migration.Type] = migration;
+            }
+        }
+        catch (Exception e)
+        {
+            var descriptor = DiagnosticDescriptors.GeneratorCrashedDiagnostic(e);
+            var diagnostic = Diagnostic.Create(
+                descriptor,
+                model.Location.ToLocation(),
+                e.GetType(),
+                model.ClassName,
+                e.Message,
+                e.StackTrace
+            );
 
-                // Warnings are produced alongside successful generation; report either way.
-                for (var i = 0; i < (diags?.Length ?? 0); i++)
+            context.ReportDiagnostic(diagnostic);
+        }
+    }
+
+    /// <summary>
+    /// Migration files grouped by class name, with deep value equality so an unchanged set
+    /// keeps downstream nodes cached.
+    /// </summary>
+    public sealed class MigrationFileMap : IEquatable<MigrationFileMap>
+    {
+        private static readonly List<MigrationFileModel> _empty = [];
+
+        private readonly Dictionary<string, List<MigrationFileModel>> _files;
+
+        private MigrationFileMap(Dictionary<string, List<MigrationFileModel>> files) => _files = files;
+
+        public static MigrationFileMap Create(ImmutableArray<MigrationFileModel> files, CancellationToken token)
+        {
+            var map = new Dictionary<string, List<MigrationFileModel>>();
+
+            foreach (var file in files)
+            {
+                token.ThrowIfCancellationRequested();
+
+                if (!map.TryGetValue(file.ClassName, out var list))
                 {
-                    context.ReportDiagnostic(diags[i]);
+                    map[file.ClassName] = list = [];
                 }
 
-                if (classSource != null)
-                {
-                    // Use arity notation for generic types to avoid invalid characters in filename
-                    context.AddSource(
-                        $"{classRecord.ClassSymbol.GetGenericArityName()}.Serialization.g.cs",
-                        SourceText.From(classSource, Encoding.UTF8)
-                    );
+                list.Add(file);
+            }
 
-                    if (migration != null)
+            return new MigrationFileMap(map);
+        }
+
+        public List<MigrationFileModel> GetFiles(string className) =>
+            _files.TryGetValue(className, out var list) ? list : _empty;
+
+        public bool Equals(MigrationFileMap other)
+        {
+            if (other is null)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            if (_files.Count != other._files.Count)
+            {
+                return false;
+            }
+
+            foreach (var kvp in _files)
+            {
+                if (!other._files.TryGetValue(kvp.Key, out var otherList) || kvp.Value.Count != otherList.Count)
+                {
+                    return false;
+                }
+
+                for (var i = 0; i < kvp.Value.Count; i++)
+                {
+                    if (!kvp.Value[i].Equals(otherList[i]))
                     {
-                        Migrations[migration.Type] = migration;
+                        return false;
                     }
                 }
             }
-            catch (Exception e)
-            {
-                var descriptor = DiagnosticDescriptors.GeneratorCrashedDiagnostic(e);
-                var diagnostic = classRecord.TypeNode.GenerateDiagnostic(
-                    descriptor,
-                    e.GetType(),
-                    classRecord.ClassSymbol.Name,
-                    e.Message,
-                    e.StackTrace
-                );
 
-                context.ReportDiagnostic(diagnostic);
+            return true;
+        }
+
+        public override bool Equals(object obj) => obj is MigrationFileMap other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = _files.Count;
+                foreach (var kvp in _files)
+                {
+                    hash ^= kvp.Key.GetHashCode() * 31 + kvp.Value.Count;
+                }
+
+                return hash;
             }
         }
     }

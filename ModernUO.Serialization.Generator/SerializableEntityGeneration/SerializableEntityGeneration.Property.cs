@@ -13,7 +13,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
-using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -23,38 +22,24 @@ public static partial class SerializableEntityGeneration
 {
     public static void GenerateSerializableProperty(
         this StringBuilder source,
-        Compilation compilation,
         string indent,
-        IFieldSymbol fieldSymbol,
-        Accessibility getter,
-        Accessibility? setter,
-        bool isVirtual,
-        string? markDirtyMethod,
-        IMethodSymbol? fieldChangedMethod = null
+        FieldPropertyModel field,
+        string? markDirtyMethod
     )
     {
-        var fieldName = fieldSymbol.Name;
-
-        var invalidatePropertiesAttribute = fieldSymbol
-            .GetAttributes()
-            .OfType<AttributeData>()
-            .FirstOrDefault(
-                attr => attr.AttributeClass?.Equals(
-                    compilation.GetTypeByMetadataName(SymbolMetadata.INVALIDATE_PROPERTIES_ATTRIBUTE),
-                    SymbolEqualityComparer.Default
-                ) ?? false
-            );
+        var fieldName = field.FieldName;
 
         var propertyIndent = $"{indent}    ";
         var innerIndent = $"{propertyIndent}    ";
 
-        var propertyAccessor = setter > getter ? setter : getter;
-        var getterAccessor = getter == propertyAccessor ? Accessibility.NotApplicable : getter;
+        var setter = field.Setter;
+        var propertyAccessor = setter > field.Getter ? setter : field.Getter;
+        var getterAccessor = field.Getter == propertyAccessor ? Accessibility.NotApplicable : field.Getter;
 
-        source.GeneratePropertyStart(indent, propertyAccessor.Value, isVirtual, fieldSymbol);
+        source.GeneratePropertyStart(indent, propertyAccessor.Value, field.Virtual, field.FieldTypeDisplay, field.PropertyName);
 
         // Getter
-        source.GeneratePropertyGetterReturnsField(propertyIndent, fieldSymbol, getterAccessor);
+        source.GeneratePropertyGetterReturnsField(propertyIndent, fieldName, getterAccessor);
 
         if (setter != null && setter != Accessibility.NotApplicable)
         {
@@ -64,14 +49,14 @@ public static partial class SerializableEntityGeneration
             source.GeneratePropertySetterStart(propertyIndent, false, setterAccessor.Value);
 
             // Capture old value before comparison if we have a changed callback
-            if (fieldChangedMethod != null)
+            if (field.FieldChangedMethodName != null)
             {
                 source.AppendLine($"{innerIndent}var oldValue = {fieldName};");
             }
 
-            var comparison = fieldSymbol.Type.HasInequalityOperator()
+            var comparison = field.HasInequalityOperator
                 ? $"value != {fieldName}"
-                : $"!System.Collections.Generic.EqualityComparer<{fieldSymbol.Type.ToDisplayString()}>.Default.Equals(value, {fieldName})";
+                : $"!System.Collections.Generic.EqualityComparer<{field.FieldTypeDisplay}>.Default.Equals(value, {fieldName})";
 
             source.AppendLine($"{innerIndent}if ({comparison})");
             source.AppendLine($"{innerIndent}{{");
@@ -81,15 +66,15 @@ public static partial class SerializableEntityGeneration
                 source.AppendLine($"{innerIndent}    {markDirtyMethod};");
             }
 
-            if (invalidatePropertiesAttribute != null)
+            if (field.InvalidateProperties)
             {
                 source.AppendLine($"{innerIndent}    InvalidateProperties();");
             }
 
             // Invoke the changed callback after assignment
-            if (fieldChangedMethod != null)
+            if (field.FieldChangedMethodName != null)
             {
-                source.AppendLine($"{innerIndent}    {fieldChangedMethod.Name}(oldValue, value);");
+                source.AppendLine($"{innerIndent}    {field.FieldChangedMethodName}(oldValue, value);");
             }
 
             source.AppendLine($"{innerIndent}}}");
