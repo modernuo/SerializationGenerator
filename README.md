@@ -303,31 +303,35 @@ Here is a complete example of how we would convert this:
 
 ## v4 Linkage and Timers
 
-v4 removes order-based linkage between fields and their companion methods. Attributes that
-reference a serializable field take `nameof(_field)` instead of the field's order, and every
-linkage can alternatively be declared on the field itself:
+v4 removes order-based linkage between fields and their companion methods. Every linkage is
+declared on the serializable field itself, naming its companion methods with `nameof()`:
 
 ```cs
-    // Method-side: attributes on the methods name the field.
-    [SerializableField(0)]
-    private int _charges;
-
-    [SerializableFieldSaveFlag(nameof(_charges))]
-    private bool ShouldSerializeCharges() => _charges != 8;
-
-    [SerializableFieldDefault(nameof(_charges))]
-    private int ChargesDefaultValue() => 8;
-
-    // Field-side: one attribute on the field names the methods. Same generated code.
+    // Conditional serialization: the first method decides whether the value is written; the
+    // optional second method supplies the value at load when it was not written. When the
+    // second method is omitted, the field keeps its default value.
     [SerializableField(0)]
     [SaveFlag(nameof(ShouldSerializeCharges), nameof(ChargesDefaultValue))]
     private int _charges;
 
-    // Change callbacks work the same way, in either style:
+    private bool ShouldSerializeCharges() => _charges != 8;
+
+    private int ChargesDefaultValue() => 8;
+
+    // Change callback: invoked by the generated setter after assignment.
     [SerializableField(1)]
     [FieldChanged(nameof(OnLevelChanged))]
     private int _level;
+
+    private void OnLevelChanged(int oldValue, int newValue)
+    {
+    }
 ```
+
+Because the declaration lives on the field, the old failure modes cannot be written: a
+default cannot exist without a save flag, a linkage cannot point at a missing field, and a
+field cannot be linked twice. The generator still verifies that each named method exists
+with the expected signature (SG3015).
 
 Timers are declared on the field with `[DeserializeTimer]`, replacing `[TimerDrift]` and
 `[DeserializeTimerField]`:
@@ -347,9 +351,10 @@ deadlines; the delay is then negative when the deadline passed during downtime.
 
 ### Migrating from v3
 
-- Replace `[SerializableFieldSaveFlag(order)]`, `[SerializableFieldDefault(order)]`, and
-  `[SerializableFieldChanged(order)]` with `nameof(_field)` (or move them onto the field as
-  `[SaveFlag]` / `[FieldChanged]`). These conversions do not change the wire format.
+- Replace `[SerializableFieldSaveFlag(order)]` and `[SerializableFieldDefault(order)]` with
+  `[SaveFlag(nameof(ShouldSerializeMethod), nameof(DefaultValueMethod))]` on the field, and
+  `[SerializableFieldChanged(order)]` with `[FieldChanged(nameof(Method))]` on the field.
+  These conversions do not change the wire format.
 - Replace `[TimerDrift]` + `[DeserializeTimerField(order)]` with
   `[DeserializeTimer(nameof(Method))]` on the timer field. Drifting timers change wire format
   (delta time to anchored time), so bump the class's `[SerializationGenerator]` version and

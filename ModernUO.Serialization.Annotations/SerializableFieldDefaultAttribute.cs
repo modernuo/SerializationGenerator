@@ -18,24 +18,18 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the named serializable field should use this method's
-/// return value while deserializing when the save flag indicates the value was not written.
-///
-/// Note: This is only used for the current version, not previous versions. Previous versions
-/// will always use null or default for that type if it is not deserialized.
-/// <code>
-/// [SerializableFieldDefault(nameof(_charges))]
-/// private int ChargesDefaultValue() => 8;
-/// </code>
+/// Removed in v4. A default value is declared as the second argument of the field's save
+/// flag: <c>[SaveFlag(nameof(ShouldSerializeMethod), nameof(DefaultValueMethod))]</c>, so it
+/// cannot exist without one. This conversion does not change the wire format.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
+[Obsolete("Removed in v4. Declare [SaveFlag(nameof(ShouldSerializeMethod), nameof(DefaultValueMethod))] on the serializable field instead. The wire format does not change.", true)]
 public sealed class SerializableFieldDefaultAttribute : Attribute
 {
-    public string FieldName { get; }
+    public SerializableFieldDefaultAttribute(string fieldName)
+    {
+    }
 
-    public SerializableFieldDefaultAttribute(string fieldName) => FieldName = fieldName;
-
-    [Obsolete("Order-based linkage was removed in v4. Use [SerializableFieldDefault(nameof(_field))], or [SaveFlag(...)] on the field.", true)]
     public SerializableFieldDefaultAttribute(int order)
     {
     }

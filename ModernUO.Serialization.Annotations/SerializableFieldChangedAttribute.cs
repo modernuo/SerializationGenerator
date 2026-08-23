@@ -18,22 +18,17 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that this method should be invoked by the generated setter
-/// of the named serializable field after its value changes. The method signature must be
-/// <c>void Method(T oldValue, T newValue)</c> where T is the field's type.
-/// <code>
-/// [SerializableFieldChanged(nameof(_level))]
-/// private void OnLevelChanged(int oldValue, int newValue) { }
-/// </code>
+/// Removed in v4. Change callbacks are declared on the serializable field itself:
+/// <c>[FieldChanged(nameof(Method))]</c>. This conversion does not change the wire format.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
+[Obsolete("Removed in v4. Declare [FieldChanged(nameof(Method))] on the serializable field instead. The wire format does not change.", true)]
 public sealed class SerializableFieldChangedAttribute : Attribute
 {
-    public string FieldName { get; }
+    public SerializableFieldChangedAttribute(string fieldName)
+    {
+    }
 
-    public SerializableFieldChangedAttribute(string fieldName) => FieldName = fieldName;
-
-    [Obsolete("Order-based linkage was removed in v4. Use [SerializableFieldChanged(nameof(_field))], or [FieldChanged(...)] on the field.", true)]
     public SerializableFieldChangedAttribute(int order)
     {
     }

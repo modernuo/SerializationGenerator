@@ -37,9 +37,6 @@ public static partial class SymbolMetadata
     public const string DESERIALIZE_TIMER_ATTRIBUTE = "ModernUO.Serialization.DeserializeTimerAttribute";
     public const string SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SaveFlagAttribute";
     public const string FIELD_CHANGED_ATTRIBUTE = "ModernUO.Serialization.FieldChangedAttribute";
-    public const string SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldSaveFlagAttribute";
-    public const string SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldDefaultAttribute";
-    public const string SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldChangedAttribute";
     public const string SERIALIZED_PROPERTY_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializedPropertyAttrAttribute`1";
     public const string SORTED_SET_COMPARER_ATTRIBUTE = "ModernUO.Serialization.SortedSetComparerAttribute";
 
@@ -491,26 +488,6 @@ public static partial class SymbolMetadata
             symbol.TryGetMemberWithAttribute(
                 compilation.GetCachedTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
                 out _
-            );
-
-        public bool TryGetSerializableFieldSaveFlagMethod(
-            Compilation compilation, out AttributeData? attributeData
-        ) => symbol.TryGetMemberWithAttribute(
-            compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
-            out attributeData
-        );
-
-        public bool TryGetSerializableFieldDefaultMethod(
-            Compilation compilation, out AttributeData? attributeData
-        ) => symbol.TryGetMemberWithAttribute(
-            compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
-            out attributeData
-        );
-
-        public bool TryGetSerializableFieldChangedMethod(Compilation compilation, out AttributeData? attributeData) =>
-            symbol.TryGetMemberWithAttribute(
-                compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE),
-                out attributeData
             );
     }
 

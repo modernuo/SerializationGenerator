@@ -26,8 +26,6 @@ namespace ModernUO.Serialization;
 /// [FieldChanged(nameof(OnLevelChanged))]
 /// private int _level;
 /// </code>
-/// Equivalent to placing [SerializableFieldChanged] on the method; declare one style per
-/// field, not both.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public sealed class FieldChangedAttribute : Attribute

@@ -27,8 +27,8 @@ namespace ModernUO.Serialization;
 /// [SaveFlag(nameof(ShouldSerializeName), nameof(NameDefaultValue))]
 /// private string _name;
 /// </code>
-/// Equivalent to placing [SerializableFieldSaveFlag] and [SerializableFieldDefault] on the
-/// methods; declare one style per field, not both.
+/// When the second method is omitted, the field keeps its default value at load when the
+/// save flag indicates the value was not written.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public sealed class SaveFlagAttribute : Attribute

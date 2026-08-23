@@ -18,9 +18,9 @@ namespace Server.TestContent
 
         [SerializableField(2)]
         [InvalidateProperties]
+        [FieldChanged(nameof(OnLevelChanged))]
         private int _level;
 
-        [SerializableFieldChanged(nameof(_level))]
         private void OnLevelChanged(int oldValue, int newValue)
         {
         }

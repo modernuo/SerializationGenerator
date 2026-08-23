@@ -151,15 +151,15 @@ public class ReadonlyFieldTests
                 public partial class ReadonlyFlagItem : ISerializable
                 {
                     [SerializableField(0)]
+                    [SaveFlag(nameof(ShouldSerializeId))]
                     private readonly string _id;
 
                     [SerializableField(1)]
+                    [SaveFlag(nameof(ShouldSerializeName))]
                     private string _name;
 
-                    [SerializableFieldSaveFlag(nameof(_id))]
                     private bool ShouldSerializeId() => _id != null;
 
-                    [SerializableFieldSaveFlag(nameof(_name))]
                     private bool ShouldSerializeName() => _name != null;
 
                     public Serial Serial => default;

@@ -61,9 +61,6 @@ public static partial class SerializableEntityGeneration
         // Gather annotated members from the attributed declaration.
         var fields = new List<(ISymbol, AttributeData)>();
         var properties = new List<(ISymbol, AttributeData)>();
-        var saveFlagMethods = new List<(ISymbol, AttributeData)>();
-        var defaultMethods = new List<(ISymbol, AttributeData)>();
-        var changedMethods = new List<(ISymbol, AttributeData)>();
         ISymbol? dirtyTrackingEntity = null;
 
         foreach (var m in typeNode.Members)
@@ -103,24 +100,6 @@ public static partial class SerializableEntityGeneration
                     }
                 }
             }
-            else if (m is MethodDeclarationSyntax methodNode)
-            {
-                if (ctx.SemanticModel.GetDeclaredSymbol(methodNode) is IMethodSymbol methodSymbol)
-                {
-                    if (methodSymbol.TryGetSerializableFieldSaveFlagMethod(compilation, out var attributeData))
-                    {
-                        saveFlagMethods.Add((methodSymbol, attributeData));
-                    }
-                    else if (methodSymbol.TryGetSerializableFieldDefaultMethod(compilation, out attributeData))
-                    {
-                        defaultMethods.Add((methodSymbol, attributeData));
-                    }
-                    else if (methodSymbol.TryGetSerializableFieldChangedMethod(compilation, out attributeData))
-                    {
-                        changedMethods.Add((methodSymbol, attributeData));
-                    }
-                }
-            }
         }
 
         var isValueType = classSymbol.IsValueType;
@@ -129,37 +108,6 @@ public static partial class SerializableEntityGeneration
 
         var version = (int)serializableAttr.ConstructorArguments[0].Value!;
         var encodedVersion = (bool)serializableAttr.ConstructorArguments[1].Value!;
-
-        var buildWarnings = new List<DiagnosticInfo>();
-
-        // Serializable member names -> (order, type), for name-based linkage.
-        var memberOrders = new Dictionary<string, (int Order, ITypeSymbol Type)>();
-
-        foreach (var (symbol, attributeData) in fields)
-        {
-            var order = (int)attributeData.ConstructorArguments[0].Value!;
-            if (order >= 0 && symbol is IFieldSymbol fieldSymbol)
-            {
-                memberOrders[fieldSymbol.Name] = (order, fieldSymbol.Type);
-            }
-        }
-
-        foreach (var (symbol, attributeData) in properties)
-        {
-            var order = (int)attributeData.ConstructorArguments[0].Value!;
-            if (order < 0 || symbol is not IPropertySymbol propertySymbol)
-            {
-                continue;
-            }
-
-            memberOrders[propertySymbol.Name] = (order, propertySymbol.Type);
-
-            var useFieldName = (string)attributeData.ConstructorArguments[1].Value!;
-            if (!string.IsNullOrWhiteSpace(useFieldName))
-            {
-                memberOrders[useFieldName] = (order, propertySymbol.Type);
-            }
-        }
 
         static bool IsSaveFlagShape(IMethodSymbol method) =>
             method is { ReturnsVoid: false, Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Boolean };
@@ -172,65 +120,6 @@ public static partial class SerializableEntityGeneration
             method is { ReturnsVoid: true, Parameters.Length: 2 } &&
             SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, fieldType) &&
             SymbolEqualityComparer.Default.Equals(method.Parameters[1].Type, fieldType);
-
-        // Save flag / default-value linkage: method-side attributes name the field; the
-        // field-side [SaveFlag] names the methods. One style per field, not both.
-        var serializableFieldSaveFlags = new SortedDictionary<int, SerializableFieldSaveFlagMethods>();
-
-        foreach (var (symbol, attrData) in saveFlagMethods)
-        {
-            var method = (IMethodSymbol)symbol;
-            var fieldName = attrData.ConstructorArguments[0].Value as string;
-
-            if (fieldName == null || !memberOrders.TryGetValue(fieldName, out var target))
-            {
-                return Fail(DiagnosticDescriptors.SG3014, "SerializableFieldSaveFlag", fieldName ?? "");
-            }
-
-            if (!IsSaveFlagShape(method))
-            {
-                return Fail(DiagnosticDescriptors.SG3015, method.Name, "SerializableFieldSaveFlag", "bool Method()");
-            }
-
-            if (serializableFieldSaveFlags.ContainsKey(target.Order))
-            {
-                return Fail(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE, target.Order);
-            }
-
-            serializableFieldSaveFlags[target.Order] = new SerializableFieldSaveFlagMethods
-            {
-                DetermineFieldShouldSerialize = method
-            };
-        }
-
-        foreach (var (symbol, attrData) in defaultMethods)
-        {
-            var method = (IMethodSymbol)symbol;
-            var fieldName = attrData.ConstructorArguments[0].Value as string;
-
-            if (fieldName == null || !memberOrders.TryGetValue(fieldName, out var target))
-            {
-                return Fail(DiagnosticDescriptors.SG3014, "SerializableFieldDefault", fieldName ?? "");
-            }
-
-            if (!IsDefaultValueShape(method, target.Type))
-            {
-                return Fail(DiagnosticDescriptors.SG3015, method.Name, "SerializableFieldDefault", $"{target.Type} Method()");
-            }
-
-            if (!serializableFieldSaveFlags.TryGetValue(target.Order, out var methods))
-            {
-                buildWarnings.Add(DiagnosticInfo.Create(DiagnosticDescriptors.SG3017, typeNode.GetLocation(), fieldName));
-                continue;
-            }
-
-            if (methods.GetFieldDefaultValue != null)
-            {
-                return Fail(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE, target.Order);
-            }
-
-            serializableFieldSaveFlags[target.Order] = methods with { GetFieldDefaultValue = method };
-        }
 
         // Dirty tracking / MarkDirty resolution.
         var parentTypeHasEntityTracking = false;
@@ -277,34 +166,10 @@ public static partial class SerializableEntityGeneration
             markDirtyMethod = null;
         }
 
-        // Change callbacks: method-side attributes name the field; field-side [FieldChanged]
-        // names the method. One style per field, not both.
+        // Linkage: [SaveFlag], [FieldChanged], and [DeserializeTimer] on the serializable
+        // members themselves. The named methods must exist with the expected shapes.
+        var serializableFieldSaveFlags = new SortedDictionary<int, SerializableFieldSaveFlagMethods>();
         var serializableFieldChangedMethods = new Dictionary<int, IMethodSymbol>();
-        foreach (var (symbol, attrData) in changedMethods)
-        {
-            var method = (IMethodSymbol)symbol;
-            var fieldName = attrData.ConstructorArguments[0].Value as string;
-
-            if (fieldName == null || !memberOrders.TryGetValue(fieldName, out var target))
-            {
-                return Fail(DiagnosticDescriptors.SG3014, "SerializableFieldChanged", fieldName ?? "");
-            }
-
-            if (!IsChangedShape(method, target.Type))
-            {
-                return Fail(DiagnosticDescriptors.SG3010, method.Name, target.Type.ToDisplayString());
-            }
-
-            if (serializableFieldChangedMethods.ContainsKey(target.Order))
-            {
-                return Fail(DiagnosticDescriptors.SG3003, SymbolMetadata.SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE, target.Order);
-            }
-
-            serializableFieldChangedMethods[target.Order] = method;
-        }
-
-        // Field-side linkage: [SaveFlag], [FieldChanged], and [DeserializeTimer] on the
-        // serializable members themselves.
         var timerLinks = new Dictionary<int, TimerFieldModel>();
 
         foreach (var (symbol, attributeData) in fields.Concat(properties))
@@ -312,20 +177,17 @@ public static partial class SerializableEntityGeneration
             token.ThrowIfCancellationRequested();
 
             var order = (int)attributeData.ConstructorArguments[0].Value!;
-            if (order < 0 || !memberOrders.TryGetValue(symbol.Name, out var target))
+            if (order < 0)
             {
                 continue;
             }
+
+            var memberType = (symbol as IFieldSymbol)?.Type ?? ((IPropertySymbol)symbol).Type;
 
             foreach (var attr in symbol.GetAttributes())
             {
                 if (attr.IsSaveFlag(compilation))
                 {
-                    if (serializableFieldSaveFlags.ContainsKey(order))
-                    {
-                        return Fail(DiagnosticDescriptors.SG3016, symbol.Name, "a save flag");
-                    }
-
                     var shouldName = attr.ConstructorArguments[0].Value as string;
                     var shouldMethod = classSymbol.FindLinkedMethod(shouldName, IsSaveFlagShape);
                     if (shouldMethod == null)
@@ -337,10 +199,10 @@ public static partial class SerializableEntityGeneration
                     var defaultName = attr.ConstructorArguments[1].Value as string;
                     if (defaultName != null)
                     {
-                        defaultMethod = classSymbol.FindLinkedMethod(defaultName, m => IsDefaultValueShape(m, target.Type));
+                        defaultMethod = classSymbol.FindLinkedMethod(defaultName, m => IsDefaultValueShape(m, memberType));
                         if (defaultMethod == null)
                         {
-                            return Fail(DiagnosticDescriptors.SG3015, defaultName, "SaveFlag", $"{target.Type} Method()");
+                            return Fail(DiagnosticDescriptors.SG3015, defaultName, "SaveFlag", $"{memberType} Method()");
                         }
                     }
 
@@ -352,18 +214,13 @@ public static partial class SerializableEntityGeneration
                 }
                 else if (attr.IsFieldChanged(compilation))
                 {
-                    if (serializableFieldChangedMethods.ContainsKey(order))
-                    {
-                        return Fail(DiagnosticDescriptors.SG3016, symbol.Name, "a change callback");
-                    }
-
                     var methodName = attr.ConstructorArguments[0].Value as string;
-                    var method = classSymbol.FindLinkedMethod(methodName, m => IsChangedShape(m, target.Type));
+                    var method = classSymbol.FindLinkedMethod(methodName, m => IsChangedShape(m, memberType));
                     if (method == null)
                     {
                         return Fail(
                             DiagnosticDescriptors.SG3015, methodName ?? "", "FieldChanged",
-                            $"void Method({target.Type} oldValue, {target.Type} newValue)"
+                            $"void Method({memberType} oldValue, {memberType} newValue)"
                         );
                     }
 
@@ -701,6 +558,6 @@ public static partial class SerializableEntityGeneration
             location
         );
 
-        return new SerializationModelResult(model, buildWarnings.ToEquatableArray());
+        return new SerializationModelResult(model, System.Array.Empty<DiagnosticInfo>().ToEquatableArray());
     }
 }

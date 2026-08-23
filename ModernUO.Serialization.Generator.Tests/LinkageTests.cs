@@ -4,93 +4,14 @@ using Xunit;
 namespace ModernUO.Serialization.Generator.Tests;
 
 /// <summary>
-/// Name-based linkage: field-side and method-side spellings must generate identical code,
-/// and broken linkage must be reported instead of silently generating garbage.
+/// Name-based linkage: [SaveFlag], [FieldChanged], and [DeserializeTimer] on the field name
+/// their companion methods, and broken linkage must be reported instead of silently
+/// generating garbage.
 /// </summary>
 public class LinkageTests
 {
-    private const string MethodSideSource = """
-        using System;
-        using ModernUO.Serialization;
-        using Server;
-
-        namespace Server.TestContent
-        {
-            [SerializationGenerator(0)]
-            public partial class LinkedItem : ISerializable
-            {
-                [SerializableField(0)]
-                private int _charges;
-
-                [SerializableFieldSaveFlag(nameof(_charges))]
-                private bool ShouldSerializeCharges() => _charges != 8;
-
-                [SerializableFieldDefault(nameof(_charges))]
-                private int ChargesDefaultValue() => 8;
-
-                [SerializableField(1)]
-                private int _level;
-
-                [SerializableFieldChanged(nameof(_level))]
-                private void OnLevelChanged(int oldValue, int newValue)
-                {
-                }
-
-                public DateTime Created { get; set; }
-                public Serial Serial { get; }
-                public bool Deleted => false;
-                public void Delete() { }
-            }
-        }
-        """;
-
-    private const string FieldSideSource = """
-        using System;
-        using ModernUO.Serialization;
-        using Server;
-
-        namespace Server.TestContent
-        {
-            [SerializationGenerator(0)]
-            public partial class LinkedItem : ISerializable
-            {
-                [SerializableField(0)]
-                [SaveFlag(nameof(ShouldSerializeCharges), nameof(ChargesDefaultValue))]
-                private int _charges;
-
-                private bool ShouldSerializeCharges() => _charges != 8;
-
-                private int ChargesDefaultValue() => 8;
-
-                [SerializableField(1)]
-                [FieldChanged(nameof(OnLevelChanged))]
-                private int _level;
-
-                private void OnLevelChanged(int oldValue, int newValue)
-                {
-                }
-
-                public DateTime Created { get; set; }
-                public Serial Serial { get; }
-                public bool Deleted => false;
-                public void Delete() { }
-            }
-        }
-        """;
-
     [Fact]
-    public void FieldSideAndMethodSideLinkage_GenerateIdenticalCode()
-    {
-        var (methodDiags, methodSource) = SourceGeneratorTestHelper.RunGenerator(MethodSideSource);
-        var (fieldDiags, fieldSource) = SourceGeneratorTestHelper.RunGenerator(FieldSideSource);
-
-        Assert.Empty(methodDiags.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
-        Assert.Empty(fieldDiags.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
-        Assert.Equal(methodSource, fieldSource);
-    }
-
-    [Fact]
-    public void ConflictingLinkageStyles_ReportsDiagnostic()
+    public void FieldSideLinkage_GeneratesLinkedCode()
     {
         const string source = """
             using System;
@@ -100,16 +21,23 @@ public class LinkageTests
             namespace Server.TestContent
             {
                 [SerializationGenerator(0)]
-                public partial class ConflictedItem : ISerializable
+                public partial class LinkedItem : ISerializable
                 {
                     [SerializableField(0)]
-                    [SaveFlag(nameof(ShouldSerializeCharges))]
+                    [SaveFlag(nameof(ShouldSerializeCharges), nameof(ChargesDefaultValue))]
                     private int _charges;
 
                     private bool ShouldSerializeCharges() => _charges != 8;
 
-                    [SerializableFieldSaveFlag(nameof(_charges))]
-                    private bool AlsoShouldSerializeCharges() => _charges != 8;
+                    private int ChargesDefaultValue() => 8;
+
+                    [SerializableField(1)]
+                    [FieldChanged(nameof(OnLevelChanged))]
+                    private int _level;
+
+                    private void OnLevelChanged(int oldValue, int newValue)
+                    {
+                    }
 
                     public DateTime Created { get; set; }
                     public Serial Serial { get; }
@@ -119,13 +47,17 @@ public class LinkageTests
             }
             """;
 
-        var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
+        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
 
-        Assert.Contains(diagnostics, d => d.Id == "SG3016");
+        Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
+        Assert.NotNull(generatedSource);
+        Assert.Contains("ShouldSerializeCharges()", generatedSource);
+        Assert.Contains("ChargesDefaultValue()", generatedSource);
+        Assert.Contains("OnLevelChanged(", generatedSource);
     }
 
     [Fact]
-    public void FieldSideLinkage_MissingMethod_ReportsDiagnostic()
+    public void SaveFlag_MissingMethod_ReportsDiagnostic()
     {
         const string source = """
             using System;
@@ -155,7 +87,7 @@ public class LinkageTests
     }
 
     [Fact]
-    public void MethodSideSaveFlag_WrongSignature_ReportsDiagnostic()
+    public void SaveFlag_WrongSignature_ReportsDiagnostic()
     {
         const string source = """
             using System;
@@ -168,9 +100,9 @@ public class LinkageTests
                 public partial class WrongShapeItem : ISerializable
                 {
                     [SerializableField(0)]
+                    [SaveFlag(nameof(ShouldSerializeCharges))]
                     private int _charges;
 
-                    [SerializableFieldSaveFlag(nameof(_charges))]
                     private int ShouldSerializeCharges() => _charges;
 
                     public DateTime Created { get; set; }
@@ -187,7 +119,7 @@ public class LinkageTests
     }
 
     [Fact]
-    public void DefaultWithoutSaveFlag_ReportsWarning()
+    public void SaveFlag_DefaultWrongSignature_ReportsDiagnostic()
     {
         const string source = """
             using System;
@@ -197,13 +129,15 @@ public class LinkageTests
             namespace Server.TestContent
             {
                 [SerializationGenerator(0)]
-                public partial class DanglingDefaultItem : ISerializable
+                public partial class WrongDefaultItem : ISerializable
                 {
                     [SerializableField(0)]
+                    [SaveFlag(nameof(ShouldSerializeCharges), nameof(ChargesDefaultValue))]
                     private int _charges;
 
-                    [SerializableFieldDefault(nameof(_charges))]
-                    private int ChargesDefaultValue() => 8;
+                    private bool ShouldSerializeCharges() => _charges != 8;
+
+                    private string ChargesDefaultValue() => "8";
 
                     public DateTime Created { get; set; }
                     public Serial Serial { get; }
@@ -213,10 +147,43 @@ public class LinkageTests
             }
             """;
 
-        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
+        var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
 
-        Assert.NotNull(generatedSource);
-        Assert.Contains(diagnostics, d => d.Id == "SG3017");
+        Assert.Contains(diagnostics, d => d.Id == "SG3015");
+    }
+
+    [Fact]
+    public void FieldChanged_WrongSignature_ReportsDiagnostic()
+    {
+        const string source = """
+            using System;
+            using ModernUO.Serialization;
+            using Server;
+
+            namespace Server.TestContent
+            {
+                [SerializationGenerator(0)]
+                public partial class WrongChangedItem : ISerializable
+                {
+                    [SerializableField(0)]
+                    [FieldChanged(nameof(OnLevelChanged))]
+                    private int _level;
+
+                    private void OnLevelChanged(int newValue)
+                    {
+                    }
+
+                    public DateTime Created { get; set; }
+                    public Serial Serial { get; }
+                    public bool Deleted => false;
+                    public void Delete() { }
+                }
+            }
+            """;
+
+        var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "SG3015");
     }
 
     [Fact]

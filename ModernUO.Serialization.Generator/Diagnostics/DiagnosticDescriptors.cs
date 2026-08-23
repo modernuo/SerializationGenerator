@@ -103,14 +103,10 @@ public static class DiagnosticDescriptors
         true
     );
 
-    public static readonly DiagnosticDescriptor SG3010 = new(
-        "SG3010",
-        "SerializableFieldChanged method has invalid signature",
-        "Method '{0}' must have signature 'void {0}({1} oldValue, {1} newValue)' for field of type '{1}'",
-        "ModernUO.Serialization.Generator",
-        DiagnosticSeverity.Error,
-        true
-    );
+    // SG3010 (changed-method signature), SG3014 (unknown field reference), SG3016
+    // (conflicting linkage styles), and SG3017 (default without save flag) were retired in
+    // v4: field-side linkage makes those mistakes unrepresentable, and SG3015 covers every
+    // remaining method-resolution failure. Do not reuse the numbers.
 
     public static readonly DiagnosticDescriptor SG3011 = new(
         "SG3011",
@@ -139,39 +135,12 @@ public static class DiagnosticDescriptors
         true
     );
 
-    public static readonly DiagnosticDescriptor SG3014 = new(
-        "SG3014",
-        "Unknown serializable field reference",
-        "[{0}] references '{1}', which is not a serializable field or property of this type",
-        "ModernUO.Serialization.Generator",
-        DiagnosticSeverity.Error,
-        true
-    );
-
     public static readonly DiagnosticDescriptor SG3015 = new(
         "SG3015",
         "Linked method not found or invalid",
         "Method '{0}' referenced by [{1}] was not found or does not match the expected signature '{2}'",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
-        true
-    );
-
-    public static readonly DiagnosticDescriptor SG3016 = new(
-        "SG3016",
-        "Conflicting linkage styles",
-        "Field '{0}' declares {1} on the field and on a method; declare one style, not both",
-        "ModernUO.Serialization.Generator",
-        DiagnosticSeverity.Error,
-        true
-    );
-
-    public static readonly DiagnosticDescriptor SG3017 = new(
-        "SG3017",
-        "Default value without a save flag",
-        "The default value for '{0}' is ignored because the field has no save flag",
-        "ModernUO.Serialization.Generator",
-        DiagnosticSeverity.Warning,
         true
     );
 

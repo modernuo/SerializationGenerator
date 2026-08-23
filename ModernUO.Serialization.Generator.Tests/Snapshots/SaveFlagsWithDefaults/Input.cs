@@ -8,27 +8,25 @@ namespace Server.TestContent
     public partial class SaveFlagsItem : ISerializable
     {
         [SerializableField(0)]
+        [SaveFlag(nameof(ShouldSerializeName))]
         private string _name;
 
-        [SerializableFieldSaveFlag(nameof(_name))]
         private bool ShouldSerializeName() => _name != null;
 
         [SerializableField(1)]
+        [SaveFlag(nameof(ShouldSerializeCharges), nameof(ChargesDefaultValue))]
         private int _charges;
 
-        [SerializableFieldSaveFlag(nameof(_charges))]
         private bool ShouldSerializeCharges() => _charges != 8;
 
-        [SerializableFieldDefault(nameof(_charges))]
         private int ChargesDefaultValue() => 8;
 
         [SerializableField(2)]
+        [SaveFlag(nameof(ShouldSerializeExpires), nameof(ExpiresDefaultValue))]
         private DateTime _expires;
 
-        [SerializableFieldSaveFlag(nameof(_expires))]
         private bool ShouldSerializeExpires() => _expires != DateTime.MinValue;
 
-        [SerializableFieldDefault(nameof(_expires))]
         private DateTime ExpiresDefaultValue() => DateTime.MinValue;
 
         [SerializableField(3)]

@@ -18,21 +18,18 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the named serializable field should use a save flag
-/// determined by this method.
-/// <code>
-/// [SerializableFieldSaveFlag(nameof(_name))]
-/// private bool ShouldSerializeName() => _name != null;
-/// </code>
+/// Removed in v4. Save flags are declared on the serializable field itself:
+/// <c>[SaveFlag(nameof(ShouldSerializeMethod))]</c>. This conversion does not change the
+/// wire format.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
+[Obsolete("Removed in v4. Declare [SaveFlag(nameof(ShouldSerializeMethod))] on the serializable field instead. The wire format does not change.", true)]
 public sealed class SerializableFieldSaveFlagAttribute : Attribute
 {
-    public string FieldName { get; }
+    public SerializableFieldSaveFlagAttribute(string fieldName)
+    {
+    }
 
-    public SerializableFieldSaveFlagAttribute(string fieldName) => FieldName = fieldName;
-
-    [Obsolete("Order-based linkage was removed in v4. Use [SerializableFieldSaveFlag(nameof(_field))], or [SaveFlag(...)] on the field.", true)]
     public SerializableFieldSaveFlagAttribute(int order)
     {
     }
