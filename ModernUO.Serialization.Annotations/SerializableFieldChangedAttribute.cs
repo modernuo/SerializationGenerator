@@ -18,11 +18,12 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Removed in v4. Change callbacks are declared on the serializable field itself:
-/// <c>[FieldChanged(nameof(Method))]</c>. This conversion does not change the wire format.
+/// Removed in v4. Change callbacks are declared as part of the field's serialization
+/// attribute: <c>[SerializableField(order, fieldChanged: nameof(Method))]</c>. This
+/// conversion does not change the wire format.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
-[Obsolete("Removed in v4. Declare [FieldChanged(nameof(Method))] on the serializable field instead. The wire format does not change.", true)]
+[Obsolete("Removed in v4. Pass fieldChanged: nameof(Method) to [SerializableField] instead. The wire format does not change.", true)]
 public sealed class SerializableFieldChangedAttribute : Attribute
 {
     public SerializableFieldChangedAttribute(string fieldName)

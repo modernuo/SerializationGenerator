@@ -19,7 +19,16 @@ namespace ModernUO.Serialization;
 
 /// <summary>
 /// Hints to the source generator that this field should be serialized.
-/// The source generator will generate the property entirely
+/// The source generator will generate the property entirely.
+/// <para>
+/// <c>fieldChanged</c> names a change callback with the signature
+/// <c>void Method(T oldValue, T newValue)</c> where T is the field's type; it is invoked by
+/// the generated setter after assignment:
+/// <code>
+/// [SerializableField(2, fieldChanged: nameof(OnLevelChanged))]
+/// private int _level;
+/// </code>
+/// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class SerializableFieldAttribute : Attribute
@@ -28,17 +37,20 @@ public sealed class SerializableFieldAttribute : Attribute
     public string PropertyGetter { get; }
     public string? PropertySetter { get; }
     public bool IsVirtual { get; }
+    public string? FieldChanged { get; }
 
     public SerializableFieldAttribute(
         int order,
         string getter = "public",
         string setter = "public",
-        bool isVirtual = false
+        bool isVirtual = false,
+        string fieldChanged = null
     )
     {
         Order = order;
         PropertyGetter = getter;
         PropertySetter = setter;
         IsVirtual = isVirtual;
+        FieldChanged = fieldChanged;
     }
 }

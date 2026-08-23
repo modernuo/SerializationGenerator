@@ -318,9 +318,10 @@ declared on the serializable field itself, naming its companion methods with `na
 
     private int ChargesDefaultValue() => 8;
 
-    // Change callback: invoked by the generated setter after assignment.
-    [SerializableField(1)]
-    [FieldChanged(nameof(OnLevelChanged))]
+    // Change callback: invoked by the generated setter after assignment. It is part of
+    // [SerializableField] itself because it configures the generated property, like the
+    // getter/setter arguments.
+    [SerializableField(1, fieldChanged: nameof(OnLevelChanged))]
     private int _level;
 
     private void OnLevelChanged(int oldValue, int newValue)
@@ -329,9 +330,11 @@ declared on the serializable field itself, naming its companion methods with `na
 ```
 
 Because the declaration lives on the field, the old failure modes cannot be written: a
-default cannot exist without a save flag, a linkage cannot point at a missing field, and a
-field cannot be linked twice. The generator still verifies that each named method exists
-with the expected signature (SG3015).
+default cannot exist without a save flag, a linkage cannot point at a missing field, a
+field cannot be linked twice, and a change callback cannot be declared on a
+`[SerializableProperty]` (whose setter is user-written — call your method from the setter).
+The generator still verifies that each named method exists with the expected signature
+(SG3015), and that a `fieldChanged` callback has a generated setter to fire from (SG3018).
 
 Timers are declared on the field with `[DeserializeTimer]`, replacing `[TimerDrift]` and
 `[DeserializeTimerField]`:
@@ -353,8 +356,8 @@ deadlines; the delay is then negative when the deadline passed during downtime.
 
 - Replace `[SerializableFieldSaveFlag(order)]` and `[SerializableFieldDefault(order)]` with
   `[SaveFlag(nameof(ShouldSerializeMethod), nameof(DefaultValueMethod))]` on the field, and
-  `[SerializableFieldChanged(order)]` with `[FieldChanged(nameof(Method))]` on the field.
-  These conversions do not change the wire format.
+  `[SerializableFieldChanged(order)]` with `fieldChanged: nameof(Method)` on the field's
+  `[SerializableField]`. These conversions do not change the wire format.
 - Replace `[TimerDrift]` + `[DeserializeTimerField(order)]` with
   `[DeserializeTimer(nameof(Method))]` on the timer field. Drifting timers change wire format
   (delta time to anchored time), so bump the class's `[SerializationGenerator]` version and

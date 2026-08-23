@@ -4,9 +4,9 @@ using Xunit;
 namespace ModernUO.Serialization.Generator.Tests;
 
 /// <summary>
-/// Name-based linkage: [SaveFlag], [FieldChanged], and [DeserializeTimer] on the field name
-/// their companion methods, and broken linkage must be reported instead of silently
-/// generating garbage.
+/// Name-based linkage: [SaveFlag], [DeserializeTimer], and the fieldChanged argument of
+/// [SerializableField] name their companion methods, and broken linkage must be reported
+/// instead of silently generating garbage.
 /// </summary>
 public class LinkageTests
 {
@@ -31,8 +31,7 @@ public class LinkageTests
 
                     private int ChargesDefaultValue() => 8;
 
-                    [SerializableField(1)]
-                    [FieldChanged(nameof(OnLevelChanged))]
+                    [SerializableField(1, fieldChanged: nameof(OnLevelChanged))]
                     private int _level;
 
                     private void OnLevelChanged(int oldValue, int newValue)
@@ -207,8 +206,7 @@ public class LinkageTests
                 [SerializationGenerator(0)]
                 public partial class WrongChangedItem : ISerializable
                 {
-                    [SerializableField(0)]
-                    [FieldChanged(nameof(OnLevelChanged))]
+                    [SerializableField(0, fieldChanged: nameof(OnLevelChanged))]
                     private int _level;
 
                     private void OnLevelChanged(int newValue)
@@ -226,6 +224,39 @@ public class LinkageTests
         var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
 
         Assert.Contains(diagnostics, d => d.Id == "SG3015");
+    }
+
+    [Fact]
+    public void FieldChanged_OnReadonlyField_ReportsDiagnostic()
+    {
+        const string source = """
+            using System;
+            using ModernUO.Serialization;
+            using Server;
+
+            namespace Server.TestContent
+            {
+                [SerializationGenerator(0)]
+                public partial class ReadonlyChangedItem : ISerializable
+                {
+                    [SerializableField(0, fieldChanged: nameof(OnIdChanged))]
+                    private readonly string _id;
+
+                    private void OnIdChanged(string oldValue, string newValue)
+                    {
+                    }
+
+                    public DateTime Created { get; set; }
+                    public Serial Serial { get; }
+                    public bool Deleted => false;
+                    public void Delete() { }
+                }
+            }
+            """;
+
+        var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "SG3018");
     }
 
     [Fact]

@@ -16,9 +16,8 @@ namespace Server.TestContent
         [Tidy]
         private Dictionary<int, string> _entries;
 
-        [SerializableField(2)]
+        [SerializableField(2, fieldChanged: nameof(OnLevelChanged))]
         [InvalidateProperties]
-        [FieldChanged(nameof(OnLevelChanged))]
         private int _level;
 
         private void OnLevelChanged(int oldValue, int newValue)

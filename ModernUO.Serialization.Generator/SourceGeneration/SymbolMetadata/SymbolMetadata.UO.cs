@@ -36,7 +36,6 @@ public static partial class SymbolMetadata
     public const string TIDY_ATTRIBUTE = "ModernUO.Serialization.TidyAttribute";
     public const string DESERIALIZE_TIMER_ATTRIBUTE = "ModernUO.Serialization.DeserializeTimerAttribute";
     public const string SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SaveFlagAttribute";
-    public const string FIELD_CHANGED_ATTRIBUTE = "ModernUO.Serialization.FieldChangedAttribute";
     public const string SERIALIZED_PROPERTY_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializedPropertyAttrAttribute`1";
     public const string SORTED_SET_COMPARER_ATTRIBUTE = "ModernUO.Serialization.SortedSetComparerAttribute";
 
@@ -94,9 +93,6 @@ public static partial class SymbolMetadata
 
         public bool IsSaveFlag(Compilation compilation) =>
             attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(SAVE_FLAG_ATTRIBUTE)) == true;
-
-        public bool IsFieldChanged(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(FIELD_CHANGED_ATTRIBUTE)) == true;
     }
 
     public static bool IsTimer(this ITypeSymbol symbol, Compilation compilation) =>

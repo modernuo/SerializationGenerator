@@ -47,7 +47,8 @@ public sealed record DiagnosticInfo(
         ["SG3011"] = DiagnosticDescriptors.SG3011,
         ["SG3012"] = DiagnosticDescriptors.SG3012,
         ["SG3013"] = DiagnosticDescriptors.SG3013,
-        ["SG3015"] = DiagnosticDescriptors.SG3015
+        ["SG3015"] = DiagnosticDescriptors.SG3015,
+        ["SG3018"] = DiagnosticDescriptors.SG3018
     };
 
     public static DiagnosticInfo Create(DiagnosticDescriptor descriptor, Location location, params object[] args)

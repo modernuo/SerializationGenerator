@@ -144,6 +144,15 @@ public static class DiagnosticDescriptors
         true
     );
 
+    public static readonly DiagnosticDescriptor SG3018 = new(
+        "SG3018",
+        "fieldChanged requires a generated setter",
+        "The fieldChanged callback for '{0}' can never fire because no setter is generated (readonly field or omitted setter)",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
     public static DiagnosticDescriptor GeneratorCrashedDiagnostic(Exception e) =>
         new(
             "SG0001",

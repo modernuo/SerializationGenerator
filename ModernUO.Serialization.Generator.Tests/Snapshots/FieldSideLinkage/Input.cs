@@ -21,8 +21,7 @@ namespace Server.TestContent
 
         private int ChargesDefaultValue() => 8;
 
-        [SerializableField(2)]
-        [FieldChanged(nameof(OnLevelChanged))]
+        [SerializableField(2, fieldChanged: nameof(OnLevelChanged))]
         private int _level;
 
         private void OnLevelChanged(int oldValue, int newValue)

@@ -166,10 +166,9 @@ public static partial class SerializableEntityGeneration
             markDirtyMethod = null;
         }
 
-        // Linkage: [SaveFlag], [FieldChanged], and [DeserializeTimer] on the serializable
-        // members themselves. The named methods must exist with the expected shapes.
+        // Linkage: [SaveFlag] and [DeserializeTimer] on the serializable members themselves.
+        // The named methods must exist with the expected shapes.
         var serializableFieldSaveFlags = new SortedDictionary<int, SerializableFieldSaveFlagMethods>();
-        var serializableFieldChangedMethods = new Dictionary<int, IMethodSymbol>();
         var timerLinks = new Dictionary<int, TimerFieldModel>();
 
         foreach (var (symbol, attributeData) in fields.Concat(properties))
@@ -211,20 +210,6 @@ public static partial class SerializableEntityGeneration
                         DetermineFieldShouldSerialize = shouldMethod,
                         GetFieldDefaultValue = defaultMethod
                     };
-                }
-                else if (attr.IsFieldChanged(compilation))
-                {
-                    var methodName = attr.ConstructorArguments[0].Value as string;
-                    var method = classSymbol.FindLinkedMethod(methodName, m => IsChangedShape(m, memberType));
-                    if (method == null)
-                    {
-                        return Fail(
-                            DiagnosticDescriptors.SG3015, methodName ?? "", "FieldChanged",
-                            $"void Method({memberType} oldValue, {memberType} newValue)"
-                        );
-                    }
-
-                    serializableFieldChangedMethods[order] = method;
                 }
                 else if (attr.IsDeserializeTimer(compilation))
                 {
@@ -365,8 +350,32 @@ public static partial class SerializableEntityGeneration
                 // Readonly fields cannot have setters - force to null
                 var effectiveSetterAccessor = fieldSymbol.IsReadOnly ? (Accessibility?)null : setterAccessor;
 
-                // Signatures are validated during linkage resolution.
-                serializableFieldChangedMethods.TryGetValue(order, out var fieldChangedMethod);
+                // The change callback is part of [SerializableField] itself, so it cannot be
+                // declared on a member without a generated setter.
+                IMethodSymbol? fieldChangedMethod = null;
+                var fieldChangedName = attrCtorArgs.Length > 4 ? attrCtorArgs[4].Value as string : null;
+                if (fieldChangedName != null)
+                {
+                    // The callback is invoked by the generated setter; without one it could
+                    // never fire.
+                    if (effectiveSetterAccessor == null)
+                    {
+                        return Fail(DiagnosticDescriptors.SG3018, fieldSymbol.Name);
+                    }
+
+                    fieldChangedMethod = classSymbol.FindLinkedMethod(
+                        fieldChangedName,
+                        m => IsChangedShape(m, fieldSymbol.Type)
+                    );
+
+                    if (fieldChangedMethod == null)
+                    {
+                        return Fail(
+                            DiagnosticDescriptors.SG3015, fieldChangedName, "SerializableField fieldChanged",
+                            $"void Method({fieldSymbol.Type} oldValue, {fieldSymbol.Type} newValue)"
+                        );
+                    }
+                }
 
                 var invalidateProperties = allAttributes.Any(
                     attr => attr.AttributeClass?.Equals(
