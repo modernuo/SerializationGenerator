@@ -126,6 +126,7 @@ public sealed record FieldPropertyModel(
     bool HasInequalityOperator,
     bool InvalidateProperties,
     string? FieldChangedMethodName,
+    string? AllowFieldChangeMethodName,
     EquatableArray<string> AttributeLines,
     bool DsIsArray,
     bool DsIsDictionary,

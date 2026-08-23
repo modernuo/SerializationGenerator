@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: SerializableFieldChangedAttribute.cs                            *
  *                                                                       *
@@ -18,13 +18,19 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the method should be called when the field with the same order value changes.
-/// The method must have the signature: void MethodName(T oldValue, T newValue) where T is the field type.
+/// Removed in v4. Change callbacks are declared as part of the field's serialization
+/// attribute: <c>[SerializableField(order, fieldChanged: nameof(Method))]</c>. This
+/// conversion does not change the wire format.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
+[Obsolete("Removed in v4. Pass fieldChanged: nameof(Method) to [SerializableField] instead. The wire format does not change.", true)]
 public sealed class SerializableFieldChangedAttribute : Attribute
 {
-    public int Order { get; }
+    public SerializableFieldChangedAttribute(string fieldName)
+    {
+    }
 
-    public SerializableFieldChangedAttribute(int order) => Order = order;
+    public SerializableFieldChangedAttribute(int order)
+    {
+    }
 }

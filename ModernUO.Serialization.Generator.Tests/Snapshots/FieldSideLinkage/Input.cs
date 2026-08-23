@@ -5,7 +5,7 @@ using Server;
 namespace Server.TestContent
 {
     [SerializationGenerator(0)]
-    public partial class SaveFlagsItem : ISerializable
+    public partial class FieldLinkedItem : ISerializable
     {
         [SerializableField(0)]
         [SaveFlag(nameof(ShouldSerializeName))]
@@ -21,16 +21,25 @@ namespace Server.TestContent
 
         private int ChargesDefaultValue() => 8;
 
-        [SerializableField(2)]
-        [SaveFlag(nameof(ShouldSerializeExpires), nameof(ExpiresDefaultValue))]
-        private DateTime _expires;
+        [SerializableField(2, fieldChanged: nameof(OnLevelChanged))]
+        private int _level;
 
-        private bool ShouldSerializeExpires() => _expires != DateTime.MinValue;
+        private void OnLevelChanged(int oldValue, int newValue)
+        {
+        }
 
-        private DateTime ExpiresDefaultValue() => DateTime.MinValue;
+        [SerializableField(3, allowFieldChange: nameof(AllowWaterChange))]
+        private int _water;
 
-        [SerializableField(3)]
-        private bool _identified;
+        private bool AllowWaterChange(ref int value)
+        {
+            if (value < 0)
+            {
+                value = 0;
+            }
+
+            return value <= 100;
+        }
 
         public DateTime Created { get; set; }
         public Serial Serial { get; }

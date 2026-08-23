@@ -20,9 +20,9 @@ public partial class SaveFlagTests
                 public partial class SaveFlagItem : ISerializable
                 {
                     [SerializableField(0)]
+                    [SaveFlag(nameof(ShouldSerializeName))]
                     private string _name;
 
-                    [SerializableFieldSaveFlag(0)]
                     private bool ShouldSerializeName() => _name != null;
 
                     public Serial Serial => default;
@@ -59,9 +59,9 @@ public partial class SaveFlagTests
         for (int i = 0; i < 5; i++)
         {
             sb.AppendLine($"        [SerializableField({i})]");
+            sb.AppendLine($"        [SaveFlag(nameof(ShouldSerializeField{i}))]");
             sb.AppendLine($"        private string _field{i};");
             sb.AppendLine();
-            sb.AppendLine($"        [SerializableFieldSaveFlag({i})]");
             sb.AppendLine($"        private bool ShouldSerializeField{i}() => _field{i} != null;");
             sb.AppendLine();
         }
@@ -106,9 +106,9 @@ public partial class SaveFlagTests
         for (int i = 0; i < 35; i++)
         {
             sb.AppendLine($"        [SerializableField({i})]");
+            sb.AppendLine($"        [SaveFlag(nameof(ShouldSerializeField{i}))]");
             sb.AppendLine($"        private int _field{i};");
             sb.AppendLine();
-            sb.AppendLine($"        [SerializableFieldSaveFlag({i})]");
             sb.AppendLine($"        private bool ShouldSerializeField{i}() => _field{i} != 0;");
             sb.AppendLine();
         }
@@ -147,9 +147,9 @@ public partial class SaveFlagTests
         for (int i = 0; i < 70; i++)
         {
             sb.AppendLine($"        [SerializableField({i})]");
+            sb.AppendLine($"        [SaveFlag(nameof(ShouldSerializeField{i}))]");
             sb.AppendLine($"        private int _field{i};");
             sb.AppendLine();
-            sb.AppendLine($"        [SerializableFieldSaveFlag({i})]");
             sb.AppendLine($"        private bool ShouldSerializeField{i}() => _field{i} != 0;");
             sb.AppendLine();
         }
@@ -207,12 +207,11 @@ public partial class SaveFlagTests
                 public partial class DefaultValueItem : ISerializable
                 {
                     [SerializableField(0)]
+                    [SaveFlag(nameof(ShouldSerializeCount), nameof(GetCountDefault))]
                     private int _count;
 
-                    [SerializableFieldSaveFlag(0)]
                     private bool ShouldSerializeCount() => _count != 0;
 
-                    [SerializableFieldDefault(0)]
                     private int GetCountDefault() => 0;
 
                     public Serial Serial => default;

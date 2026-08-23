@@ -11,9 +11,9 @@ namespace TestContent
         private string _name;
 
         [SerializableField(1)]
+        [DeserializeTimer(nameof(DeserializeRefreshTimer))]
         private Timer _refreshTimer;
 
-        [DeserializeTimerField(1)]
         private void DeserializeRefreshTimer(TimeSpan delay)
         {
             _refreshTimer = new Timer();

@@ -39,9 +39,20 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
             return false;
         }
 
-        ruleArguments = attributes.Any(a => a.IsTimerDrift(compilation))
-            ? ["@TimerDrift"]
-            : [""];
+        // Drift is the default: [DeserializeTimer(..., wallClock: true)] opts into absolute
+        // deadlines. "@TimerDrift" is the legacy delta-time marker and is never written to new
+        // schemas; it survives only in old-version migration files.
+        var wallClock = false;
+        foreach (var attr in attributes)
+        {
+            if (attr.IsDeserializeTimer(compilation))
+            {
+                wallClock = (bool)attr.ConstructorArguments[1].Value!;
+                break;
+            }
+        }
+
+        ruleArguments = wallClock ? [""] : ["@AnchoredTimer"];
 
         return true;
     }
@@ -70,10 +81,15 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
         }
 
         var propertyName = property.Name;
-        var ruleArguments = property.RuleArguments;
-        var driftTimer = ruleArguments![0].Contains("@TimerDrift");
+        var readTimer = property.RuleArguments![0] switch
+        {
+            "@AnchoredTimer" => "reader.ReadAnchoredTime()",
+            // Historical format: pre-v4 saves stored drifting timers as delta time. Old-version
+            // migration schemas pin this marker, so the read path must exist permanently.
+            "@TimerDrift"    => "reader.ReadDeltaTime()",
+            _                => "reader.ReadDateTime()"
+        };
 
-        var readTimer = driftTimer ? "reader.ReadDeltaTime()" : "reader.ReadDateTime()";
         var useVar = isMigration ? "" : "var ";
         source.AppendLine($"{indent}{useVar}{propertyName}Next = {readTimer};");
         source.AppendLine($"{indent}{useVar}{propertyName}Delay = {propertyName}Next == System.DateTime.MinValue ? System.TimeSpan.MinValue : {propertyName}Next - Server.Core.Now;");
@@ -89,10 +105,7 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
         }
 
         var propertyName = property.Name;
-        var ruleArguments = property.RuleArguments;
-        var driftTimer = ruleArguments![0].Contains("@TimerDrift");
-
-        var writerMethod = driftTimer ? "WriteDeltaTime" : "Write";
+        var writerMethod = property.RuleArguments![0] == "@AnchoredTimer" ? "WriteAnchoredTime" : "Write";
         source.AppendLine($"{indent}writer.{writerMethod}({propertyName}?.Next ?? System.DateTime.MinValue);");
     }
 
@@ -100,12 +113,16 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
         StringBuilder source, string indent, SerializableProperty property, SerializationModel model
     )
     {
-        // Resolved during model building; SG3008 fires there when the method is missing.
+        // Resolved during model building; SG3008 fires there when the declaration is missing.
+        // The method is invoked only when a timer was running at save.
         foreach (var timerField in model.TimerFields)
         {
             if (timerField.Order == property.Order)
             {
-                source.AppendLine($"{indent}{timerField.DeserializeMethodName}({property.Name}Delay);");
+                source.AppendLine($"{indent}if ({property.Name}Next != System.DateTime.MinValue)");
+                source.AppendLine($"{indent}{{");
+                source.AppendLine($"{indent}    {timerField.DeserializeMethodName}({property.Name}Delay);");
+                source.AppendLine($"{indent}}}");
                 return;
             }
         }

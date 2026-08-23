@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright 2019-2023 - ModernUO Development Team                       *
+ * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: SerializableFieldDefaultAttribute.cs                            *
  *                                                                       *
@@ -18,17 +18,19 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Hints to the source generator that the field with the same order should use this default value
-/// while deserializing. The default is used when the save flag indicates that we don't need to serialize the value
-/// because this default can be used instead.
-///
-/// Note: This is only used for the current version, not previous versions. Previous versions will always use null or default
-/// for that type if it is not deserialized.
+/// Removed in v4. A default value is declared as the second argument of the field's save
+/// flag: <c>[SaveFlag(nameof(ShouldSerializeMethod), nameof(DefaultValueMethod))]</c>, so it
+/// cannot exist without one. This conversion does not change the wire format.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
+[Obsolete("Removed in v4. Declare [SaveFlag(nameof(ShouldSerializeMethod), nameof(DefaultValueMethod))] on the serializable field instead. The wire format does not change.", true)]
 public sealed class SerializableFieldDefaultAttribute : Attribute
 {
-    public int Order { get; }
+    public SerializableFieldDefaultAttribute(string fieldName)
+    {
+    }
 
-    public SerializableFieldDefaultAttribute(int order) => Order = order;
+    public SerializableFieldDefaultAttribute(int order)
+    {
+    }
 }

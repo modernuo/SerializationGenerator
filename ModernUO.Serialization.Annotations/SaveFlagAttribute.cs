@@ -2,7 +2,7 @@
  * ModernUO                                                              *
  * Copyright 2019-2026 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
- * File: SerializableFieldSaveFlagAttribute.cs                           *
+ * File: SaveFlagAttribute.cs                                            *
  *                                                                       *
  * This program is free software: you can redistribute it and/or modify  *
  * it under the terms of the GNU General Public License as published by  *
@@ -18,19 +18,28 @@ using System;
 namespace ModernUO.Serialization;
 
 /// <summary>
-/// Removed in v4. Save flags are declared on the serializable field itself:
-/// <c>[SaveFlag(nameof(ShouldSerializeMethod))]</c>. This conversion does not change the
-/// wire format.
+/// Declares conditional serialization for a serializable field, on the field itself. The
+/// first method (<c>bool Method()</c>) decides whether the value is written; the optional
+/// second method (returning the field's type, no parameters) supplies the value at load when
+/// it was not written.
+/// <code>
+/// [SerializableField(0)]
+/// [SaveFlag(nameof(ShouldSerializeName), nameof(NameDefaultValue))]
+/// private string _name;
+/// </code>
+/// When the second method is omitted, the field keeps its default value at load when the
+/// save flag indicates the value was not written.
 /// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-[Obsolete("Removed in v4. Declare [SaveFlag(nameof(ShouldSerializeMethod))] on the serializable field instead. The wire format does not change.", true)]
-public sealed class SerializableFieldSaveFlagAttribute : Attribute
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+public sealed class SaveFlagAttribute : Attribute
 {
-    public SerializableFieldSaveFlagAttribute(string fieldName)
-    {
-    }
+    public string ShouldSerializeMethod { get; }
 
-    public SerializableFieldSaveFlagAttribute(int order)
+    public string DefaultValueMethod { get; }
+
+    public SaveFlagAttribute(string shouldSerializeMethod, string defaultValueMethod = null)
     {
+        ShouldSerializeMethod = shouldSerializeMethod;
+        DefaultValueMethod = defaultValueMethod;
     }
 }

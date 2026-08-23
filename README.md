@@ -4,15 +4,11 @@ The ModernUO serialization source generator takes the boilerplate out of writing
 While it is not the most elegant solution (recommendations and contributions are welcome!), it should handle most use-cases.
 
 ### How to install
-Add `ModernUO.SerializationGenerator` as an analyzer project reference:
+Add `ModernUO.Serialization.Generator` and `ModernUO.Serialization.Annotations` as package references:
 ```xml
     <ItemGroup>
-        <PackageReference Include="ModernUO.SerializationGenerator" Version="2.2.0">
-            <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
-            <OutputItemType>Analyzer</OutputItemType>
-            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
+        <PackageReference Include="ModernUO.Serialization.Annotations" Version="4.0.0" />
+        <PackageReference Include="ModernUO.Serialization.Generator" Version="4.0.0" PrivateAssets="all" />
     </ItemGroup>
 ```
 
@@ -248,20 +244,15 @@ Here is a complete example of how we would convert this:
     [SerializationGenerator(3, false)]
     public partial class DeathRobe : Robe
     {
-        [TimerDrift]
+        // The timer's next tick is written as anchored time by default, so downtime does not
+        // consume the remaining delay. Use wallClock: true for absolute deadlines instead.
         [SerializableField(0)]
+        [DeserializeTimer(nameof(DeserializeDecayTimer))]
         private Timer _decayTimer;
 
-        // Since the field is a timer, we need to tell the source generator how to convert from a time span to an actual timer.
+        // Invoked only when a timer was running at save, with its remaining delay.
         // This is a void instead of returning a Timer for flexiblity.
-        [DeserializeTimerField(0)]
-        private void DeserializeDecayTimer(TimeSpan delay)
-        {
-            if (delay != TimeSpan.MinValue)
-            {
-                BeginDecay(delay);
-            }
-        }
+        private void DeserializeDecayTimer(TimeSpan delay) => BeginDecay(delay);
 
         [Constructible]
         public DeathRobe()
@@ -309,3 +300,84 @@ Here is a complete example of how we would convert this:
         }
     }
 ```
+
+## v4 Linkage and Timers
+
+v4 removes order-based linkage between fields and their companion methods. Every linkage is
+declared on the serializable field itself, naming its companion methods with `nameof()`:
+
+```cs
+    // Conditional serialization: the first method decides whether the value is written; the
+    // optional second method supplies the value at load when it was not written. When the
+    // second method is omitted, the field keeps its default value.
+    [SerializableField(0)]
+    [SaveFlag(nameof(ShouldSerializeCharges), nameof(ChargesDefaultValue))]
+    private int _charges;
+
+    private bool ShouldSerializeCharges() => _charges != 8;
+
+    private int ChargesDefaultValue() => 8;
+
+    // Setter hooks are part of [SerializableField] itself because they configure the
+    // generated property, like the getter/setter arguments.
+    //
+    // allowFieldChange runs before assignment (after the equality check): it may coerce the
+    // incoming value through the ref parameter, and returning false rejects the change. The
+    // field still holds the old value while it runs. fieldChanged runs after assignment.
+    [SerializableField(1, allowFieldChange: nameof(AllowLevelChange), fieldChanged: nameof(OnLevelChanged))]
+    private int _level;
+
+    private bool AllowLevelChange(ref int value)
+    {
+        value = Math.Clamp(value, 0, 100);
+        return true;
+    }
+
+    private void OnLevelChanged(int oldValue, int newValue)
+    {
+    }
+```
+
+The generated setter pipeline is: equality check → `allowFieldChange` (coerce/veto) →
+assignment → dirty tracking → `fieldChanged`. Between these hooks, most hand-written
+`[SerializableProperty]` setters (clamps, normalization, guarded rejection, post-change side
+effects) can be expressed as a plain `[SerializableField]`; hand-written properties remain
+for custom *getters* and truly exotic setters.
+
+Because the declaration lives on the field, the old failure modes cannot be written: a
+default cannot exist without a save flag, a linkage cannot point at a missing field, a
+field cannot be linked twice, and a change callback cannot be declared on a
+`[SerializableProperty]` (whose setter is user-written — call your method from the setter).
+The generator still verifies that each named method exists with the expected signature
+(SG3015), and that a `fieldChanged` callback has a generated setter to fire from (SG3018).
+
+Timers are declared on the field with `[DeserializeTimer]`, replacing `[TimerDrift]` and
+`[DeserializeTimerField]`:
+
+```cs
+    [SerializableField(0)]
+    [DeserializeTimer(nameof(RestartDecayTimer))]
+    private Timer _decayTimer;
+
+    private void RestartDecayTimer(TimeSpan delay) => BeginDecay(delay);
+```
+
+By default the timer drifts: its next tick is stored as anchored time, so downtime does not
+consume the remaining delay, and the restart method is invoked only when a timer was actually
+running at save. Use `[DeserializeTimer(nameof(Method), wallClock: true)]` for absolute
+deadlines; the delay is then negative when the deadline passed during downtime.
+
+### Migrating from v3
+
+- Replace `[SerializableFieldSaveFlag(order)]` and `[SerializableFieldDefault(order)]` with
+  `[SaveFlag(nameof(ShouldSerializeMethod), nameof(DefaultValueMethod))]` on the field, and
+  `[SerializableFieldChanged(order)]` with `fieldChanged: nameof(Method)` on the field's
+  `[SerializableField]`. These conversions do not change the wire format.
+- Replace `[TimerDrift]` + `[DeserializeTimerField(order)]` with
+  `[DeserializeTimer(nameof(Method))]` on the timer field. Drifting timers change wire format
+  (delta time to anchored time), so bump the class's `[SerializationGenerator]` version and
+  add a `MigrateFrom` for the previous version; old saves keep reading correctly through the
+  migration schema. Wall-clock timers (no `[TimerDrift]` before) keep their format: use
+  `wallClock: true` and no version bump is needed.
+- Remove `delay != TimeSpan.MinValue` checks from restart methods; they are no longer called
+  when no timer was running.

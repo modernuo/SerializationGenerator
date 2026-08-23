@@ -87,8 +87,8 @@ public static class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor SG3008 = new(
         "SG3008",
-        "Missing DeserializeTimerField attribute",
-        "Missing DeserializeTimerField attribute for '{0}'",
+        "Missing DeserializeTimer attribute",
+        "Serializable timer field '{0}' must declare [DeserializeTimer(nameof(Method))]",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true
@@ -103,14 +103,10 @@ public static class DiagnosticDescriptors
         true
     );
 
-    public static readonly DiagnosticDescriptor SG3010 = new(
-        "SG3010",
-        "SerializableFieldChanged method has invalid signature",
-        "Method '{0}' must have signature 'void {0}({1} oldValue, {1} newValue)' for field of type '{1}'",
-        "ModernUO.Serialization.Generator",
-        DiagnosticSeverity.Error,
-        true
-    );
+    // SG3010 (changed-method signature), SG3014 (unknown field reference), SG3016
+    // (conflicting linkage styles), and SG3017 (default without save flag) were retired in
+    // v4: field-side linkage makes those mistakes unrepresentable, and SG3015 covers every
+    // remaining method-resolution failure. Do not reuse the numbers.
 
     public static readonly DiagnosticDescriptor SG3011 = new(
         "SG3011",
@@ -134,6 +130,24 @@ public static class DiagnosticDescriptors
         "SG3013",
         "Invalid migration file",
         "Migration file '{0}' could not be parsed: {1}",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3015 = new(
+        "SG3015",
+        "Linked method not found or invalid",
+        "Method '{0}' referenced by [{1}] was not found or does not match the expected signature '{2}'",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3018 = new(
+        "SG3018",
+        "Setter hook requires a generated setter",
+        "The {0} method for '{1}' can never fire because no setter is generated (readonly field or omitted setter)",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true

@@ -50,7 +50,7 @@ namespace Server.TestContent
         {
             writer.Write(SerializationVersion);
 
-            writer.Write(RefreshTimer?.Next ?? System.DateTime.MinValue);
+            writer.WriteAnchoredTime(RefreshTimer?.Next ?? System.DateTime.MinValue);
 
             writer.Write(_progress);
         }
@@ -59,9 +59,12 @@ namespace Server.TestContent
         {
             var version = reader.ReadInt();
 
-            var RefreshTimerNext = reader.ReadDateTime();
+            var RefreshTimerNext = reader.ReadAnchoredTime();
             var RefreshTimerDelay = RefreshTimerNext == System.DateTime.MinValue ? System.TimeSpan.MinValue : RefreshTimerNext - Server.Core.Now;
-            DeserializeRefreshTimer(RefreshTimerDelay);
+            if (RefreshTimerNext != System.DateTime.MinValue)
+            {
+                DeserializeRefreshTimer(RefreshTimerDelay);
+            }
 
             _progress = reader.ReadInt();
         }

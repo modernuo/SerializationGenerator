@@ -13,6 +13,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *************************************************************************/
 
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -33,11 +34,8 @@ public static partial class SymbolMetadata
     public const string ENCODED_INT_ATTRIBUTE = "ModernUO.Serialization.EncodedIntAttribute";
     public const string CAN_BE_NULL_ATTRIBUTE = "ModernUO.Serialization.CanBeNullAttribute";
     public const string TIDY_ATTRIBUTE = "ModernUO.Serialization.TidyAttribute";
-    public const string TIMER_DRIFT_ATTRIBUTE = "ModernUO.Serialization.TimerDriftAttribute";
-    public const string DESERIALIZE_TIMER_FIELD_ATTRIBUTE = "ModernUO.Serialization.DeserializeTimerFieldAttribute";
-    public const string SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldSaveFlagAttribute";
-    public const string SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldDefaultAttribute";
-    public const string SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldChangedAttribute";
+    public const string DESERIALIZE_TIMER_ATTRIBUTE = "ModernUO.Serialization.DeserializeTimerAttribute";
+    public const string SAVE_FLAG_ATTRIBUTE = "ModernUO.Serialization.SaveFlagAttribute";
     public const string SERIALIZED_PROPERTY_ATTR_ATTRIBUTE = "ModernUO.Serialization.SerializedPropertyAttrAttribute`1";
     public const string SORTED_SET_COMPARER_ATTRIBUTE = "ModernUO.Serialization.SortedSetComparerAttribute";
 
@@ -90,8 +88,11 @@ public static partial class SymbolMetadata
         public bool IsCanBeNull(Compilation compilation) =>
             attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(CAN_BE_NULL_ATTRIBUTE)) == true;
 
-        public bool IsTimerDrift(Compilation compilation) =>
-            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(TIMER_DRIFT_ATTRIBUTE)) == true;
+        public bool IsDeserializeTimer(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(DESERIALIZE_TIMER_ATTRIBUTE)) == true;
+
+        public bool IsSaveFlag(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(SAVE_FLAG_ATTRIBUTE)) == true;
     }
 
     public static bool IsTimer(this ITypeSymbol symbol, Compilation compilation) =>
@@ -317,38 +318,25 @@ public static partial class SymbolMetadata
         }
 
         /// <summary>
-        /// Finds the [DeserializeTimerField] method for the given field order, or null.
+        /// Finds an instance method by name with the expected shape, or null. The shape check
+        /// is supplied by the caller so each linkage attribute validates its own contract.
         /// </summary>
-        public IMethodSymbol GetDeserializeTimerMethod(Compilation compilation, int order)
+        public IMethodSymbol FindLinkedMethod(string methodName, Func<IMethodSymbol, bool> hasValidSignature)
         {
-            return symbol
-                .GetMembers()
-                .OfType<IMethodSymbol>()
-                .FirstOrDefault(
-                    m =>
-                    {
-                        if (!m.ReturnsVoid || m.Parameters.Length != 1 || !m.Parameters[0].Type.IsTimeSpan(compilation))
-                        {
-                            return false;
-                        }
+            if (methodName == null)
+            {
+                return null;
+            }
 
-                        return m.GetAttributes()
-                            .FirstOrDefault(
-                                attr =>
-                                {
-                                    if (!SymbolEqualityComparer.Default.Equals(
-                                            attr.AttributeClass,
-                                            compilation.GetCachedTypeByMetadataName(DESERIALIZE_TIMER_FIELD_ATTRIBUTE)
-                                        ))
-                                    {
-                                        return false;
-                                    }
+            foreach (var member in symbol.GetMembers(methodName))
+            {
+                if (member is IMethodSymbol { IsStatic: false } method && hasValidSignature(method))
+                {
+                    return method;
+                }
+            }
 
-                                    return (int)attr.ConstructorArguments[0].Value! == order;
-                                }
-                            ) != null;
-                    }
-                );
+            return null;
         }
 
         public bool HasPublicSerializeMethod(Compilation compilation)
@@ -496,26 +484,6 @@ public static partial class SymbolMetadata
             symbol.TryGetMemberWithAttribute(
                 compilation.GetCachedTypeByMetadataName(DIRTY_TRACKING_ENTITY_ATTRIBUTE),
                 out _
-            );
-
-        public bool TryGetSerializableFieldSaveFlagMethod(
-            Compilation compilation, out AttributeData? attributeData
-        ) => symbol.TryGetMemberWithAttribute(
-            compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_SAVE_FLAG_ATTRIBUTE),
-            out attributeData
-        );
-
-        public bool TryGetSerializableFieldDefaultMethod(
-            Compilation compilation, out AttributeData? attributeData
-        ) => symbol.TryGetMemberWithAttribute(
-            compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_DEFAULT_ATTRIBUTE),
-            out attributeData
-        );
-
-        public bool TryGetSerializableFieldChangedMethod(Compilation compilation, out AttributeData? attributeData) =>
-            symbol.TryGetMemberWithAttribute(
-                compilation.GetCachedTypeByMetadataName(SERIALIZABLE_FIELD_CHANGED_ATTRIBUTE),
-                out attributeData
             );
     }
 
