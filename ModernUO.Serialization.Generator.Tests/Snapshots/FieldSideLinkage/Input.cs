@@ -28,6 +28,19 @@ namespace Server.TestContent
         {
         }
 
+        [SerializableField(3, allowFieldChange: nameof(AllowWaterChange))]
+        private int _water;
+
+        private bool AllowWaterChange(ref int value)
+        {
+            if (value < 0)
+            {
+                value = 0;
+            }
+
+            return value <= 100;
+        }
+
         public DateTime Created { get; set; }
         public Serial Serial { get; }
         public bool Deleted => false;

@@ -56,6 +56,24 @@ namespace Server.TestContent
             }
         }
 
+        public int Water
+        {
+            get => _water;
+            set
+            {
+                if (value != _water)
+                {
+                    if (!AllowWaterChange(ref value))
+                    {
+                        return;
+                    }
+
+                    _water = value;
+                    Server.ISerializableExtensions.MarkDirty(this);
+                }
+            }
+        }
+
         public FieldLinkedItem(Server.Serial serial)
         {
             Serial = serial;
@@ -87,6 +105,8 @@ namespace Server.TestContent
             }
 
             writer.Write(_level);
+
+            writer.Write(_water);
         }
 
         public virtual void Deserialize(Server.IGenericReader reader)
@@ -110,6 +130,8 @@ namespace Server.TestContent
             }
 
             _level = reader.ReadInt();
+
+            _water = reader.ReadInt();
         }
 
         [System.Flags]

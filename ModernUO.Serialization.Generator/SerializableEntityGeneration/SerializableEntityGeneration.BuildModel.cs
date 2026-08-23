@@ -121,6 +121,11 @@ public static partial class SerializableEntityGeneration
             SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, fieldType) &&
             SymbolEqualityComparer.Default.Equals(method.Parameters[1].Type, fieldType);
 
+        static bool IsAllowChangeShape(IMethodSymbol method, ITypeSymbol fieldType) =>
+            method is { ReturnsVoid: false, Parameters.Length: 1, ReturnType.SpecialType: SpecialType.System_Boolean } &&
+            method.Parameters[0].RefKind == RefKind.Ref &&
+            SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, fieldType);
+
         // Dirty tracking / MarkDirty resolution.
         var parentTypeHasEntityTracking = false;
         if (!isSerializable && dirtyTrackingEntity == null)
@@ -350,17 +355,15 @@ public static partial class SerializableEntityGeneration
                 // Readonly fields cannot have setters - force to null
                 var effectiveSetterAccessor = fieldSymbol.IsReadOnly ? (Accessibility?)null : setterAccessor;
 
-                // The change callback is part of [SerializableField] itself, so it cannot be
-                // declared on a member without a generated setter.
+                // The setter hooks are part of [SerializableField] itself, so they cannot be
+                // declared on a member without a generated setter to invoke them.
                 IMethodSymbol? fieldChangedMethod = null;
                 var fieldChangedName = attrCtorArgs.Length > 4 ? attrCtorArgs[4].Value as string : null;
                 if (fieldChangedName != null)
                 {
-                    // The callback is invoked by the generated setter; without one it could
-                    // never fire.
                     if (effectiveSetterAccessor == null)
                     {
-                        return Fail(DiagnosticDescriptors.SG3018, fieldSymbol.Name);
+                        return Fail(DiagnosticDescriptors.SG3018, "fieldChanged", fieldSymbol.Name);
                     }
 
                     fieldChangedMethod = classSymbol.FindLinkedMethod(
@@ -373,6 +376,29 @@ public static partial class SerializableEntityGeneration
                         return Fail(
                             DiagnosticDescriptors.SG3015, fieldChangedName, "SerializableField fieldChanged",
                             $"void Method({fieldSymbol.Type} oldValue, {fieldSymbol.Type} newValue)"
+                        );
+                    }
+                }
+
+                IMethodSymbol? allowFieldChangeMethod = null;
+                var allowFieldChangeName = attrCtorArgs.Length > 5 ? attrCtorArgs[5].Value as string : null;
+                if (allowFieldChangeName != null)
+                {
+                    if (effectiveSetterAccessor == null)
+                    {
+                        return Fail(DiagnosticDescriptors.SG3018, "allowFieldChange", fieldSymbol.Name);
+                    }
+
+                    allowFieldChangeMethod = classSymbol.FindLinkedMethod(
+                        allowFieldChangeName,
+                        m => IsAllowChangeShape(m, fieldSymbol.Type)
+                    );
+
+                    if (allowFieldChangeMethod == null)
+                    {
+                        return Fail(
+                            DiagnosticDescriptors.SG3015, allowFieldChangeName, "SerializableField allowFieldChange",
+                            $"bool Method(ref {fieldSymbol.Type} value)"
                         );
                     }
                 }
@@ -420,6 +446,7 @@ public static partial class SerializableEntityGeneration
                         fieldSymbol.Type.HasInequalityOperator(),
                         invalidateProperties,
                         fieldChangedMethod?.Name,
+                        allowFieldChangeMethod?.Name,
                         attributeLines.ToEquatableArray(),
                         dsIsArray,
                         dsIsDictionary,

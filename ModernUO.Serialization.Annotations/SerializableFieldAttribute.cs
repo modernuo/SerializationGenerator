@@ -21,12 +21,25 @@ namespace ModernUO.Serialization;
 /// Hints to the source generator that this field should be serialized.
 /// The source generator will generate the property entirely.
 /// <para>
+/// <c>allowFieldChange</c> names a gate with the signature <c>bool Method(ref T value)</c>
+/// where T is the field's type. The generated setter invokes it before assignment (after the
+/// equality check); it may coerce the incoming value through the ref parameter, and returning
+/// false rejects the change entirely. The field still holds the old value while the gate
+/// runs.
+/// </para>
+/// <para>
 /// <c>fieldChanged</c> names a change callback with the signature
-/// <c>void Method(T oldValue, T newValue)</c> where T is the field's type; it is invoked by
-/// the generated setter after assignment:
+/// <c>void Method(T oldValue, T newValue)</c>; it is invoked by the generated setter after
+/// assignment.
 /// <code>
-/// [SerializableField(2, fieldChanged: nameof(OnLevelChanged))]
+/// [SerializableField(2, allowFieldChange: nameof(AllowLevelChange), fieldChanged: nameof(OnLevelChanged))]
 /// private int _level;
+///
+/// private bool AllowLevelChange(ref int value)
+/// {
+///     value = Math.Clamp(value, 0, 100);
+///     return true;
+/// }
 /// </code>
 /// </para>
 /// </summary>
@@ -38,13 +51,15 @@ public sealed class SerializableFieldAttribute : Attribute
     public string? PropertySetter { get; }
     public bool IsVirtual { get; }
     public string? FieldChanged { get; }
+    public string? AllowFieldChange { get; }
 
     public SerializableFieldAttribute(
         int order,
         string getter = "public",
         string setter = "public",
         bool isVirtual = false,
-        string fieldChanged = null
+        string fieldChanged = null,
+        string allowFieldChange = null
     )
     {
         Order = order;
@@ -52,5 +67,6 @@ public sealed class SerializableFieldAttribute : Attribute
         PropertySetter = setter;
         IsVirtual = isVirtual;
         FieldChanged = fieldChanged;
+        AllowFieldChange = allowFieldChange;
     }
 }

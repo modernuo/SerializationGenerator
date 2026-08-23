@@ -318,16 +318,31 @@ declared on the serializable field itself, naming its companion methods with `na
 
     private int ChargesDefaultValue() => 8;
 
-    // Change callback: invoked by the generated setter after assignment. It is part of
-    // [SerializableField] itself because it configures the generated property, like the
-    // getter/setter arguments.
-    [SerializableField(1, fieldChanged: nameof(OnLevelChanged))]
+    // Setter hooks are part of [SerializableField] itself because they configure the
+    // generated property, like the getter/setter arguments.
+    //
+    // allowFieldChange runs before assignment (after the equality check): it may coerce the
+    // incoming value through the ref parameter, and returning false rejects the change. The
+    // field still holds the old value while it runs. fieldChanged runs after assignment.
+    [SerializableField(1, allowFieldChange: nameof(AllowLevelChange), fieldChanged: nameof(OnLevelChanged))]
     private int _level;
+
+    private bool AllowLevelChange(ref int value)
+    {
+        value = Math.Clamp(value, 0, 100);
+        return true;
+    }
 
     private void OnLevelChanged(int oldValue, int newValue)
     {
     }
 ```
+
+The generated setter pipeline is: equality check → `allowFieldChange` (coerce/veto) →
+assignment → dirty tracking → `fieldChanged`. Between these hooks, most hand-written
+`[SerializableProperty]` setters (clamps, normalization, guarded rejection, post-change side
+effects) can be expressed as a plain `[SerializableField]`; hand-written properties remain
+for custom *getters* and truly exotic setters.
 
 Because the declaration lives on the field, the old failure modes cannot be written: a
 default cannot exist without a save flag, a linkage cannot point at a missing field, a

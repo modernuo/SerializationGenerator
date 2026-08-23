@@ -227,6 +227,117 @@ public class LinkageTests
     }
 
     [Fact]
+    public void AllowFieldChange_GeneratesGateBeforeAssignment()
+    {
+        const string source = """
+            using System;
+            using ModernUO.Serialization;
+            using Server;
+
+            namespace Server.TestContent
+            {
+                [SerializationGenerator(0)]
+                public partial class GatedItem : ISerializable
+                {
+                    [SerializableField(0, allowFieldChange: nameof(AllowLevelChange), fieldChanged: nameof(OnLevelChanged))]
+                    private int _level;
+
+                    private bool AllowLevelChange(ref int value)
+                    {
+                        value = Math.Clamp(value, 0, 100);
+                        return true;
+                    }
+
+                    private void OnLevelChanged(int oldValue, int newValue)
+                    {
+                    }
+
+                    public DateTime Created { get; set; }
+                    public Serial Serial { get; }
+                    public bool Deleted => false;
+                    public void Delete() { }
+                }
+            }
+            """;
+
+        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
+        Assert.NotNull(generatedSource);
+        Assert.Contains("if (!AllowLevelChange(ref value))", generatedSource);
+
+        // Pipeline order: gate -> assignment -> changed callback.
+        var gateIndex = generatedSource.IndexOf("AllowLevelChange(ref value)");
+        var assignIndex = generatedSource.IndexOf("_level = value;");
+        var changedIndex = generatedSource.IndexOf("OnLevelChanged(oldValue, value);");
+        Assert.True(gateIndex >= 0 && assignIndex >= 0 && changedIndex >= 0);
+        Assert.True(gateIndex < assignIndex, "gate must run before assignment");
+        Assert.True(assignIndex < changedIndex, "changed callback must run after assignment");
+    }
+
+    [Fact]
+    public void AllowFieldChange_WrongSignature_ReportsDiagnostic()
+    {
+        const string source = """
+            using System;
+            using ModernUO.Serialization;
+            using Server;
+
+            namespace Server.TestContent
+            {
+                [SerializationGenerator(0)]
+                public partial class WrongGateItem : ISerializable
+                {
+                    [SerializableField(0, allowFieldChange: nameof(AllowLevelChange))]
+                    private int _level;
+
+                    private bool AllowLevelChange(int value) => true;
+
+                    public DateTime Created { get; set; }
+                    public Serial Serial { get; }
+                    public bool Deleted => false;
+                    public void Delete() { }
+                }
+            }
+            """;
+
+        var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "SG3015");
+    }
+
+    [Fact]
+    public void AllowFieldChange_OnReadonlyField_ReportsDiagnostic()
+    {
+        const string source = """
+            using System;
+            using ModernUO.Serialization;
+            using Server;
+
+            namespace Server.TestContent
+            {
+                [SerializationGenerator(0)]
+                public partial class ReadonlyGateItem : ISerializable
+                {
+                    [SerializableField(0, allowFieldChange: nameof(AllowIdChange))]
+                    private readonly string _id;
+
+                    private bool AllowIdChange(ref string value) => true;
+
+                    public DateTime Created { get; set; }
+                    public Serial Serial { get; }
+                    public bool Deleted => false;
+                    public void Delete() { }
+                }
+            }
+            """;
+
+        var (diagnostics, _) = SourceGeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "SG3018");
+    }
+
+    [Fact]
     public void FieldChanged_OnReadonlyField_ReportsDiagnostic()
     {
         const string source = """

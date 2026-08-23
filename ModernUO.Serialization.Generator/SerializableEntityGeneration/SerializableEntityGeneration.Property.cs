@@ -60,6 +60,19 @@ public static partial class SerializableEntityGeneration
 
             source.AppendLine($"{innerIndent}if ({comparison})");
             source.AppendLine($"{innerIndent}{{");
+
+            // The gate runs before assignment: it may coerce `value` through the ref
+            // parameter or return false to reject the change. The field still holds the
+            // old value while it executes.
+            if (field.AllowFieldChangeMethodName != null)
+            {
+                source.AppendLine($"{innerIndent}    if (!{field.AllowFieldChangeMethodName}(ref value))");
+                source.AppendLine($"{innerIndent}    {{");
+                source.AppendLine($"{innerIndent}        return;");
+                source.AppendLine($"{innerIndent}    }}");
+                source.AppendLine();
+            }
+
             source.AppendLine($"{innerIndent}    {fieldName} = value;");
             if (markDirtyMethod != null)
             {
