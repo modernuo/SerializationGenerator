@@ -57,6 +57,48 @@ public class LinkageTests
     }
 
     [Fact]
+    public void SaveFlag_OnSerializableProperty_GeneratesFlag()
+    {
+        const string source = """
+            using System;
+            using ModernUO.Serialization;
+            using Server;
+
+            namespace Server.TestContent
+            {
+                [SerializationGenerator(0)]
+                public partial class PropertyFlagItem : ISerializable
+                {
+                    private string _name;
+
+                    [SerializableProperty(0, useField: nameof(_name))]
+                    [SaveFlag(nameof(ShouldSerializeName))]
+                    public string Name
+                    {
+                        get => _name;
+                        set => _name = value;
+                    }
+
+                    private bool ShouldSerializeName() => _name != null;
+
+                    public DateTime Created { get; set; }
+                    public Serial Serial { get; }
+                    public bool Deleted => false;
+                    public void Delete() { }
+                }
+            }
+            """;
+
+        var (diagnostics, generatedSource) = SourceGeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
+        Assert.NotNull(generatedSource);
+        Assert.Contains("enum SaveFlag", generatedSource);
+        Assert.Contains("Name", generatedSource);
+        Assert.Contains("ShouldSerializeName()", generatedSource);
+    }
+
+    [Fact]
     public void SaveFlag_MissingMethod_ReportsDiagnostic()
     {
         const string source = """
