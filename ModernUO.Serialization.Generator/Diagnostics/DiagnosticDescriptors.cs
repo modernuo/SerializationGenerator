@@ -1,4 +1,4 @@
-﻿/*************************************************************************
+/*************************************************************************
  * ModernUO                                                              *
  * Copyright 2019-2023 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
@@ -148,6 +148,24 @@ public static class DiagnosticDescriptors
         "SG3018",
         "Setter hook requires a generated setter",
         "The {0} method for '{1}' can never fire because no setter is generated (readonly field or omitted setter)",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Error,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3019 = new(
+        "SG3019",
+        "Generated setters have no dirty-tracking target",
+        "'{0}' generates setters and mutators that mark nothing dirty: it is neither ISerializable nor declares a [DirtyTrackingEntity] member, so changes to its serialized state are invisible to delta saves",
+        "ModernUO.Serialization.Generator",
+        DiagnosticSeverity.Warning,
+        true
+    );
+
+    public static readonly DiagnosticDescriptor SG3020 = new(
+        "SG3020",
+        "[ManualDirtyChecking] conflicts with [SerializationGenerator]",
+        "'{0}' cannot combine [ManualDirtyChecking] with [SerializationGenerator]; the generator already tracks dirty state, so the attribute is a false claim",
         "ModernUO.Serialization.Generator",
         DiagnosticSeverity.Error,
         true

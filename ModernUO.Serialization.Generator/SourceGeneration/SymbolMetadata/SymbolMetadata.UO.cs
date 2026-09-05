@@ -26,6 +26,7 @@ public static partial class SymbolMetadata
     public const string AFTER_DESERIALIZATION_ATTRIBUTE = "ModernUO.Serialization.AfterDeserializationAttribute";
     public const string SERIALIZABLE_ATTRIBUTE = "ModernUO.Serialization.SerializationGeneratorAttribute";
     public const string DIRTY_TRACKING_ENTITY_ATTRIBUTE = "ModernUO.Serialization.DirtyTrackingEntityAttribute";
+    public const string MANUAL_DIRTY_CHECKING_ATTRIBUTE = "ModernUO.Serialization.ManualDirtyCheckingAttribute";
     public const string SERIALIZABLE_FIELD_ATTRIBUTE = "ModernUO.Serialization.SerializableFieldAttribute";
     public const string SERIALIZABLE_PROPERTY_ATTRIBUTE = "ModernUO.Serialization.SerializablePropertyAttribute";
     public const string DELTA_DATE_TIME_ATTRIBUTE = "ModernUO.Serialization.DeltaDateTimeAttribute";
@@ -87,6 +88,9 @@ public static partial class SymbolMetadata
 
         public bool IsCanBeNull(Compilation compilation) =>
             attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(CAN_BE_NULL_ATTRIBUTE)) == true;
+
+        public bool IsManualDirtyChecking(Compilation compilation) =>
+            attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(MANUAL_DIRTY_CHECKING_ATTRIBUTE)) == true;
 
         public bool IsDeserializeTimer(Compilation compilation) =>
             attr?.IsAttribute(compilation.GetCachedTypeByMetadataName(DESERIALIZE_TIMER_ATTRIBUTE)) == true;
