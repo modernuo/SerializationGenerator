@@ -171,6 +171,8 @@ public static class SourceGeneratorTestHelper
                 public System.TimeSpan Delay { get; set; }
                 public System.DateTime Next { get; set; }
                 public static void DelayCall(System.Action callback) { }
+                public void Start() { }
+                public void Stop() { }
             }
 
             public static class Core

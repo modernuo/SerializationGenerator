@@ -11,6 +11,7 @@
 namespace TestContent
 {
     [System.CodeDom.Compiler.GeneratedCode("ModernUO.Serialization.Generator", "{VERSION}")]
+    [ModernUO.Serialization.VolatileSerializedState(ModernUO.Serialization.VolatileReason.SerializedTimer)]
     public partial class ExternalItem
     {
         private const int SerializationVersion = 1;
@@ -38,6 +39,16 @@ namespace TestContent
                     _refreshTimer = value;
                     Server.ISerializableExtensions.MarkDirty(this);
                 }
+            }
+        }
+
+        public void StopRefreshTimer()
+        {
+            if (_refreshTimer != null)
+            {
+                _refreshTimer.Stop();
+                _refreshTimer = null;
+                Server.ISerializableExtensions.MarkDirty(this);
             }
         }
 

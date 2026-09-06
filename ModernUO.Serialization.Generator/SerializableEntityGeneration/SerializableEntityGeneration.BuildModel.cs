@@ -58,6 +58,15 @@ public static partial class SerializableEntityGeneration
             return Fail(DiagnosticDescriptors.SG3009, classSymbol.Name);
         }
 
+        // [ManualDirtyChecking] asserts hand-written tracking; on a generated class it is a false claim.
+        foreach (var attribute in classSymbol.GetAttributes())
+        {
+            if (attribute.IsManualDirtyChecking(compilation))
+            {
+                return Fail(DiagnosticDescriptors.SG3020, classSymbol.Name);
+            }
+        }
+
         // Gather annotated members from the attributed declaration.
         var fields = new List<(ISymbol, AttributeData)>();
         var properties = new List<(ISymbol, AttributeData)>();
@@ -516,6 +525,38 @@ public static partial class SerializableEntityGeneration
             timerFields.Add(timerField);
         }
 
+        // Bytes that move with no tracked mutation: a delta save must never skip such a type.
+        // A hand-declared [VolatileSerializedState] wins and suppresses the generated one.
+        var volatileReasons = 0;
+        var declaresVolatile = false;
+
+        foreach (var attribute in classSymbol.GetAttributes())
+        {
+            if (attribute.IsVolatileSerializedState(compilation))
+            {
+                declaresVolatile = true;
+            }
+        }
+
+        if (!declaresVolatile)
+        {
+            if (timerFields.Count > 0)
+            {
+                volatileReasons |= VolatileReasonSerializedTimer;
+            }
+
+            foreach (var (symbol, _) in fields.Concat(properties))
+            {
+                foreach (var attribute in symbol.GetAttributes())
+                {
+                    if (attribute.IsDeltaDateTime(compilation))
+                    {
+                        volatileReasons |= VolatileReasonDeltaDateTime;
+                    }
+                }
+            }
+        }
+
         // AfterDeserialization callbacks, in member order.
         var afterDeserialization = new List<AfterDeserializeModel>();
         foreach (var member in classSymbol.GetMembers())
@@ -591,9 +632,41 @@ public static partial class SerializableEntityGeneration
             saveFlagModels.ToEquatableArray(),
             afterDeserialization.ToEquatableArray(),
             timerFields.ToEquatableArray(),
+            volatileReasons,
             location
         );
 
-        return new SerializationModelResult(model, System.Array.Empty<DiagnosticInfo>().ToEquatableArray());
+        // A reference type that generates a setter or a collection mutator with no MarkDirty target
+        // silently loses every change under delta saves. Value types carry no tracking by design.
+        var warnings = new List<DiagnosticInfo>();
+
+        if (markDirtyMethod == null && !isValueType && HasGeneratedMutation(fieldEmissions))
+        {
+            warnings.Add(DiagnosticInfo.Create(DiagnosticDescriptors.SG3019, typeNode.GetLocation(), classSymbol.Name));
+        }
+
+        return new SerializationModelResult(model, warnings.ToEquatableArray());
+    }
+
+    // Mirrors ModernUO.Serialization.VolatileReason.
+    internal const int VolatileReasonSerializedTimer = 1;
+    internal const int VolatileReasonDeltaDateTime = 2;
+
+    private static bool HasGeneratedMutation(List<FieldPropertyModel> fieldEmissions)
+    {
+        foreach (var field in fieldEmissions)
+        {
+            if (field.IsReadOnly)
+            {
+                continue;
+            }
+
+            if (field.Setter != null || field.HasDataStructureMethods)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

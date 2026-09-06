@@ -11,6 +11,7 @@
 namespace Server.TestContent
 {
     [System.CodeDom.Compiler.GeneratedCode("ModernUO.Serialization.Generator", "{VERSION}")]
+    [ModernUO.Serialization.VolatileSerializedState(ModernUO.Serialization.VolatileReason.SerializedTimer)]
     public partial class TrackedChild
     {
         private const int SerializationVersion = 0;
@@ -30,6 +31,16 @@ namespace Server.TestContent
                     _refreshTimer = value;
                     MarkDirty();
                 }
+            }
+        }
+
+        public void StopRefreshTimer()
+        {
+            if (_refreshTimer != null)
+            {
+                _refreshTimer.Stop();
+                _refreshTimer = null;
+                MarkDirty();
             }
         }
 

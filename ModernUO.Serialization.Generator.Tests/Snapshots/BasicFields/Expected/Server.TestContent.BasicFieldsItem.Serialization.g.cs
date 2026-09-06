@@ -11,6 +11,7 @@
 namespace Server.TestContent
 {
     [System.CodeDom.Compiler.GeneratedCode("ModernUO.Serialization.Generator", "{VERSION}")]
+    [ModernUO.Serialization.VolatileSerializedState(ModernUO.Serialization.VolatileReason.DeltaDateTime)]
     public partial class BasicFieldsItem
     {
         private const int SerializationVersion = 0;
