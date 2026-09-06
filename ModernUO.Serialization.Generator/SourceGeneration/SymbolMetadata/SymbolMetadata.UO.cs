@@ -201,6 +201,10 @@ public static partial class SymbolMetadata
             out bool requiresParent
         )
         {
+            // A parent-accepting constructor wins over a parameterless one regardless of
+            // declaration order: a sub-object deserialized without its owner cannot mark it dirty.
+            IMethodSymbol? emptyCtor = null;
+
             var genericCtor = symbol.Constructors.FirstOrDefault(
                 m =>
                 {
@@ -211,7 +215,8 @@ public static partial class SymbolMetadata
 
                     if (m.Parameters.Length == 0)
                     {
-                        return true;
+                        emptyCtor ??= m;
+                        return false;
                     }
 
                     if (parentSymbol == null)
@@ -242,6 +247,7 @@ public static partial class SymbolMetadata
                 }
             );
 
+            genericCtor ??= emptyCtor;
             requiresParent = genericCtor?.Parameters.Length > 0;
             return genericCtor != null;
         }
