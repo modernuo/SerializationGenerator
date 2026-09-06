@@ -31,6 +31,14 @@ namespace ModernUO.Serialization;
 /// [DeserializeTimer(nameof(DeserializeRelockTimer))]
 /// private Timer _relockTimer;
 /// </code>
+/// <para>
+/// A serialized timer makes the type volatile for delta saves (the generator emits
+/// <see cref="VolatileSerializedStateAttribute" />): the persisted next tick moves whenever the
+/// timer fires, restarts, or is stopped on the timer object, none of which marks the entity
+/// dirty. Use the generated <c>StopXxx()</c> helper instead of <c>_timer.Stop()</c>. To keep a
+/// type eligible for dirty-flag skipping, persist an <c>[AnchoredDateTime] DateTime</c> deadline
+/// through its generated property and keep the timer itself unserialized.
+/// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public sealed class DeserializeTimerAttribute : Attribute

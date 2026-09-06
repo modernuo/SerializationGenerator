@@ -48,6 +48,7 @@ public sealed record SerializationModel(
     EquatableArray<SaveFlagModel> SaveFlags,
     EquatableArray<AfterDeserializeModel> AfterDeserialization,
     EquatableArray<TimerFieldModel> TimerFields,
+    int VolatileReasons,
     LocationInfo Location
 )
 {
@@ -89,7 +90,8 @@ public sealed record SerializationModel(
                && FieldEmissions == other.FieldEmissions
                && SaveFlags == other.SaveFlags
                && AfterDeserialization == other.AfterDeserialization
-               && TimerFields == other.TimerFields;
+               && TimerFields == other.TimerFields
+               && VolatileReasons == other.VolatileReasons;
     }
 
     public override int GetHashCode()
@@ -102,6 +104,7 @@ public sealed record SerializationModel(
             hash = hash * 31 + Version;
             hash = hash * 31 + Fields.GetHashCode();
             hash = hash * 31 + FieldEmissions.GetHashCode();
+            hash = hash * 31 + VolatileReasons;
             return hash;
         }
     }

@@ -66,6 +66,11 @@ public static partial class SerializableEntityGeneration
             if (last)
             {
                 source.AppendLine($"{indent}[System.CodeDom.Compiler.GeneratedCode(\"ModernUO.Serialization.Generator\", \"{Version}\")]");
+
+                if (model.VolatileReasons != 0)
+                {
+                    source.AppendLine($"{indent}[ModernUO.Serialization.VolatileSerializedState({FormatVolatileReasons(model.VolatileReasons)})]");
+                }
             }
 
             var currentTypeKeyword = last ? model.TypeKeyword : "class";
@@ -124,6 +129,12 @@ public static partial class SerializableEntityGeneration
 
             source.GenerateSerializableProperty(indent, field, model.MarkDirtyMethod);
             source.AppendLine();
+
+            if (!field.IsReadOnly && field.Setter != null && IsTimerField(model, field.Order))
+            {
+                source.GenerateStopTimerMethod(indent, field, model.MarkDirtyMethod);
+                source.AppendLine();
+            }
 
             // Skip data structure methods for readonly fields (they cannot be modified)
             var generatedDataStructureMethods = false;
@@ -336,5 +347,59 @@ public static partial class SerializableEntityGeneration
         }
 
         return (source.ToString(), newMigration);
+    }
+
+    private static bool IsTimerField(SerializationModel model, int order)
+    {
+        foreach (var timer in model.TimerFields)
+        {
+            if (timer.Order == order)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string FormatVolatileReasons(int reasons)
+    {
+        var parts = new List<string>();
+
+        if ((reasons & SerializableEntityGeneration.VolatileReasonSerializedTimer) != 0)
+        {
+            parts.Add("ModernUO.Serialization.VolatileReason.SerializedTimer");
+        }
+
+        if ((reasons & SerializableEntityGeneration.VolatileReasonDeltaDateTime) != 0)
+        {
+            parts.Add("ModernUO.Serialization.VolatileReason.DeltaDateTime");
+        }
+
+        return string.Join(" | ", parts);
+    }
+
+    // Stopping a serialized timer through the entity keeps the persisted next-tick and the
+    // dirty flag in step; a raw _timer.Stop() changes the bytes with no mark.
+    private static void GenerateStopTimerMethod(
+        this StringBuilder source,
+        string indent,
+        FieldPropertyModel field,
+        string? markDirtyMethod
+    )
+    {
+        var accessor = (field.Setter ?? field.Getter).ToFriendlyString();
+        source.AppendLine($"{indent}{accessor} void Stop{field.PropertyName}()");
+        source.AppendLine($"{indent}{{");
+        source.AppendLine($"{indent}    if ({field.FieldName} != null)");
+        source.AppendLine($"{indent}    {{");
+        source.AppendLine($"{indent}        {field.FieldName}.Stop();");
+        source.AppendLine($"{indent}        {field.FieldName} = null;");
+        if (markDirtyMethod != null)
+        {
+            source.AppendLine($"{indent}        {markDirtyMethod};");
+        }
+        source.AppendLine($"{indent}    }}");
+        source.AppendLine($"{indent}}}");
     }
 }

@@ -11,6 +11,7 @@
 namespace Server.TestContent
 {
     [System.CodeDom.Compiler.GeneratedCode("ModernUO.Serialization.Generator", "{VERSION}")]
+    [ModernUO.Serialization.VolatileSerializedState(ModernUO.Serialization.VolatileReason.SerializedTimer)]
     public partial class TimersItem
     {
         private const int SerializationVersion = 1;
@@ -28,6 +29,16 @@ namespace Server.TestContent
             }
         }
 
+        public void StopDriftTimer()
+        {
+            if (_driftTimer != null)
+            {
+                _driftTimer.Stop();
+                _driftTimer = null;
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
+        }
+
         public Server.Timer DeadlineTimer
         {
             get => _deadlineTimer;
@@ -38,6 +49,16 @@ namespace Server.TestContent
                     _deadlineTimer = value;
                     Server.ISerializableExtensions.MarkDirty(this);
                 }
+            }
+        }
+
+        public void StopDeadlineTimer()
+        {
+            if (_deadlineTimer != null)
+            {
+                _deadlineTimer.Stop();
+                _deadlineTimer = null;
+                Server.ISerializableExtensions.MarkDirty(this);
             }
         }
 
