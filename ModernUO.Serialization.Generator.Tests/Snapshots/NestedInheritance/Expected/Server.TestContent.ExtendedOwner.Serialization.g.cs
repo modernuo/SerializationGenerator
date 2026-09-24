@@ -30,32 +30,42 @@ namespace Server.TestContent
 
         public void AddToExtendedEntries(Server.TestContent.DerivedEntry value)
         {
-            ExtendedEntries.Add(value);
+            _extendedEntries ??= new System.Collections.Generic.List<Server.TestContent.DerivedEntry>();
+            _extendedEntries.Add(value);
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
         public void RemoveFromExtendedEntries(Server.TestContent.DerivedEntry value)
         {
-            ExtendedEntries.Remove(value);
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_extendedEntries?.Remove(value) == true)
+            {
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public void InsertIntoExtendedEntries(int index, Server.TestContent.DerivedEntry value)
         {
-            ExtendedEntries.Insert(index, value);
+            _extendedEntries ??= new System.Collections.Generic.List<Server.TestContent.DerivedEntry>();
+            _extendedEntries.Insert(index, value);
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
         public void RemoveFromExtendedEntriesAt(int index)
         {
-            ExtendedEntries.RemoveAt(index);
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_extendedEntries != null)
+            {
+                _extendedEntries.RemoveAt(index);
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public void ClearExtendedEntries()
         {
-            ExtendedEntries.Clear();
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_extendedEntries?.Count > 0)
+            {
+                _extendedEntries.Clear();
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public ExtendedOwner(Server.Serial serial) : base(serial)

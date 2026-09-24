@@ -300,10 +300,26 @@ public static class SourceGeneratorTestHelper
         return Assembly.Load(stream.ToArray());
     }
 
+    /// <summary>
+    /// Runs the generator in schema mode, as ModernUOSchemaGenerator does, and returns each migration
+    /// file it would write as (fileName, json), ready to feed back in as additional texts.
+    /// </summary>
+    public static List<(string fileName, string content)> GenerateMigrationSchemas(string assemblyName, string sourceCode)
+    {
+        var generator = new EntitySerializationGenerator(true);
+        RunGeneratorOnCompilation(assemblyName, sourceCode, null, generator);
+
+        var options = SerializableMigrationSchema.GetJsonSerializerOptions();
+        return generator.Migrations.Values
+            .Select(m => ($"{m.Type}.v{m.Version}.json", System.Text.Json.JsonSerializer.Serialize(m, options)))
+            .ToList();
+    }
+
     private static (ImmutableArray<Diagnostic> Diagnostics, Compilation OutputCompilation) RunGeneratorOnCompilation(
         string assemblyName,
         string sourceCode,
-        IEnumerable<(string fileName, string content)>? additionalTexts)
+        IEnumerable<(string fileName, string content)>? additionalTexts,
+        EntitySerializationGenerator? generator = null)
     {
         var syntaxTrees = new List<SyntaxTree>
         {
@@ -328,7 +344,7 @@ public static class SourceGeneratorTestHelper
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
-        var generator = new EntitySerializationGenerator();
+        generator ??= new EntitySerializationGenerator();
 
         var additionalTextsList = new List<AdditionalText>();
         if (additionalTexts != null)

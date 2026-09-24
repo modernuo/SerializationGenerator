@@ -68,7 +68,7 @@ public class HashSetMigrationRule : MigrationRule
         {
             ruleArguments[index++] = "@CanBeNull";
         }
-        ruleArguments[index++] = setTypeSymbol.ToDisplayString();
+        ruleArguments[index++] = setTypeSymbol.ToSerializedTypeName();
         ruleArguments[index++] = serializableSetType.Rule;
 
         if (length > 0)

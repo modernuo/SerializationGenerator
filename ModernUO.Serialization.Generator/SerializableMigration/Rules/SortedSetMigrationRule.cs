@@ -75,7 +75,7 @@ public class SortedSetMigrationRule : MigrationRule
             ruleArguments[index++] = $"@Comparer:{comparerExpression}";
         }
 
-        ruleArguments[index++] = setTypeSymbol.ToDisplayString();
+        ruleArguments[index++] = setTypeSymbol.ToSerializedTypeName();
         ruleArguments[index++] = serializableSetType.Rule;
 
         if (length > 0)

@@ -13,7 +13,7 @@ public class MigrationSaveFlagTests
 {
     // Binary reader/writer that sizes enums by their underlying type, like ModernUO's, so a width
     // mismatch between writer and content struct misaligns the stream instead of going unnoticed.
-    private const string BinaryStreams = """
+    internal const string BinaryStreams = """
         namespace Server.TestContent
         {
             using System;
@@ -44,10 +44,11 @@ public class MigrationSaveFlagTests
                 public void Write(float value) => _writer.Write(value);
                 public void Write(double value) => _writer.Write(value);
                 public void Write(decimal value) => _writer.Write(value);
-                public void Write(DateTime value) => throw new NotSupportedException();
-                public void WriteDeltaTime(DateTime value) => throw new NotSupportedException();
-                public void WriteAnchoredTime(DateTime value) => throw new NotSupportedException();
-                public void Write(TimeSpan value) => throw new NotSupportedException();
+                // Every time format is raw ticks here; only the stream alignment matters.
+                public void Write(DateTime value) => _writer.Write(value.Ticks);
+                public void WriteDeltaTime(DateTime value) => _writer.Write(value.Ticks);
+                public void WriteAnchoredTime(DateTime value) => _writer.Write(value.Ticks);
+                public void Write(TimeSpan value) => _writer.Write(value.Ticks);
                 public void Write(Guid value) => throw new NotSupportedException();
                 public void WriteEncodedInt(int value) => _writer.Write7BitEncodedInt(value);
                 public void Write<T>(T value) where T : struct, Enum => WriteEnum(value);
@@ -89,10 +90,10 @@ public class MigrationSaveFlagTests
                 public float ReadFloat() => _reader.ReadSingle();
                 public double ReadDouble() => _reader.ReadDouble();
                 public decimal ReadDecimal() => _reader.ReadDecimal();
-                public DateTime ReadDateTime() => throw new NotSupportedException();
-                public DateTime ReadDeltaTime() => throw new NotSupportedException();
-                public DateTime ReadAnchoredTime() => throw new NotSupportedException();
-                public TimeSpan ReadTimeSpan() => throw new NotSupportedException();
+                public DateTime ReadDateTime() => new(_reader.ReadInt64());
+                public DateTime ReadDeltaTime() => new(_reader.ReadInt64());
+                public DateTime ReadAnchoredTime() => new(_reader.ReadInt64());
+                public TimeSpan ReadTimeSpan() => new(_reader.ReadInt64());
                 public Guid ReadGuid() => throw new NotSupportedException();
                 public int ReadEncodedInt() => _reader.Read7BitEncodedInt();
 
@@ -141,6 +142,131 @@ public class MigrationSaveFlagTests
         expected.Append("True");
 
         Assert.Equal($"tag|{expected}", migrated);
+    }
+
+    // An absent timer flag must leave the content at the "no timer was running" sentinels
+    // (Next == DateTime.MinValue, Delay == TimeSpan.MinValue); a present one resumes its delay.
+    // Covers an anchored timer and a wall-clock one; the trailing flagged int proves alignment.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MigrateFrom_SeesTimerSentinelsWhenTheSaveFlagIsAbsent(bool running)
+    {
+        var bytes = WriteTimerV0(running);
+        var migrated = ReadTimerAsV1(running, bytes);
+
+        var timer = running ? "True,False,False" : "False,True,True";
+        Assert.Equal($"{timer}|{timer}|7", migrated);
+    }
+
+    private const string TimerEntityMembers = """
+        public FlaggedTimerItem() { }
+        public System.DateTime Created { get; set; }
+        public Server.Serial Serial { get; }
+        public bool Deleted => false;
+        public void Delete() { }
+        """;
+
+    private static byte[] WriteTimerV0(bool running)
+    {
+        var timerValue = running ? "new Server.Timer { Next = Server.Core.Now.AddHours(1) }" : "null";
+        var source = $$"""
+            using ModernUO.Serialization;
+            namespace Server.TestContent {
+            [SerializationGenerator(0)]
+            public partial class FlaggedTimerItem : Server.ISerializable {
+            [SerializableField(0)]
+            [SaveFlag(nameof(ShouldSerializeAnchored))]
+            [DeserializeTimer(nameof(RestartAnchored))]
+            private Server.Timer _anchoredTimer;
+            private bool ShouldSerializeAnchored() => _anchoredTimer != null;
+            private void RestartAnchored(System.TimeSpan delay) { }
+
+            [SerializableField(1)]
+            [SaveFlag(nameof(ShouldSerializeDeadline))]
+            [DeserializeTimer(nameof(RestartDeadline), wallClock: true)]
+            private Server.Timer _deadlineTimer;
+            private bool ShouldSerializeDeadline() => _deadlineTimer != null;
+            private void RestartDeadline(System.TimeSpan delay) { }
+
+            [SerializableField(2)]
+            [SaveFlag(nameof(ShouldSerializeCount))]
+            private int _count;
+            private bool ShouldSerializeCount() => _count != 0;
+
+            {{TimerEntityMembers}}
+
+            public static byte[] WriteSample() {
+            var item = new FlaggedTimerItem { _anchoredTimer = {{timerValue}}, _deadlineTimer = {{timerValue}}, _count = 7 };
+            var stream = new System.IO.MemoryStream();
+            var writer = new BinaryGenericWriter(stream);
+            item.Serialize(writer);
+            writer.Flush();
+            return stream.ToArray();
+            }
+            }
+            }
+            """;
+
+        var assembly = SourceGeneratorTestHelper.CompileAndLoad($"FlaggedTimerV0_{running}", source + BinaryStreams);
+
+        return (byte[])assembly.GetType("Server.TestContent.FlaggedTimerItem")!
+            .GetMethod("WriteSample")!
+            .Invoke(null, null)!;
+    }
+
+    private static string ReadTimerAsV1(bool running, byte[] bytes)
+    {
+        var source = $$"""
+            using System;
+            using ModernUO.Serialization;
+            namespace Server.TestContent {
+            [SerializationGenerator(1)]
+            public partial class FlaggedTimerItem : Server.ISerializable {
+            [SerializableField(0)] private string _migrated;
+
+            {{TimerEntityMembers}}
+
+            private static string Describe(DateTime next, TimeSpan delay) =>
+                $"{delay > TimeSpan.Zero},{next == DateTime.MinValue},{delay == TimeSpan.MinValue}";
+
+            private void MigrateFrom(V0Content content) {
+            _migrated = Describe(content.AnchoredTimerNext, content.AnchoredTimerDelay) + "|" +
+                Describe(content.DeadlineTimerNext, content.DeadlineTimerDelay) + "|" + content.Count;
+            }
+
+            public static string ReadSample(byte[] bytes) {
+            var reader = new BinaryGenericReader(new System.IO.MemoryStream(bytes));
+            var item = new FlaggedTimerItem();
+            item.Deserialize(reader);
+            if (!reader.AtEnd) throw new InvalidOperationException("Unread bytes remain");
+            return item._migrated;
+            }
+            }
+            }
+            """;
+
+        const string json = """
+            {
+                "version": 0,
+                "type": "Server.TestContent.FlaggedTimerItem",
+                "properties": [
+                    { "name": "AnchoredTimer", "type": "Server.Timer", "usesSaveFlag": true, "rule": "TimerMigrationRule", "ruleArguments": ["@AnchoredTimer"] },
+                    { "name": "DeadlineTimer", "type": "Server.Timer", "usesSaveFlag": true, "rule": "TimerMigrationRule", "ruleArguments": [""] },
+                    { "name": "Count", "type": "int", "usesSaveFlag": true, "rule": "PrimitiveTypeMigrationRule" }
+                ]
+            }
+            """;
+
+        var assembly = SourceGeneratorTestHelper.CompileAndLoad(
+            $"FlaggedTimerV1_{running}",
+            source + BinaryStreams,
+            [("Server.TestContent.FlaggedTimerItem.v0.json", json)]
+        );
+
+        return (string)assembly.GetType("Server.TestContent.FlaggedTimerItem")!
+            .GetMethod("ReadSample")!
+            .Invoke(null, [bytes])!;
     }
 
     private static byte[] WriteV0(int flagCount)

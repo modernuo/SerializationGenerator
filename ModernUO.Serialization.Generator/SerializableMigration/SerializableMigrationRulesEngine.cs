@@ -27,6 +27,7 @@ public static class SerializableMigrationRulesEngine
     {
         var rules = new ISerializableMigrationRule[]
         {
+            new NullableMigrationRule(),
             new EnumMigrationRule(),
             new ListMigrationRule(),
             new ArrayMigrationRule(),
@@ -71,7 +72,7 @@ public static class SerializableMigrationRulesEngine
                 return new SerializableProperty
                 {
                     Name = propertyName,
-                    Type = propertyType.ToDisplayString(),
+                    Type = propertyType.ToSerializedTypeName(),
                     Order = order,
                     UsesSaveFlag = serializableFieldSaveFlagMethods?.DetermineFieldShouldSerialize != null ? true : null,
                     Rule = rule.RuleName,
@@ -80,6 +81,6 @@ public static class SerializableMigrationRulesEngine
             }
         }
 
-        throw new NoRuleFoundException(propertyName, propertyType.ToDisplayString());
+        throw new NoRuleFoundException(propertyName, propertyType.ToSerializedTypeName());
     }
 }

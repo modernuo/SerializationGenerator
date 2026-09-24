@@ -58,7 +58,7 @@ public class ArrayMigrationRule : MigrationRule
             ruleArguments[index++] = "@CanBeNull";
         }
 
-        ruleArguments[index++] = arrayTypeSymbol.ElementType.ToDisplayString();
+        ruleArguments[index++] = arrayTypeSymbol.ElementType.ToSerializedTypeName();
         ruleArguments[index++] = serializableArrayType.Rule;
         if (length > 0)
         {

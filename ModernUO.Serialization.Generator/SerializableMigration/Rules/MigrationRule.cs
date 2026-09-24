@@ -35,6 +35,13 @@ public abstract class MigrationRule : ISerializableMigrationRule
         source.AppendLine($"{indent}internal readonly {type} {property.FieldName ?? property.Name};");
     }
 
+    public virtual void GenerateMigrationAbsentAssignment(
+        StringBuilder source, string indent, SerializableProperty property
+    )
+    {
+        source.AppendLine($"{indent}{property.Name} = default;");
+    }
+
     public abstract bool GenerateRuleState(
         Compilation compilation, ISymbol symbol, ImmutableArray<AttributeData> attributes,
         ISymbol? parentSymbol, out string[] ruleArguments

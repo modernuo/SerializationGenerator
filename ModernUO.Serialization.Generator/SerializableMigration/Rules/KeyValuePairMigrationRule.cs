@@ -70,7 +70,7 @@ public class KeyValuePairMigrationRule : MigrationRule
         var index = 0;
 
         // Key
-        ruleArguments[index++] = keySymbolType.ToDisplayString();
+        ruleArguments[index++] = keySymbolType.ToSerializedTypeName();
         ruleArguments[index++] = keySerializedProperty.Rule;
         ruleArguments[index++] = keyArgumentsLength.ToString();
         if (keyArgumentsLength > 0)
@@ -80,7 +80,7 @@ public class KeyValuePairMigrationRule : MigrationRule
         }
 
         // Value
-        ruleArguments[index++] = valueSymbolType.ToDisplayString();
+        ruleArguments[index++] = valueSymbolType.ToSerializedTypeName();
         ruleArguments[index++] = valueSerializedProperty.Rule;
         ruleArguments[index++] = valueArgumentsLength.ToString();
 

@@ -68,7 +68,7 @@ public class ListMigrationRule : MigrationRule
         {
             ruleArguments[index++] = "@CanBeNull";
         }
-        ruleArguments[index++] = listTypeSymbol.ToDisplayString();
+        ruleArguments[index++] = listTypeSymbol.ToSerializedTypeName();
         ruleArguments[index++] = serializableListType.Rule;
 
         if (length > 0)

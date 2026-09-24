@@ -1,0 +1,27 @@
+{
+    "version": 0,
+    "type": "Server.TestContent.NullableValuesItem",
+    "properties": [
+        {
+            "name": "Count",
+            "type": "int?",
+            "rule": "NullableMigrationRule",
+            "ruleArguments": [
+                "int",
+                "PrimitiveTypeMigrationRule",
+                ""
+            ]
+        },
+        {
+            "name": "Bonus",
+            "type": "int?",
+            "usesSaveFlag": true,
+            "rule": "NullableMigrationRule",
+            "ruleArguments": [
+                "int",
+                "PrimitiveTypeMigrationRule",
+                ""
+            ]
+        }
+    ]
+}

@@ -29,6 +29,13 @@ public interface ISerializableMigrationRule
         SerializableProperty property
     );
 
+    // Assigns the content members declared by GenerateMigrationProperty when a save flag is absent.
+    void GenerateMigrationAbsentAssignment(
+        StringBuilder source,
+        string indent,
+        SerializableProperty property
+    );
+
     bool GenerateRuleState(
         Compilation compilation,
         ISymbol symbol,

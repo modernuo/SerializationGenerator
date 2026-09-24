@@ -43,26 +43,35 @@ namespace Server.TestContent
 
         public void AddToEntries(int key, string value)
         {
-            Entries.Add(key, value);
-            Server.ISerializableExtensions.MarkDirty(this);
+            _entries ??= new System.Collections.Generic.Dictionary<int, string>();
+            if (_entries.TryAdd(key, value))
+            {
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public void RemoveFromEntries(int key)
         {
-            Entries.Remove(key);
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_entries?.Remove(key) == true)
+            {
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public void ReplaceInEntries(int key, string value)
         {
-            Entries[key] = value;
+            _entries ??= new System.Collections.Generic.Dictionary<int, string>();
+            _entries[key] = value;
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
         public void ClearEntries()
         {
-            Entries.Clear();
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_entries?.Count > 0)
+            {
+                _entries.Clear();
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public int Level

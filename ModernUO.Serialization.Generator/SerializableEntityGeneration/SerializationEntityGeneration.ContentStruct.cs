@@ -126,7 +126,11 @@ public static partial class SerializableEntityGeneration
                     );
 
                     source.AppendLine($"{innerIndent}}}\n{innerIndent}else\n{innerIndent}{{");
-                    source.AppendLine($"{innerIndent}    {property.Name} = default;");
+                    SerializableMigrationRulesEngine.Rules[property.Rule].GenerateMigrationAbsentAssignment(
+                        source,
+                        $"{innerIndent}    ",
+                        property
+                    );
                     source.AppendLine($"{innerIndent}}}");
                 }
             }

@@ -82,7 +82,7 @@ public class DictionaryMigrationRule : MigrationRule
             ruleArguments[index++] = "@CanBeNull";
         }
 
-        ruleArguments[index++] = keySymbolType.ToDisplayString();
+        ruleArguments[index++] = keySymbolType.ToSerializedTypeName();
         ruleArguments[index++] = serializableKeyProperty.Rule;
         ruleArguments[index++] = keyArgumentsLength.ToString();
 
@@ -92,7 +92,7 @@ public class DictionaryMigrationRule : MigrationRule
             index += keyArgumentsLength;
         }
 
-        ruleArguments[index++] = valueSymbolType.ToDisplayString();
+        ruleArguments[index++] = valueSymbolType.ToSerializedTypeName();
         ruleArguments[index++] = serializableValueProperty.Rule;
         ruleArguments[index++] = valueArgumentsLength.ToString();
 
