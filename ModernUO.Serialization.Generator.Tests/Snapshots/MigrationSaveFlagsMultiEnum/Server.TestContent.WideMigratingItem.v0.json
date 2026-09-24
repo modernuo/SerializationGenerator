@@ -1,0 +1,407 @@
+{
+    "version": 0,
+    "type": "Server.TestContent.WideMigratingItem",
+    "properties": [
+        {
+            "name": "Name",
+            "type": "string",
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field0",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field1",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field2",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field3",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field4",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field5",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field6",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field7",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field8",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field9",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field10",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field11",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field12",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field13",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field14",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field15",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field16",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field17",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field18",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field19",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field20",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field21",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field22",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field23",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field24",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field25",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field26",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field27",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field28",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field29",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field30",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field31",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field32",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field33",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field34",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field35",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field36",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field37",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field38",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field39",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field40",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field41",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field42",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field43",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field44",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field45",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field46",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field47",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field48",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field49",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field50",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field51",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field52",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field53",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field54",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field55",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field56",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field57",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field58",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field59",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field60",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field61",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field62",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field63",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field64",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "Field65",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        }
+    ]
+}
