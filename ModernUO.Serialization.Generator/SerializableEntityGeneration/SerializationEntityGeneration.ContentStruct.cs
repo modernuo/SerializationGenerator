@@ -42,52 +42,80 @@ public static partial class SerializableEntityGeneration
 
         var innerIndent = $"{indent}        ";
 
-        var usesSaveFlags = properties.Any(p => p.UsesSaveFlag == true);
+        // The stream was written by the live generator of that version, so partition the flags
+        // exactly like the live SaveFlag enums: int up to 32 flags, ulong up to 64, then one more
+        // ulong enum per 64 flags. Readonly fields never reach the schema, so none are skipped here.
+        var saveFlagCount = properties.Count(p => p.UsesSaveFlag == true);
+        var saveFlagUseUlong = saveFlagCount > 32;
+        var saveFlagEnumCount = saveFlagCount == 0 ? 0 : saveFlagCount <= 64 ? 1 : (saveFlagCount + 63) / 64;
+        var bitsPerEnum = saveFlagUseUlong ? 64 : 32;
 
-        if (usesSaveFlags)
+        var flagIndex = 0;
+        foreach (var property in properties)
         {
-            source.AppendLine();
-            source.GenerateEnumStart(
-                $"V{migration.Version}SaveFlag",
-                $"{indent}    ",
-                true,
-                Accessibility.Private
-            );
-
-            source.GenerateEnumValue(innerIndent, true, "None", -1);
-            int index = 0;
-            foreach (var property in properties)
+            if (property.UsesSaveFlag != true)
             {
-                if (property.UsesSaveFlag == true)
-                {
-                    source.GenerateEnumValue(innerIndent, true, property.Name, index++);
-                }
+                continue;
             }
 
+            var bitIndex = flagIndex % bitsPerEnum;
+            if (bitIndex == 0)
+            {
+                if (flagIndex > 0)
+                {
+                    source.GenerateEnumEnd($"{indent}    ");
+                }
+
+                source.AppendLine();
+                source.GenerateEnumStart(
+                    GetContentSaveFlagEnumName(migration.Version, flagIndex / bitsPerEnum),
+                    $"{indent}    ",
+                    true,
+                    Accessibility.Private,
+                    saveFlagUseUlong ? "ulong" : null
+                );
+
+                source.GenerateContentSaveFlagValue(innerIndent, saveFlagUseUlong, "None", -1);
+            }
+
+            source.GenerateContentSaveFlagValue(innerIndent, saveFlagUseUlong, property.Name, bitIndex);
+            flagIndex++;
+        }
+
+        if (flagIndex > 0)
+        {
             source.GenerateEnumEnd($"{indent}    ");
         }
 
         source.AppendLine($"{indent}    internal V{migration.Version}Content(Server.IGenericReader reader, {classDisplayString} entity)");
         source.AppendLine($"{indent}    {{");
 
-        if (usesSaveFlags)
+        // The writer emits every flag enum before any field.
+        for (var i = 0; i < saveFlagEnumCount; i++)
         {
-            source.AppendLine($"{innerIndent}var saveFlags = reader.ReadEnum<V{migration.Version}SaveFlag>();");
+            source.AppendLine(
+                $"{innerIndent}var {GetContentSaveFlagVariableName(i)} = reader.ReadEnum<{GetContentSaveFlagEnumName(migration.Version, i)}>();"
+            );
         }
 
+        flagIndex = 0;
         foreach (var property in properties)
         {
             if (property.UsesSaveFlag == true)
             {
+                var enumIndex = flagIndex++ / bitsPerEnum;
+                var flagTest =
+                    $"({GetContentSaveFlagVariableName(enumIndex)} & {GetContentSaveFlagEnumName(migration.Version, enumIndex)}.{property.Name}) != 0";
+
                 source.AppendLine();
                 // Special case
                 if (property.Type == "bool")
                 {
-                    source.AppendLine($"{innerIndent}{property.Name} = (saveFlags & V{migration.Version}SaveFlag.{property.Name}) != 0;");
+                    source.AppendLine($"{innerIndent}{property.Name} = {flagTest};");
                 }
                 else
                 {
-                    source.AppendLine($"{innerIndent}if ((saveFlags & V{migration.Version}SaveFlag.{property.Name}) != 0)\n{innerIndent}{{");
+                    source.AppendLine($"{innerIndent}if ({flagTest})\n{innerIndent}{{");
 
                     SerializableMigrationRulesEngine.Rules[property.Rule].GenerateDeserializationMethod(
                         source,
@@ -117,5 +145,29 @@ public static partial class SerializableEntityGeneration
         source.AppendLine($"{indent}    }}");
 
         source.AppendLine($"{indent}}}");
+    }
+
+    private static string GetContentSaveFlagEnumName(int version, int enumIndex) =>
+        enumIndex == 0 ? $"V{version}SaveFlag" : $"V{version}SaveFlag{enumIndex + 1}";
+
+    private static string GetContentSaveFlagVariableName(int enumIndex) =>
+        enumIndex == 0 ? "saveFlags" : $"saveFlags{enumIndex + 1}";
+
+    private static void GenerateContentSaveFlagValue(
+        this StringBuilder source,
+        string indent,
+        bool useUlong,
+        string name,
+        int bitIndex
+    )
+    {
+        if (useUlong)
+        {
+            source.GenerateEnumValueLong(indent, true, name, bitIndex);
+        }
+        else
+        {
+            source.GenerateEnumValue(indent, true, name, bitIndex);
+        }
     }
 }

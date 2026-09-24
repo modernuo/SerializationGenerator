@@ -256,6 +256,55 @@ public static class SourceGeneratorTestHelper
         string sourceCode,
         IEnumerable<(string fileName, string content)>? additionalTexts = null)
     {
+        var (diagnostics, outputCompilation) = RunGeneratorOnCompilation("TestAssembly", sourceCode, additionalTexts);
+
+        var sources = outputCompilation.SyntaxTrees
+            .Where(st => st.FilePath.EndsWith(".Serialization.g.cs"))
+            .Select(st => (Path.GetFileName(st.FilePath), st.GetText().ToString()))
+            .ToImmutableArray();
+
+        var compileErrors = outputCompilation
+            .GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .ToImmutableArray();
+
+        return (diagnostics, sources, compileErrors);
+    }
+
+    /// <summary>
+    /// Runs the generator, emits the output compilation and loads it, so tests can execute
+    /// generated code. Fails with every generator and compile error when the output does not build.
+    /// </summary>
+    public static Assembly CompileAndLoad(
+        string assemblyName,
+        string sourceCode,
+        IEnumerable<(string fileName, string content)>? additionalTexts = null)
+    {
+        var (diagnostics, outputCompilation) = RunGeneratorOnCompilation(assemblyName, sourceCode, additionalTexts);
+
+        using var stream = new MemoryStream();
+        var result = outputCompilation.Emit(stream);
+
+        var errors = diagnostics
+            .Concat(result.Diagnostics)
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .ToList();
+
+        if (!result.Success || errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Generated code did not build:\n{string.Join("\n", errors.Take(20))}"
+            );
+        }
+
+        return Assembly.Load(stream.ToArray());
+    }
+
+    private static (ImmutableArray<Diagnostic> Diagnostics, Compilation OutputCompilation) RunGeneratorOnCompilation(
+        string assemblyName,
+        string sourceCode,
+        IEnumerable<(string fileName, string content)>? additionalTexts)
+    {
         var syntaxTrees = new List<SyntaxTree>
         {
             CSharpSyntaxTree.ParseText(sourceCode),
@@ -273,7 +322,7 @@ public static class SourceGeneratorTestHelper
             .ToList();
 
         var compilation = CSharpCompilation.Create(
-            "TestAssembly",
+            assemblyName,
             syntaxTrees,
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
@@ -295,17 +344,7 @@ public static class SourceGeneratorTestHelper
 
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
-        var sources = outputCompilation.SyntaxTrees
-            .Where(st => st.FilePath.EndsWith(".Serialization.g.cs"))
-            .Select(st => (Path.GetFileName(st.FilePath), st.GetText().ToString()))
-            .ToImmutableArray();
-
-        var compileErrors = outputCompilation
-            .GetDiagnostics()
-            .Where(d => d.Severity == DiagnosticSeverity.Error)
-            .ToImmutableArray();
-
-        return (diagnostics, sources, compileErrors);
+        return (diagnostics, outputCompilation);
     }
 
     public static bool HasDiagnostic(ImmutableArray<Diagnostic> diagnostics, string diagnosticId)
