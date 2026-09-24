@@ -41,27 +41,35 @@ namespace Server.TestContent
 
         public void AddToValues(int value)
         {
-            Values.Add(value);
+            _values ??= new System.Collections.Generic.List<int>();
+            _values.Add(value);
         }
 
         public void RemoveFromValues(int value)
         {
-            Values.Remove(value);
+            _values?.Remove(value);
         }
 
         public void InsertIntoValues(int index, int value)
         {
-            Values.Insert(index, value);
+            _values ??= new System.Collections.Generic.List<int>();
+            _values.Insert(index, value);
         }
 
         public void RemoveFromValuesAt(int index)
         {
-            Values.RemoveAt(index);
+            if (_values != null)
+            {
+                _values.RemoveAt(index);
+            }
         }
 
         public void ClearValues()
         {
-            Values.Clear();
+            if (_values?.Count > 0)
+            {
+                _values.Clear();
+            }
         }
 
         public System.Collections.Generic.Dictionary<int, string> Lookup
@@ -78,22 +86,27 @@ namespace Server.TestContent
 
         public void AddToLookup(int key, string value)
         {
-            Lookup.Add(key, value);
+            _lookup ??= new System.Collections.Generic.Dictionary<int, string>();
+            _lookup.TryAdd(key, value);
         }
 
         public void RemoveFromLookup(int key)
         {
-            Lookup.Remove(key);
+            _lookup?.Remove(key);
         }
 
         public void ReplaceInLookup(int key, string value)
         {
-            Lookup[key] = value;
+            _lookup ??= new System.Collections.Generic.Dictionary<int, string>();
+            _lookup[key] = value;
         }
 
         public void ClearLookup()
         {
-            Lookup.Clear();
+            if (_lookup?.Count > 0)
+            {
+                _lookup.Clear();
+            }
         }
 
         public virtual void Serialize(Server.IGenericWriter writer)

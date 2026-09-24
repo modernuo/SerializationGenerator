@@ -429,8 +429,11 @@ public static partial class SerializableEntityGeneration
                 var dsIsDictionary = false;
                 var dsIsList = false;
                 var dsIsCollection = false;
+                var dsIsSet = false;
+                var dsHasTryAdd = false;
                 string? dsElementType = null;
                 string? dsValueType = null;
+                string? dsCreateExpression = null;
 
                 if (!fieldSymbol.IsReadOnly && elementType != null)
                 {
@@ -440,6 +443,14 @@ public static partial class SerializableEntityGeneration
                     dsIsCollection = propertyType.IsCollection(compilation);
                     dsElementType = elementType.ToString();
                     dsValueType = dsIsDictionary ? namedTypeSymbol!.TypeArguments[1].ToString() : null;
+                    dsIsSet = propertyType.IsSet(compilation);
+                    dsHasTryAdd = propertyType.IsDictionary(compilation);
+                    dsCreateExpression = GetDataStructureCreateExpression(
+                        compilation,
+                        classSymbol,
+                        namedTypeSymbol,
+                        allAttributes
+                    );
                 }
 
                 fieldEmissions.Add(
@@ -461,8 +472,11 @@ public static partial class SerializableEntityGeneration
                         dsIsDictionary,
                         dsIsList,
                         dsIsCollection,
+                        dsIsSet,
+                        dsHasTryAdd,
                         dsElementType,
-                        dsValueType
+                        dsValueType,
+                        dsCreateExpression
                     )
                 );
 
@@ -668,5 +682,38 @@ public static partial class SerializableEntityGeneration
         }
 
         return false;
+    }
+
+    // How AddToX/InsertIntoX/ReplaceInX lazily create a null collection. Null when the type cannot be
+    // constructed here (interface, abstract, no accessible parameterless ctor); those keep requiring
+    // the collection to exist. A [SortedSetComparer] is passed through, as deserialization does.
+    private static string? GetDataStructureCreateExpression(
+        Compilation compilation,
+        INamedTypeSymbol classSymbol,
+        INamedTypeSymbol? type,
+        ImmutableArray<AttributeData> attributes
+    )
+    {
+        if (type is not { TypeKind: TypeKind.Class, IsAbstract: false })
+        {
+            return null;
+        }
+
+        var typeName = type.ToSerializedTypeName();
+
+        if (type.IsSortedSet(compilation) && attributes.TryGetSortedSetComparer(compilation, out var comparer))
+        {
+            return $"new {typeName}({comparer})";
+        }
+
+        foreach (var ctor in type.InstanceConstructors)
+        {
+            if (ctor.Parameters.Length == 0 && compilation.IsSymbolAccessibleWithin(ctor, classSymbol))
+            {
+                return $"new {typeName}()";
+            }
+        }
+
+        return null;
     }
 }

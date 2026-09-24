@@ -11,31 +11,24 @@
 namespace Server.TestContent
 {
     [System.CodeDom.Compiler.GeneratedCode("ModernUO.Serialization.Generator", "{VERSION}")]
-    public partial class CollectionsItem
+    public partial class NullableCollectionsItem
     {
         private const int SerializationVersion = 0;
 
-        public int[] Levels
+        public string? Title
         {
-            get => _levels;
+            get => _title;
             set
             {
-                if (value != _levels)
+                if (value != _title)
                 {
-                    _levels = value;
-                    Server.ISerializableExtensions.MarkDirty(this);
+                    _title = value;
+                    MarkDirty();
                 }
             }
         }
 
-
-        public void ClearLevels()
-        {
-            Levels = System.Array.Empty<int>();
-            Server.ISerializableExtensions.MarkDirty(this);
-        }
-
-        public System.Collections.Generic.List<int> Charges
+        public System.Collections.Generic.List<int>? Charges
         {
             get => _charges;
             set
@@ -43,7 +36,7 @@ namespace Server.TestContent
                 if (value != _charges)
                 {
                     _charges = value;
-                    Server.ISerializableExtensions.MarkDirty(this);
+                    MarkDirty();
                 }
             }
         }
@@ -52,14 +45,14 @@ namespace Server.TestContent
         {
             _charges ??= new System.Collections.Generic.List<int>();
             _charges.Add(value);
-            Server.ISerializableExtensions.MarkDirty(this);
+            MarkDirty();
         }
 
         public void RemoveFromCharges(int value)
         {
             if (_charges?.Remove(value) == true)
             {
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
@@ -67,7 +60,7 @@ namespace Server.TestContent
         {
             _charges ??= new System.Collections.Generic.List<int>();
             _charges.Insert(index, value);
-            Server.ISerializableExtensions.MarkDirty(this);
+            MarkDirty();
         }
 
         public void RemoveFromChargesAt(int index)
@@ -75,7 +68,7 @@ namespace Server.TestContent
             if (_charges != null)
             {
                 _charges.RemoveAt(index);
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
@@ -84,11 +77,11 @@ namespace Server.TestContent
             if (_charges?.Count > 0)
             {
                 _charges.Clear();
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
-        public System.Collections.Generic.HashSet<string> Keywords
+        public System.Collections.Generic.HashSet<string>? Keywords
         {
             get => _keywords;
             set
@@ -96,7 +89,7 @@ namespace Server.TestContent
                 if (value != _keywords)
                 {
                     _keywords = value;
-                    Server.ISerializableExtensions.MarkDirty(this);
+                    MarkDirty();
                 }
             }
         }
@@ -106,7 +99,7 @@ namespace Server.TestContent
             _keywords ??= new System.Collections.Generic.HashSet<string>();
             if (_keywords.Add(value))
             {
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
@@ -114,7 +107,7 @@ namespace Server.TestContent
         {
             if (_keywords?.Remove(value) == true)
             {
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
@@ -123,11 +116,11 @@ namespace Server.TestContent
             if (_keywords?.Count > 0)
             {
                 _keywords.Clear();
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
-        public System.Collections.Generic.Dictionary<int, string> Labels
+        public System.Collections.Generic.Dictionary<int, string?>? Labels
         {
             get => _labels;
             set
@@ -135,17 +128,17 @@ namespace Server.TestContent
                 if (value != _labels)
                 {
                     _labels = value;
-                    Server.ISerializableExtensions.MarkDirty(this);
+                    MarkDirty();
                 }
             }
         }
 
-        public void AddToLabels(int key, string value)
+        public void AddToLabels(int key, string? value)
         {
             _labels ??= new System.Collections.Generic.Dictionary<int, string>();
             if (_labels.TryAdd(key, value))
             {
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
@@ -153,15 +146,15 @@ namespace Server.TestContent
         {
             if (_labels?.Remove(key) == true)
             {
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
-        public void ReplaceInLabels(int key, string value)
+        public void ReplaceInLabels(int key, string? value)
         {
             _labels ??= new System.Collections.Generic.Dictionary<int, string>();
             _labels[key] = value;
-            Server.ISerializableExtensions.MarkDirty(this);
+            MarkDirty();
         }
 
         public void ClearLabels()
@@ -169,11 +162,70 @@ namespace Server.TestContent
             if (_labels?.Count > 0)
             {
                 _labels.Clear();
-                Server.ISerializableExtensions.MarkDirty(this);
+                MarkDirty();
             }
         }
 
-        public CollectionsItem(Server.Serial serial)
+        public System.Collections.Generic.SortedSet<string>? Names
+        {
+            get => _names;
+            set
+            {
+                if (value != _names)
+                {
+                    _names = value;
+                    MarkDirty();
+                }
+            }
+        }
+
+        public void AddToNames(string value)
+        {
+            _names ??= new System.Collections.Generic.SortedSet<string>(new Server.TestContent.CaseInsensitiveComparer());
+            if (_names.Add(value))
+            {
+                MarkDirty();
+            }
+        }
+
+        public void RemoveFromNames(string value)
+        {
+            if (_names?.Remove(value) == true)
+            {
+                MarkDirty();
+            }
+        }
+
+        public void ClearNames()
+        {
+            if (_names?.Count > 0)
+            {
+                _names.Clear();
+                MarkDirty();
+            }
+        }
+
+        public string?[]? Aliases
+        {
+            get => _aliases;
+            set
+            {
+                if (value != _aliases)
+                {
+                    _aliases = value;
+                    MarkDirty();
+                }
+            }
+        }
+
+
+        public void ClearAliases()
+        {
+            Aliases = System.Array.Empty<string?>();
+            MarkDirty();
+        }
+
+        public NullableCollectionsItem(Server.Serial serial)
         {
             Serial = serial;
         }
@@ -182,13 +234,7 @@ namespace Server.TestContent
         {
             writer.WriteEncodedInt(SerializationVersion);
 
-            var _levelsLength = _levels?.Length ?? 0;
-            writer.WriteEncodedInt(_levelsLength);
-            for (var _levelsIndex = 0; _levelsIndex < _levelsLength; _levelsIndex++)
-            {
-                var _levelsEntry = _levels![_levelsIndex];
-                writer.Write(_levelsEntry);
-            }
+            writer.Write(_title);
 
             var _chargesCount = _charges?.Count ?? 0;
             writer.WriteEncodedInt(_chargesCount);
@@ -220,19 +266,31 @@ namespace Server.TestContent
                     writer.Write(_labelsValue);
                 }
             }
+
+            var _namesCount = _names?.Count ?? 0;
+            writer.WriteEncodedInt(_namesCount);
+            if (_namesCount > 0)
+            {
+                foreach (var _namesEntry in _names!)
+                {
+                    writer.Write(_namesEntry);
+                }
+            }
+
+            var _aliasesLength = _aliases?.Length ?? 0;
+            writer.WriteEncodedInt(_aliasesLength);
+            for (var _aliasesIndex = 0; _aliasesIndex < _aliasesLength; _aliasesIndex++)
+            {
+                var _aliasesEntry = _aliases![_aliasesIndex];
+                writer.Write(_aliasesEntry);
+            }
         }
 
         public virtual void Deserialize(Server.IGenericReader reader)
         {
             var version = reader.ReadEncodedInt();
 
-            _levels = new int[reader.ReadEncodedInt()];
-            for (var _levelsIndex = 0; _levelsIndex < _levels.Length; _levelsIndex++)
-            {
-                var _levelsEntry = _levels![_levelsIndex];
-                _levelsEntry = reader.ReadInt();
-                _levels![_levelsIndex] = _levelsEntry;
-            }
+            _title = reader.ReadString();
 
             int _chargesEntry;
             var _chargesCount = reader.ReadEncodedInt();
@@ -267,6 +325,26 @@ namespace Server.TestContent
                 {
                     _labels.Add(_labelsKey, _labelsValue);
                 }
+            }
+
+            string _namesEntry;
+            var _namesCount = reader.ReadEncodedInt();
+            _names = new System.Collections.Generic.SortedSet<string>(new Server.TestContent.CaseInsensitiveComparer());
+            for (var _namesIndex = 0; _namesIndex < _namesCount; _namesIndex++)
+            {
+                _namesEntry = reader.ReadString();
+                if (typeof(string).IsValueType || _namesEntry != default)
+                {
+                    _names.Add(_namesEntry);
+                }
+            }
+
+            _aliases = new string[reader.ReadEncodedInt()];
+            for (var _aliasesIndex = 0; _aliasesIndex < _aliases.Length; _aliasesIndex++)
+            {
+                var _aliasesEntry = _aliases![_aliasesIndex];
+                _aliasesEntry = reader.ReadString();
+                _aliases![_aliasesIndex] = _aliasesEntry;
             }
         }
     }

@@ -135,8 +135,11 @@ public sealed record FieldPropertyModel(
     bool DsIsDictionary,
     bool DsIsList,
     bool DsIsCollection,
+    bool DsIsSet,
+    bool DsHasTryAdd,
     string? DsElementType,
-    string? DsValueType
+    string? DsValueType,
+    string? DsCreateExpression
 )
 {
     public bool HasDataStructureMethods => DsIsArray || DsIsDictionary || DsIsList || DsIsCollection;

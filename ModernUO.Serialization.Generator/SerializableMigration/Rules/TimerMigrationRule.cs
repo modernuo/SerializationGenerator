@@ -65,6 +65,15 @@ public class TimerMigrationRule : MigrationRule, IPostDeserializeMethod
         source.AppendLine($"{indent}internal readonly System.TimeSpan {property.Name}Delay;");
     }
 
+    // Same "no timer was running" sentinels the present branch produces for a MinValue read.
+    public override void GenerateMigrationAbsentAssignment(
+        StringBuilder source, string indent, SerializableProperty property
+    )
+    {
+        source.AppendLine($"{indent}{property.Name}Next = System.DateTime.MinValue;");
+        source.AppendLine($"{indent}{property.Name}Delay = System.TimeSpan.MinValue;");
+    }
+
     public override void GenerateDeserializationMethod(
         StringBuilder source,
         string indent,

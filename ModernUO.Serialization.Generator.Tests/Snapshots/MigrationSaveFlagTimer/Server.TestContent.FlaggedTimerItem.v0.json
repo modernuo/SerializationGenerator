@@ -1,0 +1,39 @@
+{
+    "version": 0,
+    "type": "Server.TestContent.FlaggedTimerItem",
+    "properties": [
+        {
+            "name": "Count",
+            "type": "int",
+            "usesSaveFlag": true,
+            "rule": "PrimitiveTypeMigrationRule"
+        },
+        {
+            "name": "AnchoredTimer",
+            "type": "Server.Timer",
+            "usesSaveFlag": true,
+            "rule": "TimerMigrationRule",
+            "ruleArguments": [
+                "@AnchoredTimer"
+            ]
+        },
+        {
+            "name": "DeadlineTimer",
+            "type": "Server.Timer",
+            "usesSaveFlag": true,
+            "rule": "TimerMigrationRule",
+            "ruleArguments": [
+                ""
+            ]
+        },
+        {
+            "name": "DriftTimer",
+            "type": "Server.Timer",
+            "usesSaveFlag": true,
+            "rule": "TimerMigrationRule",
+            "ruleArguments": [
+                "@TimerDrift"
+            ]
+        }
+    ]
+}

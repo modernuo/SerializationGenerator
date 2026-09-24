@@ -34,6 +34,15 @@ public static partial class SymbolMetadata
     public const string GUID_STRUCT = "System.Guid";
     public const string TYPE_CLASS = "System.Type";
 
+    // Serialization type names drop reference-type nullable annotations ("string?" reads and writes
+    // exactly like "string"); Nullable<T> still displays as "int?".
+    private static readonly SymbolDisplayFormat SerializedTypeFormat =
+        SymbolDisplayFormat.CSharpErrorMessageFormat.RemoveMiscellaneousOptions(
+            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+        );
+
+    public static string ToSerializedTypeName(this ISymbol symbol) => symbol.ToDisplayString(SerializedTypeFormat);
+
     extension(ISymbol symbol)
     {
         public bool IsGuid(Compilation compilation) =>

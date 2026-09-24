@@ -30,32 +30,42 @@ namespace Server.TestContent
 
         public void AddToEntries(Server.TestContent.BaseEntry value)
         {
-            Entries.Add(value);
+            _entries ??= new System.Collections.Generic.List<Server.TestContent.BaseEntry>();
+            _entries.Add(value);
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
         public void RemoveFromEntries(Server.TestContent.BaseEntry value)
         {
-            Entries.Remove(value);
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_entries?.Remove(value) == true)
+            {
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public void InsertIntoEntries(int index, Server.TestContent.BaseEntry value)
         {
-            Entries.Insert(index, value);
+            _entries ??= new System.Collections.Generic.List<Server.TestContent.BaseEntry>();
+            _entries.Insert(index, value);
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
         public void RemoveFromEntriesAt(int index)
         {
-            Entries.RemoveAt(index);
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_entries != null)
+            {
+                _entries.RemoveAt(index);
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public void ClearEntries()
         {
-            Entries.Clear();
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_entries?.Count > 0)
+            {
+                _entries.Clear();
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public Owner(Server.Serial serial) : base(serial)

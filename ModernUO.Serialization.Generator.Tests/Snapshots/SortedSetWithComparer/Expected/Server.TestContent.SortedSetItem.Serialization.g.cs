@@ -30,21 +30,28 @@ namespace Server.TestContent
 
         public void AddToNames(string value)
         {
-            Names.Add(value);
-            Server.ISerializableExtensions.MarkDirty(this);
+            _names ??= new System.Collections.Generic.SortedSet<string>(new Server.TestContent.CaseInsensitiveComparer());
+            if (_names.Add(value))
+            {
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public void RemoveFromNames(string value)
         {
-            Names.Remove(value);
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_names?.Remove(value) == true)
+            {
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
-
 
         public void ClearNames()
         {
-            Names.Clear();
-            Server.ISerializableExtensions.MarkDirty(this);
+            if (_names?.Count > 0)
+            {
+                _names.Clear();
+                Server.ISerializableExtensions.MarkDirty(this);
+            }
         }
 
         public SortedSetItem(Server.Serial serial)
