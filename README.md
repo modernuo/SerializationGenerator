@@ -7,8 +7,8 @@ While it is not the most elegant solution (recommendations and contributions are
 Add `ModernUO.Serialization.Generator` and `ModernUO.Serialization.Annotations` as package references:
 ```xml
     <ItemGroup>
-        <PackageReference Include="ModernUO.Serialization.Annotations" Version="4.2.0" />
-        <PackageReference Include="ModernUO.Serialization.Generator" Version="4.2.0" PrivateAssets="all" />
+        <PackageReference Include="ModernUO.Serialization.Annotations" Version="4.3.0" />
+        <PackageReference Include="ModernUO.Serialization.Generator" Version="4.3.0" PrivateAssets="all" />
     </ItemGroup>
 ```
 
@@ -127,6 +127,9 @@ A `[SerializableField]` collection (`List<T>`, `HashSet<T>`, `SortedSet<T>`, `Di
 They tolerate a null collection: adds create it on first use (a `[SortedSetComparer]` is kept), while removes and clears
 do nothing. They mark the entity dirty only when the collection actually changed, so adding a duplicate to a set or
 dictionary, or removing a missing entry, does not.
+
+`RemoveFromX`, and `AddToX` on a set or dictionary, return whether the collection changed, like the BCL's `Remove`,
+`HashSet<T>.Add` and `TryAdd`. The rest return `void`.
 
 Nullable reference annotations (`string?`, `List<Item?>?`) are ignored for serialization. Nullable value types
 (`int?`, `Point3D?`, a nullable `[SerializationGenerator]` struct, or `List<int?>`) are written as a `bool` followed by the

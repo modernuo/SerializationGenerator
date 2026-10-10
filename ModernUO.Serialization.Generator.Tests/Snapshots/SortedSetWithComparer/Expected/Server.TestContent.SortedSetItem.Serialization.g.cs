@@ -28,21 +28,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToNames(string value)
+        public bool AddToNames(string value)
         {
             _names ??= new System.Collections.Generic.SortedSet<string>(new Server.TestContent.CaseInsensitiveComparer());
             if (_names.Add(value))
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromNames(string value)
+        public bool RemoveFromNames(string value)
         {
             if (_names?.Remove(value) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void ClearNames()

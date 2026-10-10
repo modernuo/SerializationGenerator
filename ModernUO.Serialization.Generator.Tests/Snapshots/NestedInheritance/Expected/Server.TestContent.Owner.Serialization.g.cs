@@ -35,12 +35,15 @@ namespace Server.TestContent
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
-        public void RemoveFromEntries(Server.TestContent.BaseEntry value)
+        public bool RemoveFromEntries(Server.TestContent.BaseEntry value)
         {
             if (_entries?.Remove(value) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void InsertIntoEntries(int index, Server.TestContent.BaseEntry value)

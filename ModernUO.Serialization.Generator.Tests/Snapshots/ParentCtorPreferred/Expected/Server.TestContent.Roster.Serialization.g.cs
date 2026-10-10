@@ -35,12 +35,15 @@ namespace Server.TestContent
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
-        public void RemoveFromEntries(Server.TestContent.RosterEntry value)
+        public bool RemoveFromEntries(Server.TestContent.RosterEntry value)
         {
             if (_entries?.Remove(value) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void InsertIntoEntries(int index, Server.TestContent.RosterEntry value)
@@ -81,21 +84,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToById(int key, Server.TestContent.RosterEntry value)
+        public bool AddToById(int key, Server.TestContent.RosterEntry value)
         {
             _byId ??= new System.Collections.Generic.Dictionary<int, Server.TestContent.RosterEntry>();
             if (_byId.TryAdd(key, value))
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromById(int key)
+        public bool RemoveFromById(int key)
         {
             if (_byId?.Remove(key) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void ReplaceInById(int key, Server.TestContent.RosterEntry value)

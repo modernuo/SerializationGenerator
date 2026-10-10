@@ -55,12 +55,15 @@ namespace Server.TestContent
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
-        public void RemoveFromCharges(int value)
+        public bool RemoveFromCharges(int value)
         {
             if (_charges?.Remove(value) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void InsertIntoCharges(int index, int value)
@@ -101,21 +104,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToKeywords(string value)
+        public bool AddToKeywords(string value)
         {
             _keywords ??= new System.Collections.Generic.HashSet<string>();
             if (_keywords.Add(value))
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromKeywords(string value)
+        public bool RemoveFromKeywords(string value)
         {
             if (_keywords?.Remove(value) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void ClearKeywords()
@@ -140,21 +149,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToLabels(int key, string value)
+        public bool AddToLabels(int key, string value)
         {
             _labels ??= new System.Collections.Generic.Dictionary<int, string>();
             if (_labels.TryAdd(key, value))
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromLabels(int key)
+        public bool RemoveFromLabels(int key)
         {
             if (_labels?.Remove(key) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void ReplaceInLabels(int key, string value)

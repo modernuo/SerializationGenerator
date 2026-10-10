@@ -21,21 +21,22 @@ public static partial class SerializableEntityGeneration
         }
     }
 
-    // Marks dirty only when the mutation reports a change. Without a dirty target, just mutates.
-    private static void AppendIfChanged(
-        this StringBuilder source, string indent, string changed, string? markDirtyMethod, string? statement = null
-    )
+    // Returns whether the mutation reported a change, marking dirty only when it did.
+    private static void AppendReturnIfChanged(this StringBuilder source, string indent, string changed, string? markDirtyMethod)
     {
         if (markDirtyMethod == null)
         {
-            source.AppendLine($"{indent}    {statement ?? changed};");
+            source.AppendLine($"{indent}    return {changed};");
             return;
         }
 
         source.AppendLine($"{indent}    if ({changed})");
         source.AppendLine($"{indent}    {{");
         source.AppendLine($"{indent}        {markDirtyMethod};");
+        source.AppendLine($"{indent}        return true;");
         source.AppendLine($"{indent}    }}");
+        source.AppendLine();
+        source.AppendLine($"{indent}    return false;");
     }
 
     public static bool GenerateDataStructureMethods(
@@ -59,34 +60,38 @@ public static partial class SerializableEntityGeneration
         // Mutations go through the backing field: lazily creating the collection through the
         // property setter would run fieldChanged/allowFieldChange for what is not a replacement.
         // Removals and clears tolerate a null collection, and only mark dirty on an actual change.
+        // Return types mirror the BCL: a mutation that can be a no-op returns whether it changed anything.
         if (field.DsIsDictionary)
         {
             var valueTypeName = field.DsValueType;
 
             // Add
-            source.AppendLine($"{indent}{propertyAccessor} void AddTo{propertyName}({elementTypeName} key, {valueTypeName} value)");
+            source.AppendLine($"{indent}{propertyAccessor} bool AddTo{propertyName}({elementTypeName} key, {valueTypeName} value)");
             source.AppendLine($"{indent}{{");
             source.AppendLazyCreate(indent, field);
             if (field.DsHasTryAdd)
             {
-                source.AppendIfChanged(indent, $"{fieldName}.TryAdd(key, value)", markDirtyMethod);
+                source.AppendReturnIfChanged(indent, $"{fieldName}.TryAdd(key, value)", markDirtyMethod);
             }
             else
             {
-                source.AppendLine($"{indent}    if (!{fieldName}.ContainsKey(key))");
+                source.AppendLine($"{indent}    if ({fieldName}.ContainsKey(key))");
                 source.AppendLine($"{indent}    {{");
-                source.AppendLine($"{indent}        {fieldName}.Add(key, value);");
-                source.AppendMarkDirty($"{indent}    ", markDirtyMethod);
+                source.AppendLine($"{indent}        return false;");
                 source.AppendLine($"{indent}    }}");
+                source.AppendLine();
+                source.AppendLine($"{indent}    {fieldName}.Add(key, value);");
+                source.AppendMarkDirty(indent, markDirtyMethod);
+                source.AppendLine($"{indent}    return true;");
             }
             source.AppendLine($"{indent}}}");
 
             source.AppendLine();
 
             // Remove
-            source.AppendLine($"{indent}{propertyAccessor} void RemoveFrom{propertyName}({elementTypeName} key)");
+            source.AppendLine($"{indent}{propertyAccessor} bool RemoveFrom{propertyName}({elementTypeName} key)");
             source.AppendLine($"{indent}{{");
-            source.AppendIfChanged(indent, $"{fieldName}?.Remove(key) == true", markDirtyMethod, $"{fieldName}?.Remove(key)");
+            source.AppendReturnIfChanged(indent, $"{fieldName}?.Remove(key) == true", markDirtyMethod);
             source.AppendLine($"{indent}}}");
 
             source.AppendLine();
@@ -102,12 +107,13 @@ public static partial class SerializableEntityGeneration
         else if (field.DsIsCollection)
         {
             // Add
-            source.AppendLine($"{indent}{propertyAccessor} void AddTo{propertyName}({elementTypeName} value)");
+            var addReturnType = field.DsIsSet ? "bool" : "void";
+            source.AppendLine($"{indent}{propertyAccessor} {addReturnType} AddTo{propertyName}({elementTypeName} value)");
             source.AppendLine($"{indent}{{");
             source.AppendLazyCreate(indent, field);
             if (field.DsIsSet)
             {
-                source.AppendIfChanged(indent, $"{fieldName}.Add(value)", markDirtyMethod);
+                source.AppendReturnIfChanged(indent, $"{fieldName}.Add(value)", markDirtyMethod);
             }
             else
             {
@@ -119,9 +125,9 @@ public static partial class SerializableEntityGeneration
             source.AppendLine();
 
             // Remove
-            source.AppendLine($"{indent}{propertyAccessor} void RemoveFrom{propertyName}({elementTypeName} value)");
+            source.AppendLine($"{indent}{propertyAccessor} bool RemoveFrom{propertyName}({elementTypeName} value)");
             source.AppendLine($"{indent}{{");
-            source.AppendIfChanged(indent, $"{fieldName}?.Remove(value) == true", markDirtyMethod, $"{fieldName}?.Remove(value)");
+            source.AppendReturnIfChanged(indent, $"{fieldName}?.Remove(value) == true", markDirtyMethod);
             source.AppendLine($"{indent}}}");
         }
 
