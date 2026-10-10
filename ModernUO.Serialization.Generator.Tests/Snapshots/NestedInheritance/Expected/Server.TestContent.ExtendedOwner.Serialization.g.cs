@@ -35,12 +35,15 @@ namespace Server.TestContent
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
-        public void RemoveFromExtendedEntries(Server.TestContent.DerivedEntry value)
+        public bool RemoveFromExtendedEntries(Server.TestContent.DerivedEntry value)
         {
             if (_extendedEntries?.Remove(value) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void InsertIntoExtendedEntries(int index, Server.TestContent.DerivedEntry value)

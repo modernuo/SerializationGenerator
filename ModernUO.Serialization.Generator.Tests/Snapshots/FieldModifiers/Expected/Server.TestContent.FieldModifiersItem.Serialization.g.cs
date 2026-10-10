@@ -41,21 +41,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToEntries(int key, string value)
+        public bool AddToEntries(int key, string value)
         {
             _entries ??= new System.Collections.Generic.Dictionary<int, string>();
             if (_entries.TryAdd(key, value))
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromEntries(int key)
+        public bool RemoveFromEntries(int key)
         {
             if (_entries?.Remove(key) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void ReplaceInEntries(int key, string value)

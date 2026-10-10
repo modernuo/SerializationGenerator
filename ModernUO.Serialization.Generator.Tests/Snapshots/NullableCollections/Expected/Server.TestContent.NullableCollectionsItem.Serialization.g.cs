@@ -48,12 +48,15 @@ namespace Server.TestContent
             MarkDirty();
         }
 
-        public void RemoveFromCharges(int value)
+        public bool RemoveFromCharges(int value)
         {
             if (_charges?.Remove(value) == true)
             {
                 MarkDirty();
+                return true;
             }
+
+            return false;
         }
 
         public void InsertIntoCharges(int index, int value)
@@ -94,21 +97,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToKeywords(string value)
+        public bool AddToKeywords(string value)
         {
             _keywords ??= new System.Collections.Generic.HashSet<string>();
             if (_keywords.Add(value))
             {
                 MarkDirty();
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromKeywords(string value)
+        public bool RemoveFromKeywords(string value)
         {
             if (_keywords?.Remove(value) == true)
             {
                 MarkDirty();
+                return true;
             }
+
+            return false;
         }
 
         public void ClearKeywords()
@@ -133,21 +142,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToLabels(int key, string? value)
+        public bool AddToLabels(int key, string? value)
         {
             _labels ??= new System.Collections.Generic.Dictionary<int, string>();
             if (_labels.TryAdd(key, value))
             {
                 MarkDirty();
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromLabels(int key)
+        public bool RemoveFromLabels(int key)
         {
             if (_labels?.Remove(key) == true)
             {
                 MarkDirty();
+                return true;
             }
+
+            return false;
         }
 
         public void ReplaceInLabels(int key, string? value)
@@ -179,21 +194,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToNames(string value)
+        public bool AddToNames(string value)
         {
             _names ??= new System.Collections.Generic.SortedSet<string>(new Server.TestContent.CaseInsensitiveComparer());
             if (_names.Add(value))
             {
                 MarkDirty();
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromNames(string value)
+        public bool RemoveFromNames(string value)
         {
             if (_names?.Remove(value) == true)
             {
                 MarkDirty();
+                return true;
             }
+
+            return false;
         }
 
         public void ClearNames()

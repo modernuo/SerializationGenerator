@@ -45,9 +45,9 @@ namespace Server.TestContent
             _values.Add(value);
         }
 
-        public void RemoveFromValues(int value)
+        public bool RemoveFromValues(int value)
         {
-            _values?.Remove(value);
+            return _values?.Remove(value) == true;
         }
 
         public void InsertIntoValues(int index, int value)
@@ -84,15 +84,15 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToLookup(int key, string value)
+        public bool AddToLookup(int key, string value)
         {
             _lookup ??= new System.Collections.Generic.Dictionary<int, string>();
-            _lookup.TryAdd(key, value);
+            return _lookup.TryAdd(key, value);
         }
 
-        public void RemoveFromLookup(int key)
+        public bool RemoveFromLookup(int key)
         {
-            _lookup?.Remove(key);
+            return _lookup?.Remove(key) == true;
         }
 
         public void ReplaceInLookup(int key, string value)

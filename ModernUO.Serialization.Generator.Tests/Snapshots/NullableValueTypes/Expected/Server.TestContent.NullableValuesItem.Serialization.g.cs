@@ -113,12 +113,15 @@ namespace Server.TestContent
             Server.ISerializableExtensions.MarkDirty(this);
         }
 
-        public void RemoveFromSamples(int? value)
+        public bool RemoveFromSamples(int? value)
         {
             if (_samples?.Remove(value) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void InsertIntoSamples(int index, int? value)
@@ -159,21 +162,27 @@ namespace Server.TestContent
             }
         }
 
-        public void AddToWeights(int key, double? value)
+        public bool AddToWeights(int key, double? value)
         {
             _weights ??= new System.Collections.Generic.Dictionary<int, double?>();
             if (_weights.TryAdd(key, value))
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
-        public void RemoveFromWeights(int key)
+        public bool RemoveFromWeights(int key)
         {
             if (_weights?.Remove(key) == true)
             {
                 Server.ISerializableExtensions.MarkDirty(this);
+                return true;
             }
+
+            return false;
         }
 
         public void ReplaceInWeights(int key, double? value)
