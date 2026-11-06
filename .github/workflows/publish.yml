@@ -1,0 +1,51 @@
+name: Publish to NuGet
+
+# Trusted publishing: nuget.org trusts this repo + this workflow file (+ the "nuget" environment)
+# and exchanges the job's GitHub OIDC token for a short-lived API key. No long-lived key is stored.
+# Renaming this file or the environment breaks the nuget.org policy until it is updated to match.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      PACKAGE_DIR: ${{ github.workspace }}/packages
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # Pack before logging in: the temporary key expires after an hour.
+      - name: Pack
+        run: |
+          dotnet pack ModernUO.Serialization.Annotations/ModernUO.Serialization.Annotations.csproj -c Release -o "$PACKAGE_DIR"
+          dotnet pack ModernUO.Serialization.Generator/ModernUO.Serialization.Generator.csproj -c Release -o "$PACKAGE_DIR"
+          dotnet pack ModernUO.Serialization.SchemaGenerator/ModernUO.Serialization.SchemaGenerator.csproj -c Release -o "$PACKAGE_DIR"
+
+      - name: NuGet login (OIDC)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # Symbol packages (.snupkg) next to a .nupkg are pushed along with it.
+      - name: Push
+        run: >
+          dotnet nuget push "$PACKAGE_DIR/*.nupkg"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
