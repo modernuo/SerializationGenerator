@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
 
       # GeneratePackageOnBuild=true makes pack skip its build, packing an empty bin/ on a clean runner.
       # Pack before logging in: the temporary key expires after an hour.
